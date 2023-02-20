@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"qf/helper/content"
+	"time"
 )
 
 type EApiKind string
@@ -33,10 +34,14 @@ type ApiHandler func(content content.Content) (interface{}, error)
 
 type Apis map[string]Api
 
-func (api Apis) Reg(router ApiRouter, submit ApiHandler, delete ApiHandler, get ApiHandler, demoInput string) {
-	api.CustomReg(router, EApiKindSubmit, "", "保存一条内容，新增或修改", submit, demoInput)
-	api.CustomReg(router, EApiKindDelete, "", "删除一条内容", delete, demoInput)
-	api.CustomReg(router, EApiKindGet, "", "获取单个完整内容", get, demoInput)
+//func (api Apis) Reg(router ApiRouter, submit ApiHandler, delete ApiHandler, get ApiHandler, demoInput string) {
+//	api.CustomReg(router, EApiKindSubmit, "", "保存一条内容，新增或修改", submit, demoInput)
+//	api.CustomReg(router, EApiKindDelete, "", "删除一条内容", delete, demoInput)
+//	api.CustomReg(router, EApiKindGet, "", "获取单个完整内容", get, demoInput)
+//}
+
+func (api Apis) Reg(router ApiRouter, demoInput string) {
+
 }
 
 func (api Apis) CustomReg(router ApiRouter, kind EApiKind, route string, explain string, function ApiHandler, demoInput string) {
@@ -101,6 +106,10 @@ func (ref References) Reg(router ApiRouter, kind EApiKind, relative string) {
 	}
 }
 
+func (ref References) Init(bll IBll, explain string) {
+
+}
+
 type BaseBll struct {
 	DB      *gorm.DB
 	Content IContentAdapter
@@ -128,6 +137,28 @@ func (b *BaseBll) setMessage(adapter IMessageAdapter) {
 
 func (b *BaseBll) setLog(adapter ILogAdapter) {
 	b.Log = adapter
+}
+
+func (b *BaseBll) Submit(c content.Content) (interface{}, error) {
+	// 保存内容
+	return b.Content.Save(c)
+}
+
+func (b *BaseBll) Delete(contentId uint) (interface{}, error) {
+	// 删除内容
+	err := b.Content.Delete(contentId)
+	if err != nil {
+		return nil, err
+	}
+	return contentId, nil
+}
+
+func (b *BaseBll) GetModel(contentId uint) (interface{}, error) {
+	return b.Content.GetModel(contentId)
+}
+
+func (b *BaseBll) GetList(startTime time.Time, endTime time.Time) (interface{}, error) {
+	return b.Content.GetList(startTime, endTime)
 }
 
 func (b *BaseBll) SendMessage(router ApiRouter, addition string, payload interface{}) error {

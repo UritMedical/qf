@@ -13,6 +13,10 @@ type ISetBll interface {
 	setSetting(adapter ISettingAdapter)
 	setMessage(adapter IMessageAdapter)
 	setLog(adapter ILogAdapter)
+	Submit(c content.Content) (interface{}, error)
+	Delete(contentId uint) (interface{}, error)
+	GetModel(contentId uint) (interface{}, error)
+	GetList(startTime time.Time, endTime time.Time) (interface{}, error)
 }
 
 // IBll 主业务接口
@@ -29,6 +33,9 @@ type IBll interface {
 	Init() (err error)
 	// Stop 释放
 	Stop()
+
+	BeforeApis(kind EApiKind, content content.Content) (interface{}, error)
+	AfterApis(kind EApiKind, latest []content.Content, old content.Content) (interface{}, error)
 }
 
 // ILogAdapter 日志接口

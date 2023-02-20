@@ -17,11 +17,11 @@ type Bll struct {
 
 // RegApis 注册需要暴露的方法
 func (b *Bll) RegApis(apis *qf.Apis) {
-	apis.Reg(RouterPatient, b.submit, b.delete, b.getModel, fake())
-	apis.CustomReg(RouterPatient, qf.EApiKindGet, "list", "按条件查询一组列表", b.getList, "")
+	//apis.Reg(RouterPatient, b.submit, b.delete, b.getModel, fake())
+	//apis.CustomReg(RouterPatient, qf.EApiKindGet, "list", "按条件查询一组列表", b.getList, "")
 }
 
-// RegMessages 注册需要发送的自定义消息
+// RegMessages 注册需要发送的自定义消息0
 func (b *Bll) RegMessages(messages *qf.Messages) {
 	// 其他自定义消息
 	//messages.Reg(RouterPatient, "CheckSample", "样本审核")
@@ -44,43 +44,63 @@ func (b *Bll) Stop() {
 
 }
 
-func (b *Bll) submit(c content.Content) (interface{}, error) {
-	// 保存内容
-	nc, err := b.Content.Save(c)
-	if err != nil {
-		return nil, err
-	}
-	// 保存索引
-	err = b.dal.updateIndexes(c, nc)
-	if err != nil {
-		return nil, err
-	}
-	return nc, nil
+func (b *Bll) BeforeApis(kind qf.EApiKind, content content.Content) (interface{}, error) {
+	return nil, nil
 }
 
-func (b *Bll) delete(c content.Content) (interface{}, error) {
-	// 删除索引
-	err := b.Content.Delete(c.ID)
-	if err != nil {
-		return nil, err
+func (b *Bll) AfterApis(kind qf.EApiKind, latest []content.Content, old content.Content) (interface{}, error) {
+	if kind == qf.EApiKindSubmit {
+		err := b.dal.updateIndexes(old, latest[0])
+		if err != nil {
+			return nil, err
+		}
 	}
-	// 保存索引
-	err = b.dal.updateIndexes(c, content.Content{})
-	if err != nil {
-		return nil, err
+	if kind == qf.EApiKindDelete {
+		err := b.dal.updateIndexes(latest[0], content.Content{})
+		if err != nil {
+			return nil, err
+		}
 	}
-	return c.ID, nil
+	return nil, nil
 }
 
-func (b *Bll) getModel(c content.Content) (interface{}, error) {
-	return b.Content.GetModel(c.ID)
-}
-
-func (b *Bll) getList(c content.Content) (interface{}, error) {
-	query := map[string]interface{}{}
-	err := c.BindQuery(query)
-	if err != nil {
-		return nil, err
-	}
-	return b.dal.selectList(query)
-}
+//func (b *Bll) submit(c content.Content) (interface{}, error) {
+//	// 保存内容
+//	nc, err := b.Content.Save(c)
+//	if err != nil {
+//		return nil, err
+//	}
+//	// 保存索引
+//	err = b.dal.updateIndexes(c, nc)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return nc, nil
+//}
+//
+//func (b *Bll) delete(c content.Content) (interface{}, error) {
+//	// 删除索引
+//	err := b.Content.Delete(c.ID)
+//	if err != nil {
+//		return nil, err
+//	}
+//	// 保存索引
+//	err = b.dal.updateIndexes(c, content.Content{})
+//	if err != nil {
+//		return nil, err
+//	}
+//	return c.ID, nil
+//}
+//
+//func (b *Bll) getModel(c content.Content) (interface{}, error) {
+//	return b.Content.GetModel(c.ID)
+//}
+//
+//func (b *Bll) getList(c content.Content) (interface{}, error) {
+//	query := map[string]interface{}{}
+//	err := c.BindQuery(query)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return b.dal.selectList(query)
+//}
