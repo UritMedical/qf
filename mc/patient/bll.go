@@ -1,106 +1,35 @@
 package patient
 
-import (
-	"qf"
-	"qf/helper/content"
-)
-
-var (
-	RouterPatient = qf.ApiRouter{Id: "patient", Explain: "患者信息业务"}
-	RouterDict    = qf.ApiRouter{Id: "dict", Explain: "字典业务"}
-)
+import "qf"
 
 type Bll struct {
 	qf.BaseBll
-	dal *dal
+	dal *Dal
+	//dictBll *dict.Bll
 }
 
-// RegApis 注册需要暴露的方法
-func (b *Bll) RegApis(apis *qf.Apis) {
-	//apis.Reg(RouterPatient, b.submit, b.delete, b.getModel, fake())
-	//apis.CustomReg(RouterPatient, qf.EApiKindGet, "list", "按条件查询一组列表", b.getList, "")
+func (b *Bll) SetApis(api qf.Api) {
+	api.Set(qf.EKindSave, "", b.dal.Save)            // Post http://.../.../patient
+	api.Set(qf.EKindDelete, "", b.dal.Delete)        // Delete http://.../.../patient
+	api.Set(qf.EKindGetModel, "", b.dal.GetModel)    // Get http://.../.../patient?id=1234
+	api.Set(qf.EKindGetList, "list", b.dal.GetList)  // Get http://.../.../patients/list?startid=9999&maxcount=-1000
+	api.Set(qf.EKindGetList, "search", b.dal.Search) // Get http://.../.../patients/search?patdh=654321&patname=张三
 }
 
-// RegMessages 注册需要发送的自定义消息0
-func (b *Bll) RegMessages(messages *qf.Messages) {
-	// 其他自定义消息
-	//messages.Reg(RouterPatient, "CheckSample", "样本审核")
+func (b *Bll) SetDal(dal qf.Dal) {
+	// 注册dal和需要的实体，由框架自动创建数据表，并且框架将前端提交的内容转为该结构
+	dal.Set(b.dal, Patient{})
 }
 
-// RegReferences 注册需要引用的其他业务方法
-func (b *Bll) RegReferences(references *qf.References) {
-	// 通过字典业务获取字典数据
-	references.Reg(RouterDict, qf.EApiKindGet, "")
+func (b *Bll) SetReference(ref qf.Reference) {
+	// 申明需要引用的其他包业务
+	//ref.Set(dictBll)
 }
 
-// Init 业务初始化
-func (b *Bll) Init() (err error) {
-	b.dal = newDal(b.DB)
+func (b *Bll) Init() error {
 	return nil
 }
 
-// Stop 业务释放
 func (b *Bll) Stop() {
 
 }
-
-func (b *Bll) BeforeApis(kind qf.EApiKind, content content.Content) (interface{}, error) {
-	return nil, nil
-}
-
-func (b *Bll) AfterApis(kind qf.EApiKind, latest []content.Content, old content.Content) (interface{}, error) {
-	if kind == qf.EApiKindSubmit {
-		err := b.dal.updateIndexes(old, latest[0])
-		if err != nil {
-			return nil, err
-		}
-	}
-	if kind == qf.EApiKindDelete {
-		err := b.dal.updateIndexes(latest[0], content.Content{})
-		if err != nil {
-			return nil, err
-		}
-	}
-	return nil, nil
-}
-
-//func (b *Bll) submit(c content.Content) (interface{}, error) {
-//	// 保存内容
-//	nc, err := b.Content.Save(c)
-//	if err != nil {
-//		return nil, err
-//	}
-//	// 保存索引
-//	err = b.dal.updateIndexes(c, nc)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return nc, nil
-//}
-//
-//func (b *Bll) delete(c content.Content) (interface{}, error) {
-//	// 删除索引
-//	err := b.Content.Delete(c.ID)
-//	if err != nil {
-//		return nil, err
-//	}
-//	// 保存索引
-//	err = b.dal.updateIndexes(c, content.Content{})
-//	if err != nil {
-//		return nil, err
-//	}
-//	return c.ID, nil
-//}
-//
-//func (b *Bll) getModel(c content.Content) (interface{}, error) {
-//	return b.Content.GetModel(c.ID)
-//}
-//
-//func (b *Bll) getList(c content.Content) (interface{}, error) {
-//	query := map[string]interface{}{}
-//	err := c.BindQuery(query)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return b.dal.selectList(query)
-//}
