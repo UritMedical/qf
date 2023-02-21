@@ -30,9 +30,9 @@ func (b BaseBll) SetConfig(config map[string]interface{}) {
 // ApiHandler 业务实现
 type ApiHandler func(content interface{}) (interface{}, error)
 
-type Apis map[string]ApiHandler
+type ApiMap map[string]ApiHandler
 
-func (api Apis) Reg(kind EKind, router string, handler ApiHandler) {
+func (api ApiMap) Reg(kind EKind, router string, handler ApiHandler) {
 	key := fmt.Sprintf("%s^%s", kind, router)
 	if _, ok := api[key]; ok == false {
 		api[key] = handler
@@ -41,9 +41,9 @@ func (api Apis) Reg(kind EKind, router string, handler ApiHandler) {
 	}
 }
 
-type Dals map[IDal]interface{}
+type DalMap map[IDal]interface{}
 
-func (d *Dals) Reg(dal IDal, model interface{}) {
+func (d *DalMap) Reg(dal IDal, model interface{}) {
 
 }
 
@@ -86,10 +86,4 @@ func (b *BaseDal) GetModel(content interface{}) (interface{}, error) {
 func (b *BaseDal) GetList(content interface{}) (interface{}, error) {
 	//TODO implement me
 	panic("implement me")
-}
-
-type References []IBll
-
-func (refs *References) Set(bll IBll) {
-
 }

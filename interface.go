@@ -9,9 +9,9 @@ type IBll interface {
 	Debug(content string)
 	GetConfig() map[string]interface{}
 	SetConfig(config map[string]interface{})
-	regApis(apis Apis)
-	regDal(dals Dals)
-	regReference(refs References)
+	regApi(api ApiMap)
+	regDal(dal DalMap)
+	refBll() []IBll
 	init() error
 	stop()
 }
