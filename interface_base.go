@@ -13,28 +13,26 @@ type Model struct {
 
 // BaseBll 基础业务实现
 type BaseBll struct {
-	log     ILogAdapter
-	setting ISettingAdapter
 }
 
-func (b BaseBll) Log() *ILogAdapter {
-	return &b.log
+func (b BaseBll) Debug(content string) {
+
 }
 
 func (b BaseBll) GetConfig() map[string]interface{} {
-	return b.setting.GetConfig()
+	return nil
 }
 
 func (b BaseBll) SetConfig(config map[string]interface{}) {
-	b.SetConfig(config)
+
 }
 
 // ApiHandler 业务实现
 type ApiHandler func(content interface{}) (interface{}, error)
 
-type Api map[string]ApiHandler
+type Apis map[string]ApiHandler
 
-func (api Api) Set(kind EKind, router string, handler ApiHandler) {
+func (api Apis) Reg(kind EKind, router string, handler ApiHandler) {
 	key := fmt.Sprintf("%s^%s", kind, router)
 	if _, ok := api[key]; ok == false {
 		api[key] = handler
@@ -43,9 +41,9 @@ func (api Api) Set(kind EKind, router string, handler ApiHandler) {
 	}
 }
 
-type Dal map[IDal]interface{}
+type Dals map[IDal]interface{}
 
-func (d *Dal) Set(dal IDal, model interface{}) {
+func (d *Dals) Reg(dal IDal, model interface{}) {
 
 }
 
@@ -90,8 +88,8 @@ func (b *BaseDal) GetList(content interface{}) (interface{}, error) {
 	panic("implement me")
 }
 
-type Reference []IBll
+type References []IBll
 
-func (ref *Reference) Set(bll IBll) {
+func (refs *References) Set(bll IBll) {
 
 }
