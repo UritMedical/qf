@@ -22,7 +22,7 @@ func (b BaseBll) SetConfig(config map[string]interface{}) {
 }
 
 // ApiHandler 业务实现
-type ApiHandler func(ctx Context) (interface{}, error)
+type ApiHandler func(ctx *Context) (interface{}, error)
 
 type ApiMap map[string]ApiHandler
 
@@ -38,6 +38,14 @@ func (api ApiMap) Reg(kind EKind, router string, handler ApiHandler) {
 type DalMap map[IDal]interface{}
 
 func (d *DalMap) Reg(dal IDal, model interface{}) {
+
+}
+
+type MessageMap map[string]interface{}
+
+type MessageHandler func(ctx *Context) error
+
+func (m *MessageMap) Reg(bll IBll, router string, function MessageHandler) {
 
 }
 

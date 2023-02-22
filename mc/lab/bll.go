@@ -61,6 +61,10 @@ func (bll *Bll) RefBll() []qf.IBll {
 	return []qf.IBll{bll.patientBll}
 }
 
+func (bll *Bll) RegMsg(msg qf.MessageMap) {
+
+}
+
 func (bll *Bll) Init() error {
 	return nil
 }
@@ -69,7 +73,7 @@ func (bll *Bll) Stop() {
 	return
 }
 
-func (bll *Bll) checkin(ctx qf.Context) (interface{}, error) {
+func (bll *Bll) checkin(ctx *qf.Context) (interface{}, error) {
 	model := &CheckIn{}
 	ctx.BindModel(model)
 	model.PersonId = ctx.UserId          //来自上下文
@@ -81,7 +85,7 @@ func (bll *Bll) checkin(ctx qf.Context) (interface{}, error) {
 	return model, nil
 }
 
-func (bll *Bll) audit(ctx qf.Context) (interface{}, error) {
+func (bll *Bll) audit(ctx *qf.Context) (interface{}, error) {
 	return nil, nil
 	//return bll.auditDal.Save(content)
 }

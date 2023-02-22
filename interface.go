@@ -11,6 +11,7 @@ type IBll interface {
 	SetConfig(config map[string]interface{})
 	RegApi(api ApiMap)
 	RegDal(dal DalMap)
+	RegMsg(msg MessageMap)
 	RefBll() []IBll
 	Init() error
 	Stop()

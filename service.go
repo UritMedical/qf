@@ -94,6 +94,7 @@ func (f *Service) RegBll(bll IBll, routerGroup string) {
 
 func (f *Service) transmit() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		
 		//// 遍历注册的路由，查找对应的路由名字
 		//// 然后执行对应的业务方法
 		//for k, handler := range f.routerFunc {

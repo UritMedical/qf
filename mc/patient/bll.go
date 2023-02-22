@@ -23,6 +23,10 @@ func (b *Bll) RefBll() []qf.IBll {
 	return nil
 }
 
+func (b *Bll) RegMsg(msg qf.MessageMap) {
+
+}
+
 func (b *Bll) Init() error {
 	return nil
 }
