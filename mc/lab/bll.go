@@ -28,10 +28,10 @@ type Bll struct {
 	resultDal  *ResultDal
 	graphDal   *GraphDal
 	reportDal  *ReportDal
-	patientBll patient.Bll
+	patientBll *patient.Bll
 }
 
-func (bll *Bll) regApi(apiMap qf.ApiMap) {
+func (bll *Bll) RegApi(apiMap qf.ApiMap) {
 	apiMap.Reg(qf.EKindSave, "orders", bll.orderDal.Save)
 	apiMap.Reg(qf.EKindDelete, "orders", bll.orderDal.Delete)
 
@@ -53,30 +53,35 @@ func (bll *Bll) regApi(apiMap qf.ApiMap) {
 	apiMap.Reg(qf.EKindDelete, "reports", bll.reportDal.Delete)
 }
 
-func (bll *Bll) regDal(dalMap qf.DalMap) {
+func (bll *Bll) RegDal(dalMap qf.DalMap) {
 	dalMap.Reg(bll.orderDal, Order{})
 }
 
-func (bll *Bll) refBll() []qf.IBll {
+func (bll *Bll) RefBll() []qf.IBll {
 	return []qf.IBll{bll.patientBll}
 }
 
-func (bll *Bll) init() error {
+func (bll *Bll) Init() error {
 	return nil
 }
 
-func (bll *Bll) stop() {
+func (bll *Bll) Stop() {
 	return
 }
 
-func (bll *Bll) checkin(context Context) (interface{}, error) {
-	model :=&CheckIn{} //
-	bll.GetModelFromJson(context,model)
-	model.PersonId =context.UserId,//来自上下文
-	model.Content = bll.GetContent(model)//转换为json
-	return bll.checkInDal.Save(model)
+func (bll *Bll) checkin(ctx qf.Context) (interface{}, error) {
+	model := &CheckIn{}
+	ctx.BindModel(model)
+	model.PersonId = ctx.UserId          //来自上下文
+	model.Content = ctx.ToContent(model) //转换为json
+	rs, err := bll.checkInDal.Save(model)
+	if rs == false {
+		return nil, err
+	}
+	return model, nil
 }
 
-func (bll *Bll) audit(content interface{}) (interface{}, error) {
-	return bll.auditDal.Save(content)
+func (bll *Bll) audit(ctx qf.Context) (interface{}, error) {
+	return nil, nil
+	//return bll.auditDal.Save(content)
 }

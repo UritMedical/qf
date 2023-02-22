@@ -1,28 +1,26 @@
 package patient
 
-import "qf"
+import (
+	"errors"
+	"qf"
+)
 
 type Dal struct {
 	qf.BaseDal
 }
 
-func (d *Dal) BeforeAction(kind qf.EKind, content interface{}) (bool, error) {
+func (d *Dal) BeforeAction(kind qf.EKind, content interface{}) error {
 	m := content.(Patient)
 	// 检测重复
 	if kind == qf.EKindSave {
 		// 检测患者代号是否存在，存在返回false
 		if d.DB().Where("pat_no = ?", m.PatNo).RowsAffected > 0 {
-			return false, nil
+			return errors.New("pat_no already exists")
 		}
 	}
-	return true, nil
+	return nil
 }
 
-func (d *Dal) AfterAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
-}
-
-func (d *Dal) Search(content interface{}) (interface{}, error) {
-	//d.DB().Where(...)
-	return nil, nil
+func (d *Dal) AfterAction(kind qf.EKind, content interface{}) error {
+	return nil
 }

@@ -5,12 +5,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Model 基础内容实体，相关业务实体需要集成
-type Model struct {
-	ID   uint   `gorm:"primarykey"` // 唯一号
-	Info string // 完整内容信息
-}
-
 // BaseBll 基础业务实现
 type BaseBll struct {
 }
@@ -28,7 +22,7 @@ func (b BaseBll) SetConfig(config map[string]interface{}) {
 }
 
 // ApiHandler 业务实现
-type ApiHandler func(content interface{}) (interface{}, error)
+type ApiHandler func(ctx Context) (interface{}, error)
 
 type ApiMap map[string]ApiHandler
 
@@ -47,15 +41,6 @@ func (d *DalMap) Reg(dal IDal, model interface{}) {
 
 }
 
-type EKind string
-
-var (
-	EKindSave     EKind = "Save"
-	EKindDelete   EKind = "Delete"
-	EKindGetModel EKind = "GetModel"
-	EKindGetList  EKind = "GetList"
-)
-
 type BaseDal struct {
 	db *gorm.DB
 }
@@ -68,12 +53,12 @@ func (b *BaseDal) DB() *gorm.DB {
 	return b.db
 }
 
-func (b *BaseDal) Save(content interface{}) (interface{}, error) {
+func (b *BaseDal) Save(content interface{}) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (b *BaseDal) Delete(content interface{}) (interface{}, error) {
+func (b *BaseDal) Delete(content interface{}) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }

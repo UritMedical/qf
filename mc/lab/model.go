@@ -7,7 +7,7 @@
 package lab
 
 import (
-	"qf/helper/content"
+	"qf"
 )
 
 //
@@ -30,7 +30,7 @@ type Order struct {
 	// content.Content
 	//  @Description:ID 摘要 明文套餐明细等
 	//
-	content.Content
+	qf.Content
 }
 
 //
@@ -53,7 +53,7 @@ type Sample struct {
 	// content.Content
 	//  @Description: ID 明文 分管后所包含的套餐明细、检验项目明细等
 	//
-	content.Content
+	qf.Content
 }
 
 //
@@ -73,7 +73,7 @@ type Laboratory struct {
 	//
 	SampleNo string `gorm:"index" json:"sample_no"`
 
-	content.Content
+	qf.Content
 }
 
 //
@@ -96,7 +96,7 @@ type CheckIn struct {
 	// content.Content
 	//  @Description: 明文时间等
 	//
-	content.Content
+	qf.Content
 }
 
 //
@@ -119,7 +119,7 @@ type Audit struct {
 	// content.Content
 	//  @Description: 明文时间等
 	//
-	content.Content
+	qf.Content
 }
 
 //
@@ -141,7 +141,7 @@ type Result struct {
 	// content.Content
 	//  @Description: 应该是一个集合 一般来说应包含当次检验的所有项目，包括项目id 检验结果 参考范围 异常标志等
 	//
-	content.Content
+	qf.Content
 }
 
 //
@@ -163,7 +163,7 @@ type Graph struct {
 	// content.Content
 	//  @Description: 应该是一个集合 一般来说应包含当次检验的所有项目，包括项目id 检验结果 参考范围 异常标志等
 	//
-	content.Content
+	qf.Content
 }
 
 //
@@ -193,5 +193,5 @@ type Report struct {
 	// content.Content
 	//  @Description: 完整报告内容
 	//
-	content.Content
+	qf.Content
 }

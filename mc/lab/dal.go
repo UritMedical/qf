@@ -16,12 +16,12 @@ type OrderDal struct {
 	qf.BaseDal
 }
 
-func (dal *OrderDal) BeforeAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *OrderDal) BeforeAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
-func (dal *OrderDal) AfterAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *OrderDal) AfterAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
 //
@@ -32,24 +32,24 @@ type SampleDal struct {
 	qf.BaseDal
 }
 
-func (dal *SampleDal) BeforeAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *SampleDal) BeforeAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
-func (dal *SampleDal) AfterAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *SampleDal) AfterAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
 type LaboratoryDal struct {
 	qf.BaseDal
 }
 
-func (dal *LaboratoryDal) BeforeAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *LaboratoryDal) BeforeAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
-func (dal *LaboratoryDal) AfterAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *LaboratoryDal) AfterAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
 //
@@ -60,12 +60,12 @@ type CheckInDal struct {
 	qf.BaseDal
 }
 
-func (dal *CheckInDal) BeforeAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *CheckInDal) BeforeAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
-func (dal *CheckInDal) AfterAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *CheckInDal) AfterAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
 //
@@ -76,12 +76,12 @@ type AuditDal struct {
 	qf.BaseDal
 }
 
-func (dal *AuditDal) BeforeAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *AuditDal) BeforeAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
-func (dal *AuditDal) AfterAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *AuditDal) AfterAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
 //
@@ -92,12 +92,12 @@ type ResultDal struct {
 	qf.BaseDal
 }
 
-func (dal *ResultDal) BeforeAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *ResultDal) BeforeAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
-func (dal *ResultDal) AfterAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *ResultDal) AfterAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
 //
@@ -108,12 +108,12 @@ type GraphDal struct {
 	qf.BaseDal
 }
 
-func (dal *GraphDal) BeforeAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *GraphDal) BeforeAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
-func (dal *GraphDal) AfterAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *GraphDal) AfterAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
 //
@@ -124,10 +124,10 @@ type ReportDal struct {
 	qf.BaseDal
 }
 
-func (dal *ReportDal) BeforeAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *ReportDal) BeforeAction(kind qf.EKind, content interface{}) error {
+	return nil
 }
 
-func (dal *ReportDal) AfterAction(kind qf.EKind, content interface{}) (bool, error) {
-	return true, nil
+func (dal *ReportDal) AfterAction(kind qf.EKind, content interface{}) error {
+	return nil
 }

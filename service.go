@@ -1,61 +1,53 @@
 package qf
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"qf/helper/action"
-	"qf/helper/content"
-	"qf/helper/log"
-	"qf/helper/setting"
-	"qf/util/io"
-	"strings"
 )
 
 type Service struct {
-	folderPath string
-	db         *gorm.DB
-	engine     *gin.Engine
-	apis       *Apis
-
-	actionAdapter  IActionAdapter
-	messageAdapter IMessageAdapter
-	settingAdapter ISettingAdapter
-	logAdapter     ILogAdapter
+	//folderPath string
+	db     *gorm.DB
+	engine *gin.Engine
+	//apis       *Apis
+	//
+	//actionAdapter  IActionAdapter
+	//messageAdapter IMessageAdapter
+	//settingAdapter ISettingAdapter
+	//logAdapter     ILogAdapter
 }
 
 func NewService() *Service {
 	s := &Service{
-		apis: &Apis{},
+		//apis: &Apis{},
 	}
-	// 默认文件夹路径
-	s.folderPath = "."
-	// 创建数据库
-	dbDir := io.CreateDirectory(fmt.Sprintf("%s/db", s.folderPath))
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/data.db", dbDir)), &gorm.Config{})
-	if err != nil {
-		return nil
-	}
-	s.db = db
-	// 适配器初始化
-	s.actionAdapter = action.NewActionByWebApi()
-	s.settingAdapter = setting.NewSettingByDB(db)
-	s.logAdapter = log.NewLogByFmt()
-	// 创建Gin服务
-	s.engine = gin.Default()
+	//// 默认文件夹路径
+	//s.folderPath = "."
+	//// 创建数据库
+	//dbDir := io.CreateDirectory(fmt.Sprintf("%s/db", s.folderPath))
+	//db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/data.db", dbDir)), &gorm.Config{})
+	//if err != nil {
+	//	return nil
+	//}
+	//s.db = db
+	//// 适配器初始化
+	//s.actionAdapter = action.NewActionByWebApi()
+	//s.settingAdapter = setting.NewSettingByDB(db)
+	//s.logAdapter = log.NewLogByFmt()
+	//// 创建Gin服务
+	//s.engine = gin.Default()
 	//s.engine.Use(f.transmit())
 	return s
 }
 
 func (f *Service) Run() {
-	go func() {
-		err := f.engine.Run(":80")
-		if err != nil {
-			//f.logAdapter.Fatal("qf run error", err.Error())
-			panic(err)
-		}
-	}()
+	//go func() {
+	//	err := f.engine.Run(":80")
+	//	if err != nil {
+	//		//f.logAdapter.Fatal("qf run error", err.Error())
+	//		panic(err)
+	//	}
+	//}()
 }
 
 func (f *Service) Stop() {
@@ -63,41 +55,41 @@ func (f *Service) Stop() {
 }
 
 func (f *Service) RegBll(bll IBll, routerGroup string) {
-	// 基础方法赋值
-	bll.setDB(f.db)
-	bll.setLog(f.logAdapter)
-	bll.setMessage(f.messageAdapter)
-	bll.setSetting(f.settingAdapter)
-	// 创建API方法
-	bll.RegApis(f.apis)
-	// 内容访问器初始化
-	for _, api := range *f.apis {
-		bll.setContent(content.NewContentByDB(api.Id, f.db))
-		break
-	}
-	// 执行业务初始化
-	err := bll.Init()
-	if err == nil {
-		// 创建路由组
-		router := f.engine.Group(routerGroup)
-		// 注册路由
-		for _, api := range *f.apis {
-			method := ""
-			switch api.Kind {
-			case EApiKindSubmit:
-				method = "POST"
-			case EApiKindDelete:
-				method = "DELETE"
-			case EApiKindGet:
-				method = "GET"
-			}
-			relative := strings.Trim(fmt.Sprintf("%s/%s", api.Id, api.Route), "/")
-			router.Handle(method, relative)
-		}
-		// 注册消息
-
-		// 注册引用
-	}
+	//// 基础方法赋值
+	//bll.setDB(f.db)
+	//bll.setLog(f.logAdapter)
+	//bll.setMessage(f.messageAdapter)
+	//bll.setSetting(f.settingAdapter)
+	//// 创建API方法
+	//bll.RegApis(f.apis)
+	//// 内容访问器初始化
+	//for _, api := range *f.apis {
+	//	bll.setContent(content.NewContentByDB(api.Id, f.db))
+	//	break
+	//}
+	//// 执行业务初始化
+	//err := bll.Init()
+	//if err == nil {
+	//	// 创建路由组
+	//	router := f.engine.Group(routerGroup)
+	//	// 注册路由
+	//	for _, api := range *f.apis {
+	//		method := ""
+	//		switch api.Kind {
+	//		case EApiKindSubmit:
+	//			method = "POST"
+	//		case EApiKindDelete:
+	//			method = "DELETE"
+	//		case EApiKindGet:
+	//			method = "GET"
+	//		}
+	//		relative := strings.Trim(fmt.Sprintf("%s/%s", api.Id, api.Route), "/")
+	//		router.Handle(method, relative)
+	//	}
+	//	// 注册消息
+	//
+	//	// 注册引用
+	//}
 }
 
 func (f *Service) transmit() gin.HandlerFunc {
