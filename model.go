@@ -25,10 +25,14 @@ type Context struct {
 	UserName string    // 操作用户名字
 }
 
-func (ctx Context) BindModel(model interface{}) {
+func (ctx *Context) BindModel(model interface{}) {
 
 }
 
-func (ctx Context) ToContent(model interface{}) Content {
-	return Content{}
+func (ctx *Context) GetValue(propName string) string {
+	return ""
+}
+
+func (ctx *Context) GetId(idName string) uint {
+	return 0
 }
