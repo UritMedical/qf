@@ -3,11 +3,11 @@ module qf
 go 1.17
 
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/eclipse/paho.mqtt.golang v1.4.2
 	github.com/fhmq/hmq v1.5.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/kardianos/service v1.2.2
-	gorm.io/driver/sqlite v1.4.4
 	gorm.io/gorm v1.24.0
 )
 
@@ -41,7 +41,6 @@ require (
 	github.com/klauspost/compress v1.15.6 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	github.com/mattn/go-sqlite3 v1.14.15 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
