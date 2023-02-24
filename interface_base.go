@@ -151,7 +151,7 @@ func (b *BaseDal) GetModel(content interface{}) (interface{}, error) {
 	panic("implement me")
 }
 
-func (b *BaseDal) GetList(content interface{}) (interface{}, error) {
+func (b *BaseDal) GetList(startId uint, maxCount int) (interface{}, error) {
 	//TODO implement me
 	panic("implement me")
 }

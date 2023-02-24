@@ -1,13 +1,18 @@
 package qf
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"io/ioutil"
+	"net/http"
 	"qf/util/io"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type Service struct {
@@ -52,6 +57,7 @@ func (s *Service) Run() {
 	err := s.init()
 	if err != nil {
 		panic(err)
+		return
 	}
 
 	// 启动服务
@@ -69,7 +75,10 @@ func (s *Service) Run() {
 //  @Description: 停止服务
 //
 func (s *Service) Stop() {
-
+	// 执行业务释放
+	for _, bll := range s.bllList {
+		bll.Stop()
+	}
 }
 
 //
@@ -136,10 +145,14 @@ func (s *Service) init() error {
 				panic("not found")
 			}
 		}
-
-		bll.Init()
 	}
-	// 给所有业务的数据访问对象初始化
+	// 执行业务初始化
+	for _, bll := range s.bllList {
+		err := bll.Init()
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -150,61 +163,63 @@ func (s *Service) getBllName(bll IBll) (string, string) {
 	return sp[len(sp)-1], t.Name()
 }
 
-func (s *Service) getModelName(model interface{}) string {
-	t := reflect.TypeOf(model)
-	return t.Name()
-}
+func (s *Service) context(ctx *gin.Context) {
+	url := fmt.Sprintf("%s:%s", ctx.Request.Method, strings.TrimLeft(ctx.FullPath(), "/"))
+	if handler, ok := s.apiHandler[url]; ok {
+		qfCtx := &Context{
+			Time:      time.Time{},
+			UserId:    1,
+			UserName:  "暂时写死测试用",
+			jsonValue: map[string]interface{}{},
+		}
+		// 获取body内容
+		if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil {
+			qfCtx.stringValue = string(body)
+			if json.Valid(body) {
+				// 如果是json格式，则转为字典
+				if strings.HasPrefix(qfCtx.stringValue, "{") &&
+					strings.HasSuffix(qfCtx.stringValue, "}") {
+					_ = ctx.BindJSON(&qfCtx.jsonValue)
+				}
+			} else {
+				s.returnError(ctx, errors.New("invalid json format"))
+				return
+			}
+		}
 
-func (s *Service) transmit() gin.HandlerFunc {
-	return func(c *gin.Context) {
+		// 执行业务方法
+		rs, err := handler(qfCtx)
 
-		//// 遍历注册的路由，查找对应的路由名字
-		//// 然后执行对应的业务方法
-		//for k, handler := range f.routerFunc {
-		//	if fmt.Sprintf("%s:%s", c.Request.Method, c.FullPath()) == k {
-		//		input := content.Content{}
-		//		var err error
-		//		if c.Request.Method == "GET" {
-		//			query := map[string]interface{}{}
-		//			err = c.BindQuery(query)
-		//			if err == nil {
-		//				j, _ := json.Marshal(query)
-		//				input.Info = string(j)
-		//			}
-		//		} else {
-		//			err = c.BindJSON(&input)
-		//		}
-		//		if err != nil {
-		//			c.JSON(http.StatusBadRequest, gin.H{
-		//				"status": http.StatusBadRequest,
-		//				"msg":    err.Error(),
-		//			})
-		//			return
-		//		}
-		//		// 执行业务方法
-		//		rs, er := handler(input)
-		//		// 返回给前端
-		//		if er != nil {
-		//			c.JSON(http.StatusBadRequest, gin.H{
-		//				"status": http.StatusBadRequest,
-		//				"msg":    er.Error(),
-		//			})
-		//		} else {
-		//			c.JSON(http.StatusOK, gin.H{
-		//				"status": http.StatusOK,
-		//				"msg":    "操作成功",
-		//				"data":   rs,
-		//			})
-		//		}
-		//	}
-		//}
+		// TODO：记录日志
+
+		// 返回给前端
+		if err != nil {
+			s.returnError(ctx, err)
+		} else {
+			s.returnOk(ctx, rs)
+		}
 	}
 }
 
-func (s *Service) context(ctx *gin.Context) {
+func (s *Service) returnError(ctx *gin.Context, err error) {
+	ctx.JSON(http.StatusBadRequest, gin.H{
+		"status": http.StatusBadRequest,
+		"msg":    err.Error(),
+	})
+}
 
+func (s *Service) returnOk(ctx *gin.Context, data interface{}) {
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": http.StatusOK,
+		"msg":    "success",
+		"data":   data,
+	})
 }
 
 //func (f *Service) callback(client mqtt2.Client, m mqtt2.Message) {
 //
 //}
+
+func BuildContext(value map[string]interface{}) Context {
+	return Context{}
+}

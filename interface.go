@@ -93,12 +93,13 @@ type IDal interface {
 
 	//
 	// GetList
-	//  @Description: 获取多个内容信息
-	//  @param content
+	//  @Description:
+	//  @param startId
+	//  @param maxCount
 	//  @return interface{}
 	//  @return error
 	//
-	GetList(content interface{}) (interface{}, error)
+	GetList(startId uint, maxCount int) (interface{}, error)
 
 	//
 	// BeforeAction

@@ -45,6 +45,9 @@ type Context struct {
 	Time     time.Time // 操作时间
 	UserId   uint      // 操作用户账号
 	UserName string    // 操作用户名字
+
+	jsonValue   map[string]interface{}
+	stringValue string
 }
 
 func (ctx *Context) BindModel(model interface{}) error {
