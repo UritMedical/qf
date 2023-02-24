@@ -12,27 +12,49 @@ var (
 	EKindGetList  EKind = "GetList"  // 获取多条
 )
 
-// Content 基础内容实体
-type Content struct {
-	ID   uint   `gorm:"primarykey"` // 唯一号
-	Info string // 完整内容信息
+//
+// HttpMethod
+//  @Description: 返回Http方式名称
+//  @return string
+//
+func (kind EKind) HttpMethod() string {
+	if kind == EKindSave {
+		return "POST"
+	}
+	if kind == EKindDelete {
+		return "DELETE"
+	}
+	return "GET"
 }
 
-// Context 上下文
+//
+// Content
+//  @Description: 基础内容实体对象
+//
+type Content struct {
+	ID   uint      `gorm:"primarykey"` // 唯一号
+	Time time.Time `gorm:"index"`      // 操作时间
+	Info string    // 完整内容信息
+}
+
+//
+// Context
+//  @Description: Api上下文参数
+//
 type Context struct {
 	Time     time.Time // 操作时间
 	UserId   uint      // 操作用户账号
 	UserName string    // 操作用户名字
 }
 
-func (ctx *Context) BindModel(model interface{}) {
-
+func (ctx *Context) BindModel(model interface{}) error {
+	return nil
 }
 
-func (ctx *Context) GetValue(propName string) string {
+func (ctx *Context) GetStringValue(propName string) string {
 	return ""
 }
 
-func (ctx *Context) GetId(idName string) uint {
+func (ctx *Context) GetUIntValue(propName string) uint {
 	return 0
 }

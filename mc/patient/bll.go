@@ -4,27 +4,24 @@ import "qf"
 
 type Bll struct {
 	qf.BaseBll
-	dal *Dal
+	baseDal *BaseDal
 }
 
 func (b *Bll) RegApi(api qf.ApiMap) {
-	//api.Reg(qf.EKindSave, "", b.dal.Save)            // Post http://.../.../patient
-	//api.Reg(qf.EKindDelete, "", b.dal.Delete)        // Delete http://.../.../patient
-	//api.Reg(qf.EKindGetModel, "", b.dal.GetModel)    // Get http://.../.../patient?id=1234
-	//api.Reg(qf.EKindGetList, "list", b.dal.GetList)  // Get http://.../.../patients/list?startid=9999&maxcount=-1000
-	//api.Reg(qf.EKindGetList, "search", b.dal.Search) // Get http://.../.../patients/search?patdh=654321&patname=张三
+	api.Reg(qf.EKindSave, "base", b.saveBase)
 }
 
 func (b *Bll) RegDal(dal qf.DalMap) {
+	b.baseDal = &BaseDal{}
+	dal.Reg(b.baseDal, Base{})
+}
+
+func (b *Bll) RegMsg(msg qf.MessageMap) {
 
 }
 
 func (b *Bll) RefBll() []qf.IBll {
 	return nil
-}
-
-func (b *Bll) RegMsg(msg qf.MessageMap) {
-
 }
 
 func (b *Bll) Init() error {
@@ -33,4 +30,17 @@ func (b *Bll) Init() error {
 
 func (b *Bll) Stop() {
 
+}
+
+func (b *Bll) saveBase(ctx *qf.Context) (interface{}, error) {
+	// 获取提交的基本信息
+	model := &Base{}
+	err := ctx.BindModel(model)
+	if err != nil {
+		return nil, err
+	}
+	// 赋值内容
+	model.Content = b.BuildContent(model)
+	// 保存患者基本信息
+	return model, b.baseDal.Save(model)
 }
