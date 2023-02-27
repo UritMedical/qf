@@ -39,6 +39,7 @@ func (u *UserBll) RegApi(api qf.ApiMap) {
 }
 
 func (u *UserBll) RegDal(dal qf.DalMap) {
+	u.userDal = &UserDal{}
 	dal.Reg(u.userDal, User{})
 }
 

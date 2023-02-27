@@ -23,6 +23,8 @@ func (g *GroupBll) RegApi(api qf.ApiMap) {
 }
 
 func (g *GroupBll) RegDal(dal qf.DalMap) {
+	g.groupDal = &GroupDal{}
+	g.relationDal = &RelationDal{}
 	dal.Reg(g.groupDal, GroupDal{})
 	dal.Reg(g.relationDal, RelationDal{})
 }
@@ -109,7 +111,7 @@ func (g *GroupBll) getUsersByGroupId(ctx *qf.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	//根据组Id列表获取组信息
+	//根据组Id列表获取用户
 	users := g.userBll.GetUsersByIds(uIds)
 	return users, nil
 }
