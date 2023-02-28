@@ -1,36 +1,73 @@
 package user
 
-//User 用户信息
+import "qf"
+
+// User
+// @Description: 用户
+//
 type User struct {
-	Id       uint   `json:"id" gorm:"index"`
-	LoginId  string `json:"loginId" gorm:"unique"` //登录账号
-	Name     string `json:"name" gorm:"unique"`    //真实姓名
-	Misc     string `json:"misc"`                  //各种其他用户信息
-	Password string `json:"-"`                     //密码
-	Role     byte   `json:"role"`                  //账号权限
-	Remove   byte   `json:"-"`                     // 0-正常，1-删除
+	qf.Content
+	LoginId  string `gorm:"uniqueIndex"` //登录Id
+	Password string //密码
 }
 
-//Group 用户组
-type Group struct {
-	Id     uint   `json:"id" gorm:"index"`
-	Name   string `json:"name" gorm:"unique"` //组名称
-	Remove byte   `json:"-"`                  // 0-正常，1-删除
+// UserRole
+// @Description: 用户角色关系
+//
+type UserRole struct {
+	Id     uint
+	UserId uint `gorm:"index"`
+	RoleId uint `gorm:"index"`
 }
 
-//Relation 用户与组的关系
-type Relation struct {
-	Id      uint `json:"id" gorm:"index"`
-	GroupId uint `json:"groupId"` //组Id
-	UserId  uint `json:"userId"`  //用户Id
+// Role
+// @Description: 角色
+//
+type Role struct {
+	Id   uint
+	Name string // 角色名称
 }
 
-//设置几个默认的角色，其他角色根据项目需要设置
-//例如：医生、护士等
-//不允许前端将权限设置为102
-const (
-	RoleDef       = 0   //默认
-	RoleVisitor   = 100 //游客
-	RoleAdmin     = 101 //管理员
-	RoleDeveloper = 102 //开发者
-)
+// RoleRights
+// @Description: 角色权限组关系
+//
+type RoleRights struct {
+	Id       uint
+	RoleId   uint `gorm:"index"`
+	RightsId uint `gorm:"index"`
+}
+
+// RightsGroup
+// @Description: 权限组
+//
+type RightsGroup struct {
+	Id   uint
+	Name string //权限组名称
+}
+
+// RightsApi
+// @Description: 权限组与API的关系
+//
+type RightsApi struct {
+	Id       uint
+	RightsId uint   `gorm:"index"`
+	ApiId    string //API key
+}
+
+// Department
+// @Description: 部门
+// Info 里面包含子组织
+type Department struct {
+	Id       uint
+	Name     string // 部门名称
+	ParentId uint   `gorm:"index"` //父级部门Id
+}
+
+// DepartUser
+// @Description: 用户组织关系表
+//
+type DepartUser struct {
+	Id         uint
+	OrganizeId uint `gorm:"index"`
+	UserId     uint `gorm:"index"`
+}
