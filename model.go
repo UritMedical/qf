@@ -1,6 +1,13 @@
 package qf
 
-import "time"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"reflect"
+	"strconv"
+	"time"
+)
 
 // EKind 行为类别
 type EKind string
@@ -32,9 +39,10 @@ func (kind EKind) HttpMethod() string {
 //  @Description: 基础内容实体对象
 //
 type Content struct {
-	ID   uint      `gorm:"primarykey"` // 唯一号
-	Time time.Time `gorm:"index"`      // 操作时间
-	Info string    // 完整内容信息
+	ID     uint      `gorm:"primarykey"` // 唯一号
+	Delete byte      `gorm:"index"`      // 是否删除 0否 1是
+	Time   time.Time `gorm:"index"`      // 操作时间
+	Info   string    // 完整内容信息
 }
 
 //
@@ -50,14 +58,80 @@ type Context struct {
 	stringValue string
 }
 
-func (ctx *Context) BindModel(model interface{}) error {
+func (ctx *Context) Bind(object interface{}) error {
+	if object == nil {
+		return errors.New("object is empty")
+	}
+
+	// 反转json
+	err := json.Unmarshal([]byte(ctx.stringValue), object)
+	if err != nil {
+		return err
+	}
+	// 反射对象
+	value := reflect.ValueOf(object)
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+	// 判断类型
+	switch value.Type().Kind() {
+	case reflect.Struct: // 结构体
+		source := map[string]interface{}{}
+		if json.Unmarshal([]byte(ctx.stringValue), &source) == nil {
+			nj, _ := json.Marshal(ctx.build(source))
+			_ = json.Unmarshal(nj, object)
+		}
+	case reflect.Slice: // 列表
+		source := make([]map[string]interface{}, 0)
+		if json.Unmarshal([]byte(ctx.stringValue), &source) == nil {
+			cnt := make([]Content, 0)
+			for i := 0; i < len(cnt); i++ {
+				cnt = append(cnt, ctx.build(source[i]))
+			}
+			nj, _ := json.Marshal(cnt)
+			_ = json.Unmarshal(nj, object)
+		}
+	}
 	return nil
 }
 
+func (ctx *Context) build(source map[string]interface{}) Content {
+	nid := 0
+	if id, ok := source["ID"]; ok {
+		v, e := strconv.Atoi(fmt.Sprintf("%v", id))
+		if e == nil {
+			nid = v
+		}
+	}
+	if nid == 0 {
+		// TODO:通过框架分配ID
+	}
+	cj, _ := json.Marshal(source)
+	return Content{
+		ID:   uint(nid),
+		Time: ctx.Time,
+		Info: string(cj),
+	}
+}
+
+func (ctx *Context) GetJsonValue(propName string) string {
+	obj := ctx.jsonValue[propName]
+	if obj == nil {
+		return ""
+	}
+	nj, _ := json.Marshal(obj)
+	return string(nj)
+}
+
 func (ctx *Context) GetStringValue(propName string) string {
-	return ""
+	obj := ctx.jsonValue[propName]
+	if obj == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v", obj)
 }
 
 func (ctx *Context) GetUIntValue(propName string) uint {
-	return 0
+	num, _ := strconv.Atoi(ctx.GetStringValue(propName))
+	return uint(num)
 }

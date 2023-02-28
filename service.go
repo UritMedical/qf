@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 	"io/ioutil"
 	"net/http"
 	"qf/util/io"
@@ -37,14 +39,19 @@ func NewService() *Service {
 	s.folder = "."
 	// 创建数据库
 	dbDir := io.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/data.db", dbDir)), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/data.db", dbDir)), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{
+			SingularTable: true,
+			NoLowerCase:   true,
+		},
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		return nil
 	}
 	s.db = db
 	// 创建Gin服务
 	s.engine = gin.Default()
-	//s.engine.Use(f.transmit())
 	return s
 }
 
@@ -113,12 +120,9 @@ func (s *Service) RegBll(bll IBll, group string) {
 	dal := DalMap{}
 	bll.RegDal(dal)
 	for d, model := range dal {
-		// 根据实体名称，生成数据库
-		t := reflect.TypeOf(model)
-		db := s.db.Table(fmt.Sprintf("%s_%s", strings.ToLower(pkg), strings.ToLower(t.Name())))
-		_ = db.AutoMigrate(model)
-		// 初始化数据层
-		d.setDB(db)
+		// 配置数据库给数据层，并初始化表结构
+		d.initDB(s.db, pkg, model)
+		d.setChild(d)
 	}
 
 	// 加入到业务列表
@@ -167,7 +171,7 @@ func (s *Service) context(ctx *gin.Context) {
 	url := fmt.Sprintf("%s:%s", ctx.Request.Method, strings.TrimLeft(ctx.FullPath(), "/"))
 	if handler, ok := s.apiHandler[url]; ok {
 		qfCtx := &Context{
-			Time:      time.Time{},
+			Time:      time.Now().Local(),
 			UserId:    1,
 			UserName:  "暂时写死测试用",
 			jsonValue: map[string]interface{}{},
@@ -179,11 +183,22 @@ func (s *Service) context(ctx *gin.Context) {
 				// 如果是json格式，则转为字典
 				if strings.HasPrefix(qfCtx.stringValue, "{") &&
 					strings.HasSuffix(qfCtx.stringValue, "}") {
-					_ = ctx.BindJSON(&qfCtx.jsonValue)
+					_ = json.Unmarshal(body, &qfCtx.jsonValue)
 				}
 			} else {
-				s.returnError(ctx, errors.New("invalid json format"))
-				return
+				if qfCtx.stringValue != "" {
+					s.returnError(ctx, errors.New("invalid json format"))
+					return
+				}
+			}
+		}
+
+		// 获取全部的Query
+		for k, v := range ctx.Request.URL.Query() {
+			if len(v) > 0 {
+				qfCtx.jsonValue[k] = v[0]
+			} else {
+				qfCtx.jsonValue[k] = ""
 			}
 		}
 
@@ -215,10 +230,6 @@ func (s *Service) returnOk(ctx *gin.Context, data interface{}) {
 		"data":   data,
 	})
 }
-
-//func (f *Service) callback(client mqtt2.Client, m mqtt2.Message) {
-//
-//}
 
 func BuildContext(value map[string]interface{}) Context {
 	return Context{}

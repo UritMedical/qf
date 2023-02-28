@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"gorm.io/gorm"
-	"time"
+	"reflect"
+	"strings"
 )
 
 //----------------------------------------------------------------
@@ -69,12 +70,31 @@ func (bll *BaseBll) SetConfig(config map[string]interface{}) {
 //  @return Content
 //
 func (bll *BaseBll) BuildContent(model interface{}) Content {
-	j, _ := json.Marshal(model)
-	cnt := Content{
-		ID:   0,
-		Time: time.Now().Local(),
-		Info: string(j),
+	// 先转一次json
+	tj, _ := json.Marshal(model)
+	// 然后在反转到内容对象
+	cnt := Content{}
+	_ = json.Unmarshal(tj, &cnt)
+
+	// 然后重新生成新的Info
+	info := map[string]interface{}{}
+	_ = json.Unmarshal([]byte(cnt.Info), &info)
+	// 反射对象
+	value := reflect.ValueOf(model)
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
 	}
+	for i := 0; i < value.NumField(); i++ {
+		field := value.Field(i)
+		// 通过原始内容
+		if field.Kind() == reflect.Struct && field.Type().Name() == "Content" {
+			continue
+		}
+		info[value.Type().Field(i).Name] = field.Interface()
+	}
+	nj, _ := json.Marshal(info)
+	cnt.Info = string(nj)
+
 	return cnt
 }
 
@@ -125,33 +145,101 @@ func (m *MessageMap) Reg(bll IBll, router string, function MessageHandler) {
 }
 
 type BaseDal struct {
-	db *gorm.DB
+	db        *gorm.DB
+	dal       IDal
+	tableName string
 }
 
-func (b *BaseDal) setDB(db *gorm.DB) {
+func (b *BaseDal) initDB(db *gorm.DB, pkgName string, model interface{}) {
 	b.db = db
+	// 根据实体名称，生成数据库
+	t := reflect.TypeOf(model)
+	pName := strings.ToLower(pkgName)
+	bName := strings.ToLower(t.Name())
+	b.tableName = fmt.Sprintf("%s_%s", pName, bName)
+	if pName == bName {
+		b.tableName = pName
+	}
+	// 自动生成表
+	_ = db.Table(b.tableName).AutoMigrate(model)
 }
 
+func (b *BaseDal) setChild(dal IDal) {
+	b.dal = dal
+}
+
+//
+// DB
+//  @Description: 返回对应表的数据控制器
+//  @return *gorm.DB
+//
 func (b *BaseDal) DB() *gorm.DB {
-	return b.db
+	return b.db.Table(b.tableName)
 }
 
+//
+// Save
+//  @Description: 保存内容
+//  @param content 包含了内容结构的实体对象
+//  @return error 异常
+//
 func (b *BaseDal) Save(content interface{}) error {
-	//TODO implement me
-	panic("implement me")
+	// 先执行Before
+	err := b.dal.BeforeAction(EKindSave, content)
+	if err != nil {
+		return err
+	}
+	// 提交
+	result := b.DB().Save(content)
+	if result.RowsAffected > 0 {
+		// 在执行After
+		return b.dal.AfterAction(EKindSave, content)
+	}
+	return result.Error
 }
 
-func (b *BaseDal) Delete(content interface{}) error {
-	//TODO implement me
-	panic("implement me")
+//
+// Delete
+//  @Description: 删除内容
+//  @param id 唯一号
+//  @return error 异常
+//
+func (b *BaseDal) Delete(id uint) error {
+	result := b.DB().Where("id = ?", id).Updates(Content{ID: id, Delete: 1})
+	if result.RowsAffected > 0 {
+		return nil
+	}
+	return result.Error
 }
 
-func (b *BaseDal) GetModel(content interface{}) (interface{}, error) {
-	//TODO implement me
-	panic("implement me")
+//
+// GetModel
+//  @Description: 获取单条数据
+//  @param id 唯一号
+//  @param dest 目标实体结构
+//  @return error 返回异常
+//
+func (b *BaseDal) GetModel(id uint, dest interface{}) error {
+	result := b.DB().Where("id = ?", id).Find(dest)
+	// 如果异常或者未查询到任何数据
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
 }
 
-func (b *BaseDal) GetList(startId uint, maxCount int) (interface{}, error) {
-	//TODO implement me
-	panic("implement me")
+//
+// GetList
+//  @Description: 按唯一号区间，获取一组列表
+//  @param startId 起始编号
+//  @param maxCount 最大获取数
+//  @param dest 目标列表
+//  @return error 返回异常
+//
+func (b *BaseDal) GetList(startId uint, maxCount uint, dest interface{}) error {
+	result := b.DB().Limit(int(maxCount)).Offset(int(startId)).Find(dest)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
 }

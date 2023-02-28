@@ -77,29 +77,29 @@ type IDal interface {
 	//
 	// Delete
 	//  @Description: 执行删除操作
-	//  @param content
+	//  @param id
 	//  @return error
 	//
-	Delete(content interface{}) error
+	Delete(id uint) error
 
 	//
 	// GetModel
-	//  @Description: 获取单个内容信息
-	//  @param content
-	//  @return interface{}
+	//  @Description:
+	//  @param id
+	//  @param dest
 	//  @return error
 	//
-	GetModel(content interface{}) (interface{}, error)
+	GetModel(id uint, dest interface{}) error
 
 	//
 	// GetList
-	//  @Description:
-	//  @param startId
-	//  @param maxCount
-	//  @return interface{}
-	//  @return error
+	//  @Description: 按唯一号区间，获取一组列表
+	//  @param startId 起始编号
+	//  @param maxCount 最大获取数
+	//  @param dest 目标列表
+	//  @return error 返回异常
 	//
-	GetList(startId uint, maxCount int) (interface{}, error)
+	GetList(startId uint, maxCount uint, dest interface{}) error
 
 	//
 	// BeforeAction
@@ -159,10 +159,6 @@ type IQFBll interface {
 }
 
 type IQFDal interface {
-	//
-	// SetDB
-	//  @Description: 设置数据库
-	//  @param db
-	//
-	setDB(db *gorm.DB)
+	initDB(db *gorm.DB, pkgName string, model interface{})
+	setChild(dal IDal)
 }

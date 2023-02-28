@@ -11,21 +11,24 @@ type Bll struct {
 }
 
 func (b *Bll) RegApi(api qf.ApiMap) {
-	api.Reg(qf.EKindSave, "info", b.SaveInfo)     // 保存患者基本信息
-	api.Reg(qf.EKindSave, "case", b.SaveCase)     // 保存患者病历
-	api.Reg(qf.EKindDelete, "case", b.DeleteCase) // 删除患者病历
-	api.Reg(qf.EKindDelete, "", b.DeletePatient)  // 删除患者
+	// 基本信息
+	api.Reg(qf.EKindSave, "", b.SaveInfo)        // 保存患者基本信息
+	api.Reg(qf.EKindDelete, "", b.DeletePatient) // 删除患者
 
+	// 病历相关
+	api.Reg(qf.EKindSave, "case", b.SaveCase)        // 保存病历
+	api.Reg(qf.EKindDelete, "case", b.DeleteCase)    // 删除病历
 	api.Reg(qf.EKindGetModel, "case", b.GetCase)     // 通过病历唯一ID获取单条病历信息
 	api.Reg(qf.EKindGetList, "cases", b.GetCaseList) // 根据病历号或者患者唯一号，获取一组病历列表
-	api.Reg(qf.EKindGetModel, "", b.GetPatientInfo)  // 根据病历唯一ID或者HIS唯一号获取患者基本信息
 
+	// 完整信息
+	api.Reg(qf.EKindGetModel, "", b.GetPatientFull) // 根据唯一号获取单个患者完整信息（基本+病历列表）
 }
 
 func (b *Bll) RegDal(dal qf.DalMap) {
 	b.infoDal = &InfoDal{}
 	b.caseDal = &CaseBll{}
-	dal.Reg(b.infoDal, Info{})
+	dal.Reg(b.infoDal, Patient{})
 	dal.Reg(b.caseDal, Case{})
 }
 
@@ -47,8 +50,8 @@ func (b *Bll) Stop() {
 
 func (b *Bll) SaveInfo(ctx *qf.Context) (interface{}, error) {
 	// 获取提交的基本信息
-	model := &Info{}
-	err := ctx.BindModel(model)
+	model := &Patient{}
+	err := ctx.Bind(model)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +70,8 @@ func (b *Bll) DeleteCase(ctx *qf.Context) (interface{}, error) {
 }
 
 func (b *Bll) DeletePatient(ctx *qf.Context) (interface{}, error) {
-	return nil, nil
+	id := ctx.GetUIntValue("id")
+	return id, b.infoDal.Delete(id)
 }
 
 //
@@ -80,10 +84,10 @@ func (b *Bll) DeletePatient(ctx *qf.Context) (interface{}, error) {
 func (b *Bll) GetCase(ctx *qf.Context) (interface{}, error) {
 	// 外部调用时，请用框架创建上下文
 	// qf.BuildContext(map)
-	
-	m := Case{}
-	m.ID = ctx.GetUIntValue("id")
-	return b.caseDal.GetModel(m)
+
+	//id := ctx.GetUIntValue("id")
+	//b.caseDal.GetModel(id, Case{})
+	return nil, nil
 }
 
 //
@@ -97,29 +101,29 @@ func (b *Bll) GetCaseList(ctx *qf.Context) (interface{}, error) {
 	// 外部调用时，请用框架创建上下文
 	// qf.BuildContext(map)
 
-	caseId := ctx.GetStringValue("caseId")
 	infoId := ctx.GetUIntValue("infoId")
+	caseId := ctx.GetStringValue("caseId")
 	return b.caseDal.Search(infoId, caseId)
 }
 
 //
-// GetPatientInfo
-//  @Description: 根据病历唯一ID获取患者基本信息
+// GetPatientFull
+//  @Description: 根据唯一号获取患者完整信息（基本+病历列表）
 //  @param ctx
-//  @return interface{} 基本信息Info结构Json
+//  @return interface{}
 //  @return error
 //
-func (b *Bll) GetPatientInfo(ctx *qf.Context) (interface{}, error) {
-	// 外部调用时，请用框架创建上下文
-	// qf.BuildContext(map)
-
-	hisId := ctx.GetStringValue("hisId")
-	// 按HIS唯一号查询患者基本信息
-	if hisId != "" {
-		return b.infoDal.GetInfoByHisId(hisId)
+func (b *Bll) GetPatientFull(ctx *qf.Context) (interface{}, error) {
+	pkg := struct {
+		Patient         // 患者基本信息
+		CaseList []Case // 包含的病历列表
+	}{}
+	// 按患者唯一号，获取患者基本信息
+	id := ctx.GetUIntValue("id")
+	err := b.infoDal.GetModel(id, &pkg)
+	if pkg.ID == 0 {
+		return nil, nil
 	}
-	// 按患者唯一号获取患者基本信息
-	m := Info{}
-	m.ID = ctx.GetUIntValue("id")
-	return b.infoDal.GetModel(m)
+	// 根据患者唯一号，获取所有病历列表
+	return pkg, err
 }

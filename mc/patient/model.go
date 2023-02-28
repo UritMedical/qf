@@ -3,10 +3,16 @@ package patient
 import "qf"
 
 //
-// Info
+// Patient
 //  @Description: 患者基础信息
 //
-type Info struct {
+type Patient struct {
+	//
+	// qf.Content
+	//  @Description: 完整信息
+	//
+	qf.Content
+
 	//
 	// PatName
 	//  @Description: 患者姓名，索引
@@ -18,12 +24,6 @@ type Info struct {
 	//  @Description: HIS唯一号，唯一索引，通过院内唯一号快速查找患者信息
 	//
 	HisId string `gorm:"uniqueIndex"`
-
-	//
-	// qf.Content
-	//  @Description: 完整信息
-	//
-	qf.Content
 }
 
 //
@@ -32,10 +32,16 @@ type Info struct {
 //
 type Case struct {
 	//
-	// BaseId
+	// qf.Content
+	//  @Description: 病历完整内容
+	//
+	qf.Content
+
+	//
+	// PId
 	//  @Description: 对应基本信息ID
 	//
-	InfoId uint `gorm:"index"`
+	PId uint `gorm:"index"`
 
 	//
 	// CaseId
@@ -48,10 +54,4 @@ type Case struct {
 	//  @Description: 分类（门诊病历/住院病历）
 	//
 	Classify string
-
-	//
-	// qf.Content
-	//  @Description: 病历完整内容
-	//
-	qf.Content
 }
