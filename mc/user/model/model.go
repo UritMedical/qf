@@ -1,4 +1,4 @@
-package user
+package uModel
 
 import "qf"
 
@@ -67,7 +67,7 @@ type Department struct {
 // @Description: 用户组织关系表
 //
 type DepartUser struct {
-	Id         uint
-	OrganizeId uint `gorm:"index"`
-	UserId     uint `gorm:"index"`
+	Id       uint
+	DepartId uint `gorm:"index"`
+	UserId   uint `gorm:"index"`
 }

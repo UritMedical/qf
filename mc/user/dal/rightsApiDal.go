@@ -2,7 +2,7 @@ package uDal
 
 import (
 	"qf"
-	"qf/mc/user"
+	uModel "qf/mc/user/model"
 )
 
 type RightsApiDal struct {
@@ -18,23 +18,23 @@ func (r RightsApiDal) AfterAction(kind qf.EKind, content interface{}) error {
 }
 
 //
-// AssignApis
+// SetRightsApis
 //  @Description: 向指定权限组添加，删除API
 //  @param rightsId
 //  @param apiKeys
 //  @return error
 //
-func (r RightsApiDal) AssignApis(rightsId uint, apiKeys []string) error {
+func (r RightsApiDal) SetRightsApis(rightsId uint, apiKeys []string) error {
 	tx := r.DB().Begin()
 	//先删除此权限组所有的API
-	if err := tx.Where("rights_id = ?", rightsId).Delete(&user.RightsApi{}).Error; err != nil {
+	if err := tx.Where("rights_id = ?", rightsId).Delete(&uModel.RightsApi{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	apis := make([]user.RightsApi, 0)
+	apis := make([]uModel.RightsApi, 0)
 	for _, key := range apiKeys {
-		apis = append(apis, user.RightsApi{
+		apis = append(apis, uModel.RightsApi{
 			RightsId: rightsId,
 			ApiId:    key,
 		})
