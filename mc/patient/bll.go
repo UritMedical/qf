@@ -55,7 +55,9 @@ func (b *Bll) SaveInfo(ctx *qf.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	// 赋值内容
+	// 修改其中的属性内容
+	model.HisId = "xxxxx"
+	// 刷新内容
 	model.Content = b.BuildContent(model)
 	// 保存患者基本信息
 	return model, b.infoDal.Save(model)
@@ -121,7 +123,7 @@ func (b *Bll) GetPatientFull(ctx *qf.Context) (interface{}, error) {
 	// 按患者唯一号，获取患者基本信息
 	id := ctx.GetUIntValue("id")
 	err := b.infoDal.GetModel(id, &pkg)
-	if pkg.ID == 0 {
+	if pkg.Id == 0 {
 		return nil, nil
 	}
 	// 根据患者唯一号，获取所有病历列表

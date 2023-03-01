@@ -205,7 +205,7 @@ func (b *BaseDal) Save(content interface{}) error {
 //  @return error 异常
 //
 func (b *BaseDal) Delete(id uint) error {
-	result := b.DB().Where("id = ?", id).Updates(Content{ID: id, Delete: 1})
+	result := b.DB().Where("id = ?", id).Updates(Content{Id: id, Delete: 1})
 	if result.RowsAffected > 0 {
 		return nil
 	}

@@ -23,6 +23,7 @@ type Service struct {
 	engine     *gin.Engine           // gin
 	bllList    map[string]IBll       // 所有创建的业务层对象
 	apiHandler map[string]ApiHandler // 所有注册的业务API函数指针
+	setting    setting               // 框架配置
 }
 
 //
@@ -34,24 +35,41 @@ func NewService() *Service {
 	s := &Service{
 		bllList:    map[string]IBll{},
 		apiHandler: map[string]ApiHandler{},
+		setting:    setting{},
 	}
 	// 默认文件夹路径
 	s.folder = "."
+	// 加载配置
+	s.setting.Load(fmt.Sprintf("%s/config.toml", s.folder))
 	// 创建数据库
 	dbDir := io.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/data.db", dbDir)), &gorm.Config{
+	gc := gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
 			NoLowerCase:   true,
 		},
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+	}
+	if s.setting.GormConfig.OpenLog == 1 {
+		gc.Logger = logger.Default.LogMode(logger.Info)
+	}
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/data.db", dbDir)), &gc)
 	if err != nil {
 		return nil
 	}
 	s.db = db
 	// 创建Gin服务
 	s.engine = gin.Default()
+	s.engine.Use(s.getCors())
+	// 创建静态资源
+	for _, static := range s.setting.WebConfig.Static {
+		s.engine.Static(static[0], static[1])
+	}
+	for _, static := range s.setting.WebConfig.StaticFile {
+		s.engine.StaticFile(static[0], static[1])
+	}
+	for _, any := range s.setting.WebConfig.Any {
+		s.engine.Any(any)
+	}
 	return s
 }
 
@@ -69,7 +87,7 @@ func (s *Service) Run() {
 
 	// 启动服务
 	go func() {
-		err := s.engine.Run(":80")
+		err := s.engine.Run(":" + s.setting.Port)
 		if err != nil {
 			//f.logAdapter.Fatal("qf run error", err.Error())
 			panic(err)
@@ -231,6 +249,31 @@ func (s *Service) returnOk(ctx *gin.Context, data interface{}) {
 	})
 }
 
+func (s *Service) getCors() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		method := c.Request.Method
+
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Headers", "Content-Type,AccessToken,X-CSRF-Token, Authorization, Token")
+		c.Header("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type")
+		c.Header("Access-Control-Allow-Credentials", "true")
+
+		// 放行所有OPTIONS方法
+		if method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+		}
+		// 处理请求
+		c.Next()
+	}
+}
+
+//
+// BuildContext
+//  @Description: 生成上下位对象
+//  @param value
+//  @return Context
+//
 func BuildContext(value map[string]interface{}) Context {
 	return Context{}
 }
