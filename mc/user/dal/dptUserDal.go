@@ -1,6 +1,9 @@
 package uDal
 
-import "qf"
+import (
+	"qf"
+	uModel "qf/mc/user/model"
+)
 
 type DptUserDal struct {
 	qf.BaseDal
@@ -22,7 +25,14 @@ func (d DptUserDal) AfterAction(kind qf.EKind, content interface{}) error {
 //  @return error
 //
 func (d DptUserDal) AddUsers(departId uint, userIds []uint) error {
-	return nil
+	list := make([]uModel.DepartUser, 0)
+	for _, id := range userIds {
+		list = append(list, uModel.DepartUser{
+			DepartId: departId,
+			UserId:   id,
+		})
+	}
+	return d.DB().Create(list).Error
 }
 
 //
@@ -33,5 +43,31 @@ func (d DptUserDal) AddUsers(departId uint, userIds []uint) error {
 //  @return error
 //
 func (d DptUserDal) RemoveUsers(departId uint, userIds []uint) error {
-	return nil
+	return d.DB().Where("DepartId = ? AND UserId IN (?)", departId, userIds).Delete(&uModel.DepartUser{}).Error
+}
+
+//
+// GetDptUsers
+//  @Description: 获取部门中所有用户
+//  @param departId
+//  @return []uint
+//  @return error
+//
+func (d DptUserDal) GetDptUsers(departId uint) ([]uint, error) {
+	userIds := make([]uint, 0)
+	err := d.DB().Where("DepartId = ?", departId).Find(&userIds).Error
+	return userIds, err
+}
+
+//
+// GetUserDpts
+//  @Description: 获取用户所属部门
+//  @param userId
+//  @return []uint
+//  @return error
+//
+func (d DptUserDal) GetUserDpts(userId uint) ([]uint, error) {
+	dptIds := make([]uint, 0)
+	err := d.DB().Where("UserId = ?", userId).Find(&dptIds).Error
+	return dptIds, err
 }

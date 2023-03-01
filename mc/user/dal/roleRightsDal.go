@@ -2,7 +2,7 @@ package uDal
 
 import (
 	"qf"
-	"qf/mc/user"
+	uModel "qf/mc/user/model"
 )
 
 type RoleRightsDal struct {
@@ -18,24 +18,24 @@ func (r RoleRightsDal) AfterAction(kind qf.EKind, content interface{}) error {
 }
 
 //
-// AssignRights
+// SetRoleRights
 //  @Description: 给指定角色分配权限。先删除roleId所有的权限，然后再重新添加
 //  @param roleId
 //  @param rightsIds
 //  @return error
 //
-func (r RoleRightsDal) AssignRights(roleId uint, rightsIds []uint) error {
+func (r RoleRightsDal) SetRoleRights(roleId uint, rightsIds []uint) error {
 	tx := r.DB().Begin()
 	//先删除原来的权限
-	if err := tx.Where("role_id = ?", roleId).Delete(&user.RoleRights{}).Error; err != nil {
+	if err := tx.Where("role_id = ?", roleId).Delete(&uModel.RoleRights{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	//再将权限添加到数据库
-	list := make([]user.RoleRights, 0)
+	list := make([]uModel.RoleRights, 0)
 	for _, id := range rightsIds {
-		list = append(list, user.RoleRights{
+		list = append(list, uModel.RoleRights{
 			RoleId:   roleId,
 			RightsId: id,
 		})

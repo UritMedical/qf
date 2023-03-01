@@ -15,13 +15,13 @@ func (u UserRoleDal) AfterAction(kind qf.EKind, content interface{}) error {
 }
 
 //
-// AssignRole
+// SetRoleUsers
 //  @Description: 向指定角色添加用户
 //  @param roleId 角色ID
 //  @param userId 用户Id
 //  @return error
 //
-func (u UserDal) AssignRole(roleId uint, userId []uint) error {
+func (u UserRoleDal) SetRoleUsers(roleId uint, userId []uint) error {
 	return nil
 }
 
@@ -32,7 +32,7 @@ func (u UserDal) AssignRole(roleId uint, userId []uint) error {
 //  @param userId
 //  @return error
 //
-func (u UserDal) RemoveRole(roleId, userId uint) error {
+func (u UserRoleDal) RemoveUserFromRole(roleId, userId uint) error {
 	return nil
 }
 
@@ -43,6 +43,6 @@ func (u UserDal) RemoveRole(roleId, userId uint) error {
 //  @return []uint
 //  @return error
 //
-func (u UserDal) GetUserRole(userId uint) ([]uint, error) {
+func (u UserRoleDal) GetUserRole(userId uint) ([]uint, error) {
 	return nil, nil
 }
