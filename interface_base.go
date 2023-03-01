@@ -246,3 +246,18 @@ func (b *BaseDal) GetList(startId uint, maxCount uint, dest interface{}) error {
 	}
 	return nil
 }
+
+//
+// CheckExists
+//  @Description: 检查内容是否存在
+//  @param id 唯一号
+//  @return bool true存在 false不存在
+//
+func (b *BaseDal) CheckExists(id uint) bool {
+	count := int64(0)
+	result := b.DB().Where("id = ?", id).Count(&count)
+	if count > 0 && result.Error == nil {
+		return true
+	}
+	return false
+}

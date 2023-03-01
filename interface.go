@@ -102,6 +102,14 @@ type IDal interface {
 	GetList(startId uint, maxCount uint, dest interface{}) error
 
 	//
+	// CheckExists
+	//  @Description:
+	//  @param id
+	//  @return bool
+	//
+	CheckExists(id uint) bool
+
+	//
 	// BeforeAction
 	//  @Description: 内置增删改查执行前触发
 	//  @param kind
