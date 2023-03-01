@@ -55,8 +55,6 @@ func (b *Bll) SaveInfo(ctx *qf.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	// 修改其中的属性内容
-	model.HisId = "xxxxx"
 	// 刷新内容
 	model.Content = b.BuildContent(model)
 	// 保存患者基本信息

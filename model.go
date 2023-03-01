@@ -103,9 +103,6 @@ func (ctx *Context) build(source map[string]interface{}) Content {
 			nid = v
 		}
 	}
-	if nid == 0 {
-		// TODO:通过框架分配ID
-	}
 	cj, _ := json.Marshal(source)
 	return Content{
 		Id:   uint(nid),

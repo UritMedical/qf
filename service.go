@@ -129,6 +129,7 @@ func (s *Service) RegBll(bll IBll, group string) {
 			if kind == EKindGetList {
 				path = pkg + "s" + "/" + relative
 			}
+			path = strings.Trim(path, "/")
 			router.Handle(kind.HttpMethod(), path, s.context)
 			s.apiHandler[fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), group, path)] = handler
 		}

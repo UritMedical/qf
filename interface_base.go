@@ -90,7 +90,10 @@ func (bll *BaseBll) BuildContent(model interface{}) Content {
 		if field.Kind() == reflect.Struct && field.Type().Name() == "Content" {
 			continue
 		}
-		info[value.Type().Field(i).Name] = field.Interface()
+		tag := value.Type().Field(i).Tag.Get("json")
+		if tag != "-" {
+			info[value.Type().Field(i).Name] = field.Interface()
+		}
 	}
 	nj, _ := json.Marshal(info)
 	cnt.Info = string(nj)
