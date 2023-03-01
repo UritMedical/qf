@@ -78,7 +78,7 @@ func (u *UserBll) saveUser(ctx *qf.Context) (interface{}, error) {
 		return nil, err
 	}
 
-	if user.ID == 0 {
+	if user.Id == 0 {
 		user.Password = convertToMD5([]byte(defPassword))
 	}
 	user.Content = u.BuildContent(user)
