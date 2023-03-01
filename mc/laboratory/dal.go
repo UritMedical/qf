@@ -4,51 +4,22 @@
  * @Create Date: 2023/2/21 17:39
  */
 
-package lab
+package laboratory
 
 import "qf"
 
 //
-// OrderDal
-//  @Description: 医嘱dal
+// LabDal
+//  @Description: 检验
 //
-type OrderDal struct {
-	qf.BaseDal
+type LabDal struct {
 }
 
-func (dal *OrderDal) BeforeAction(kind qf.EKind, content interface{}) error {
+func (dal *LabDal) BeforeAction(kind qf.EKind, content interface{}) error {
 	return nil
 }
 
-func (dal *OrderDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-//
-// SampleDal
-//  @Description: 样本dal
-//
-type SampleDal struct {
-	qf.BaseDal
-}
-
-func (dal *SampleDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (dal *SampleDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-type LaboratoryDal struct {
-	qf.BaseDal
-}
-
-func (dal *LaboratoryDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (dal *LaboratoryDal) AfterAction(kind qf.EKind, content interface{}) error {
+func (dal *LabDal) AfterAction(kind qf.EKind, content interface{}) error {
 	return nil
 }
 
