@@ -9,7 +9,6 @@ type UserDal struct {
 	qf.BaseDal
 }
 
-
 //
 // SetPassword
 //  @Description: 修改密码
@@ -56,5 +55,18 @@ func (u UserDal) CheckOldPassword(id uint64, password string) bool {
 func (u UserDal) GetAllUsers() ([]uModel.User, error) {
 	list := make([]uModel.User, 0)
 	err := u.DB().Where("Id > 0").Find(&list).Error
+	return list, err
+}
+
+//
+// GetUsersByIds
+//  @Description: 获取指定用户的信息
+//  @param userIds
+//  @return []uModel.User
+//  @return error
+//
+func (u UserDal) GetUsersByIds(userIds []uint64) ([]uModel.User, error) {
+	list := make([]uModel.User, 0)
+	err := u.DB().Where("Id IN (?)", userIds).Find(&list).Error
 	return list, err
 }

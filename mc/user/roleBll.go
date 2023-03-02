@@ -17,7 +17,7 @@ func (u *UserBll) regRoleApi(api qf.ApiMap) {
 
 	//角色-权限组
 	api.Reg(qf.EKindSave, "role/rights", u.setRoleRightsRelation) //给角色配置权限
-	api.Reg(qf.EKindGetList, "role/rights", u.getRoleRights)     //获取角色拥有的权限
+	api.Reg(qf.EKindGetList, "role/rights", u.getRoleRights)      //获取角色拥有的权限
 }
 
 //
@@ -106,9 +106,8 @@ func (u *UserBll) setRoleRightsRelation(ctx *qf.Context) (interface{}, error) {
 //
 func (u *UserBll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
 	roleId := ctx.GetUIntValue("RoleId")
-	userIds, err := u.userRoleDal.GetUsersByRoleId(roleId)
-	//TODO 把用户Id转换成用户信息
-	return userIds, err
+	userIds, _ := u.userRoleDal.GetUsersByRoleId(roleId)
+	return u.userDal.GetUsersByIds(userIds)
 }
 
 //
@@ -120,7 +119,6 @@ func (u *UserBll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
 //
 func (u *UserBll) getRoleRights(ctx *qf.Context) (interface{}, error) {
 	roleId := ctx.GetUIntValue("RoleId")
-	rightsId, err := u.roleRightsDal.GetRoleRights(roleId)
-	//TODO 把角色Id转换成角色信息
-	return rightsId, err
+	rightsId, _ := u.roleRightsDal.GetRoleRights(roleId)
+	return u.rightsDal.GetRightsGroupByIds(rightsId)
 }

@@ -12,11 +12,16 @@ import (
 const defPassword = "123456"
 
 func (u *UserBll) regUserApi(api qf.ApiMap) {
+	//登录
 	api.Reg(qf.EKindSave, "login", u.login)
+
+	//用户增删改查
 	api.Reg(qf.EKindSave, "", u.saveUser)
 	api.Reg(qf.EKindDelete, "", u.deleteUser)
 	api.Reg(qf.EKindGetModel, "", u.getUserModel)
 	api.Reg(qf.EKindGetList, "", u.getAllUsers)
+
+	//密码重置、修改
 	api.Reg(qf.EKindSave, "pwd/reset", u.resetPassword)
 	api.Reg(qf.EKindSave, "pwd", u.changePassword)
 }
@@ -72,7 +77,11 @@ func (u *UserBll) deleteUser(ctx *qf.Context) (interface{}, error) {
 func (u *UserBll) getUserModel(ctx *qf.Context) (interface{}, error) {
 	var user uModel.User
 	//获取用户角色
-	roles, err := u.userRoleDal.GetRolesByUserId(uint64(ctx.UserId))
+	roleIds, err := u.userRoleDal.GetRolesByUserId(uint64(ctx.UserId))
+	if err != nil {
+		return nil, err
+	}
+	roles, err := u.roleDal.GetRolesByIds(roleIds)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +101,8 @@ func (u *UserBll) getUserModel(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (u *UserBll) getAllUsers(ctx *qf.Context) (interface{}, error) {
-	return u.userDal.GetAllUsers()
+	list, err := u.userDal.GetAllUsers()
+	return list, err
 }
 
 //

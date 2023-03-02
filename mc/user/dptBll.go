@@ -134,5 +134,8 @@ func (u *UserBll) getDpts(ctx *qf.Context) (interface{}, error) {
 func (u *UserBll) getDptUsers(ctx *qf.Context) (interface{}, error) {
 	departId := ctx.GetUIntValue("DepartId")
 	userIds, err := u.dptUserDal.GetUsersByDptId(departId)
-	return userIds, err
+	if err != nil {
+		return nil, err
+	}
+	return u.userDal.GetUsersByIds(userIds)
 }
