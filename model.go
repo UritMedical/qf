@@ -39,7 +39,7 @@ func (kind EKind) HttpMethod() string {
 //  @Description: 基础内容实体对象
 //
 type Content struct {
-	Id     uint      `gorm:"primaryKey"` // 唯一号
+	Id     uint64    `gorm:"primaryKey"` // 唯一号
 	Delete byte      `gorm:"index"`      // 是否删除 0否 1是
 	Time   time.Time `gorm:"index"`      // 操作时间
 	Info   string    // 完整内容信息
@@ -103,9 +103,12 @@ func (ctx *Context) build(source map[string]interface{}) Content {
 			nid = v
 		}
 	}
+	if nid == 0 {
+		// 通过平台获取ID
+	}
 	cj, _ := json.Marshal(source)
 	return Content{
-		Id:   uint(nid),
+		Id:   uint64(nid),
 		Time: ctx.Time,
 		Info: string(cj),
 	}
@@ -128,7 +131,7 @@ func (ctx *Context) GetStringValue(propName string) string {
 	return fmt.Sprintf("%v", obj)
 }
 
-func (ctx *Context) GetUIntValue(propName string) uint {
+func (ctx *Context) GetUIntValue(propName string) uint64 {
 	num, _ := strconv.Atoi(ctx.GetStringValue(propName))
-	return uint(num)
+	return uint64(num)
 }
