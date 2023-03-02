@@ -59,7 +59,7 @@ func (u *UserBll) getDptTree(ctx *qf.Context) (interface{}, error) {
 	nodes := make([]*DepartNode, 0)
 	for _, department := range dptList {
 		nodes = append(nodes, &DepartNode{
-			Id:       department.Id,
+			Id:       uint(department.Id),
 			Name:     department.Name,
 			ParentId: department.ParentId,
 			Children: nil,

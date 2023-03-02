@@ -41,10 +41,10 @@ func (u *UserBll) login(ctx *qf.Context) (interface{}, error) {
 	params.LoginId = strings.Replace(params.LoginId, " ", "", -1)
 	params.Password = uUtils.ConvertToMD5([]byte(params.Password))
 	if user, ok := u.userDal.CheckLogin(params.LoginId, params.Password); ok {
-		role, _ := u.userRoleDal.GetUsersByRoleId(user.Id)
-		return GenerateToken(user.Id, role, u.jwtSecret)
+		role, _ := u.userRoleDal.GetUsersByRoleId(uint(user.Id))
+		return GenerateToken(uint(user.Id), role, u.jwtSecret)
 	} else if params.LoginId == devUser.LoginId && params.Password == devUser.Password {
-		return GenerateToken(devUser.Id, []uint{}, u.jwtSecret)
+		return GenerateToken(uint(devUser.Id), []uint{}, u.jwtSecret)
 	} else {
 		return nil, errors.New("loginId not exist or password error")
 	}
@@ -77,7 +77,7 @@ func (u *UserBll) getUserModel(ctx *qf.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = u.userDal.GetModel(ctx.UserId, &user)
+	err = u.userDal.GetModel(uint64(ctx.UserId), &user)
 	ret := gin.H{
 		"info":  user,
 		"roles": roles,
@@ -105,7 +105,7 @@ func (u *UserBll) getAllUsers(ctx *qf.Context) (interface{}, error) {
 //
 func (u *UserBll) resetPassword(ctx *qf.Context) (interface{}, error) {
 	uId := ctx.GetUIntValue("Id")
-	return nil, u.userDal.SetPassword(uId, uUtils.ConvertToMD5([]byte(defPassword)))
+	return nil, u.userDal.SetPassword(uint(uId), uUtils.ConvertToMD5([]byte(defPassword)))
 }
 
 //
