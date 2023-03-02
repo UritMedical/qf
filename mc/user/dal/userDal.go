@@ -9,13 +9,6 @@ type UserDal struct {
 	qf.BaseDal
 }
 
-func (u UserDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (u UserDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
 
 //
 // SetPassword

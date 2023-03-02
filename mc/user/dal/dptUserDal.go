@@ -10,14 +10,6 @@ type DptUserDal struct {
 	qf.BaseDal
 }
 
-func (d DptUserDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (d DptUserDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
 //
 // AddUsers
 //  @Description: 向指定部门添加用户
@@ -64,7 +56,7 @@ func (d DptUserDal) RemoveUser(departId uint64, userId uint64) error {
 //
 func (d DptUserDal) GetUsersByDptId(departId uint64) ([]uint64, error) {
 	userIds := make([]uint64, 0)
-	err := d.DB().Where("DepartId = ?", departId).Find(&userIds).Error
+	err := d.DB().Where("DepartId = ?", departId).Select("UserId").Find(&userIds).Error
 	return userIds, err
 }
 
@@ -77,6 +69,6 @@ func (d DptUserDal) GetUsersByDptId(departId uint64) ([]uint64, error) {
 //
 func (d DptUserDal) GetDptsByUserId(userId uint64) ([]uint64, error) {
 	dptIds := make([]uint64, 0)
-	err := d.DB().Where("UserId = ?", userId).Find(&dptIds).Error
+	err := d.DB().Where("UserId = ?", userId).Select("DepartId").Find(&dptIds).Error
 	return dptIds, err
 }

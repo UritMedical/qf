@@ -9,14 +9,6 @@ type RoleRightsDal struct {
 	qf.BaseDal
 }
 
-func (r RoleRightsDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (r RoleRightsDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
 //
 // SetRoleRights
 //  @Description: 给指定角色分配权限。先删除roleId所有的权限，然后再重新添加
@@ -27,7 +19,7 @@ func (r RoleRightsDal) AfterAction(kind qf.EKind, content interface{}) error {
 func (r RoleRightsDal) SetRoleRights(roleId uint64, rightsIds []uint64) error {
 	tx := r.DB().Begin()
 	//先删除原来的权限
-	if err := tx.Where("role_id = ?", roleId).Delete(&uModel.RoleRights{}).Error; err != nil {
+	if err := tx.Where("RoleId = ?", roleId).Delete(&uModel.RoleRights{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -56,6 +48,6 @@ func (r RoleRightsDal) SetRoleRights(roleId uint64, rightsIds []uint64) error {
 //
 func (r RoleRightsDal) GetRoleRights(roleId uint64) ([]uint64, error) {
 	rights := make([]uint64, 0)
-	err := r.DB().Where("role_id = ?", roleId).Select("rights_id").Find(&rights).Error
+	err := r.DB().Where("RoleId = ?", roleId).Select("RightsId").Find(&rights).Error
 	return rights, err
 }

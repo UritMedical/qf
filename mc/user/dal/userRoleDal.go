@@ -10,14 +10,6 @@ type UserRoleDal struct {
 	qf.BaseDal
 }
 
-func (u UserRoleDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (u UserRoleDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
 //
 // SetRoleUsers
 //  @Description: 增、删用户-角色关系

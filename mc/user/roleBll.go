@@ -17,7 +17,7 @@ func (u *UserBll) regRoleApi(api qf.ApiMap) {
 
 	//角色-权限组
 	api.Reg(qf.EKindSave, "role/rights", u.setRoleRightsRelation) //给角色配置权限
-	api.Reg(qf.EKindGetList, "role/rights/", u.getRoleRights)     //获取角色拥有的权限
+	api.Reg(qf.EKindGetList, "role/rights", u.getRoleRights)     //获取角色拥有的权限
 }
 
 //

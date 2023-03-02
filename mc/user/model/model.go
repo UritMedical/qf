@@ -50,7 +50,7 @@ type RightsGroup struct {
 //
 type RightsApi struct {
 	qf.Content
-	RightsId uint64   `gorm:"index"`
+	RightsId uint64 `gorm:"index"`
 	ApiId    string //API key
 }
 
@@ -60,7 +60,7 @@ type RightsApi struct {
 type Department struct {
 	qf.Content
 	Name     string `gorm:"unique"` // 部门名称
-	ParentId uint64   `gorm:"index"`  //父级部门Id
+	ParentId uint64 `gorm:"index"`  //父级部门Id
 }
 
 // DepartUser

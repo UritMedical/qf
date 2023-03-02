@@ -9,14 +9,6 @@ type RightsApiDal struct {
 	qf.BaseDal
 }
 
-func (r RightsApiDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (r RightsApiDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
 //
 // SetRightsApis
 //  @Description: 向指定权限组添加，删除API

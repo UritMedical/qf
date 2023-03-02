@@ -21,11 +21,13 @@ func (u *UserBll) regDptApi(api qf.ApiMap) {
 	//部门
 	api.Reg(qf.EKindSave, "dpt", u.saveDpt)        //添加部门
 	api.Reg(qf.EKindDelete, "dpt", u.deleteDpt)    //删除部门
+	api.Reg(qf.EKindGetList, "dpt", u.getDpts)     //获取所有部门
 	api.Reg(qf.EKindGetModel, "dpt", u.getDptTree) //获取部门组织树
 
 	//部门-用户
 	api.Reg(qf.EKindSave, "dpt/users", u.addDptUsers)    //批量添加用户
 	api.Reg(qf.EKindDelete, "dpt/user", u.deleteDptUser) //从部门中删除单个用户
+	api.Reg(qf.EKindGetList, "dpt/users", u.getDptUsers) //获取指定部门的所有用户
 
 }
 
@@ -118,12 +120,19 @@ func (u *UserBll) addDptUsers(ctx *qf.Context) (interface{}, error) {
 }
 
 func (u *UserBll) deleteDptUser(ctx *qf.Context) (interface{}, error) {
-	params := struct {
-		DepartId uint64
-		UserId   uint64
-	}{}
-	if err := ctx.Bind(&params); err != nil {
-		return nil, err
-	}
-	return nil, u.dptUserDal.RemoveUser(params.DepartId, params.UserId)
+	DepartId := ctx.GetUIntValue("DepartId")
+	UserId := ctx.GetUIntValue("UserId")
+	return nil, u.dptUserDal.RemoveUser(DepartId, UserId)
+}
+
+func (u *UserBll) getDpts(ctx *qf.Context) (interface{}, error) {
+	list := make([]uModel.Department, 0)
+	err := u.dptDal.GetList(0, 100, &list)
+	return list, err
+}
+
+func (u *UserBll) getDptUsers(ctx *qf.Context) (interface{}, error) {
+	departId := ctx.GetUIntValue("DepartId")
+	userIds, err := u.dptUserDal.GetUsersByDptId(departId)
+	return userIds, err
 }

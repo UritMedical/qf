@@ -2,7 +2,6 @@ package user
 
 import (
 	"errors"
-	"github.com/gin-gonic/gin"
 	"qf"
 	uModel "qf/mc/user/model"
 	uUtils "qf/mc/user/utils"
@@ -78,7 +77,7 @@ func (u *UserBll) getUserModel(ctx *qf.Context) (interface{}, error) {
 		return nil, err
 	}
 	err = u.userDal.GetModel(uint64(ctx.UserId), &user)
-	ret := gin.H{
+	ret := map[string]interface{}{
 		"info":  user,
 		"roles": roles,
 	}
