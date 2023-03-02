@@ -27,7 +27,7 @@ func (r RightsApiDal) AfterAction(kind qf.EKind, content interface{}) error {
 func (r RightsApiDal) SetRightsApis(rightsId uint, apiKeys []string) error {
 	tx := r.DB().Begin()
 	//先删除此权限组所有的API
-	if err := tx.Where("rights_id = ?", rightsId).Delete(&uModel.RightsApi{}).Error; err != nil {
+	if err := tx.Where("RightsId = ?", rightsId).Delete(&uModel.RightsApi{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -54,8 +54,8 @@ func (r RightsApiDal) SetRightsApis(rightsId uint, apiKeys []string) error {
 //  @return []string
 //  @return error
 //
-func (r RightsApiDal) GetRightsApi(rightsId uint) ([]string, error) {
+func (r RightsApiDal) GetApisByRightsId(rightsId uint64) ([]string, error) {
 	apis := make([]string, 0)
-	err := r.DB().Where("rights_id = ?", rightsId).Select("api_id").Find(&apis).Error
+	err := r.DB().Where("RightsId = ?", rightsId).Select("ApiId").Find(&apis).Error
 	return apis, err
 }

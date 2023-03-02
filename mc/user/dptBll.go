@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"qf"
 	uModel "qf/mc/user/model"
-	uUtils "qf/mc/user/utils"
 )
 
 // DepartNode
@@ -25,7 +24,9 @@ func (u *UserBll) regDptApi(api qf.ApiMap) {
 	api.Reg(qf.EKindGetModel, "dpt", u.getDptTree) //获取部门组织树
 
 	//部门-用户
-	api.Reg(qf.EKindSave, "dpt/user", u.setDptUser) //添加、删除用户
+	api.Reg(qf.EKindSave, "dpt/users", u.addDptUsers)    //批量添加用户
+	api.Reg(qf.EKindDelete, "dpt/user", u.deleteDptUser) //从部门中删除单个用户
+
 }
 
 func (u *UserBll) saveDpt(ctx *qf.Context) (interface{}, error) {
@@ -99,13 +100,13 @@ func (u *UserBll) buildTree(departments []*DepartNode) []*DepartNode {
 }
 
 //
-// setDptUser
-//  @Description: 前端传入调整后的人员，后端自己判断添加、删除的人员
+// addDptUsers
+//  @Description: 向指定部门批量添加用户
 //  @param ctx
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) setDptUser(ctx *qf.Context) (interface{}, error) {
+func (u *UserBll) addDptUsers(ctx *qf.Context) (interface{}, error) {
 	params := struct {
 		DepartId uint
 		UserIds  []uint
@@ -113,20 +114,16 @@ func (u *UserBll) setDptUser(ctx *qf.Context) (interface{}, error) {
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
-	//获取此部门所有用户
-	oldUsers, err := u.dptUserDal.GetUsersByDptId(params.DepartId)
-	if err != nil {
+	return nil, u.dptUserDal.AddUsers(params.DepartId, params.UserIds)
+}
+
+func (u *UserBll) deleteDptUser(ctx *qf.Context) (interface{}, error) {
+	params := struct {
+		DepartId uint
+		UserId   uint
+	}{}
+	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
-
-	//分析需要新增、删除的用户Id
-	newUsers := uUtils.DiffIntSet(params.UserIds, oldUsers)
-	removeUsers := uUtils.DiffIntSet(oldUsers, params.UserIds)
-
-	err = u.dptUserDal.AddRelation(params.DepartId, newUsers)
-	if err != nil {
-		return nil, err
-	}
-	err = u.dptUserDal.RemoveRelation(params.DepartId, removeUsers)
-	return nil, err
+	return nil, u.dptUserDal.RemoveUser(params.DepartId, params.UserId)
 }

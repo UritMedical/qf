@@ -3,6 +3,7 @@ package uDal
 import (
 	"qf"
 	uModel "qf/mc/user/model"
+	uUtils "qf/mc/user/utils"
 )
 
 type DptUserDal struct {
@@ -24,9 +25,17 @@ func (d DptUserDal) AfterAction(kind qf.EKind, content interface{}) error {
 //  @param userIds
 //  @return error
 //
-func (d DptUserDal) AddRelation(departId uint, userIds []uint) error {
+func (d DptUserDal) AddUsers(departId uint, userIds []uint) error {
+	oldUserIds, err := d.GetUsersByDptId(departId)
+	if err != nil {
+		return err
+	}
+
+	//过滤出部门中已经存在的账号
+	newUsers := uUtils.DiffIntSet(userIds, oldUserIds)
+
 	list := make([]uModel.DepartUser, 0)
-	for _, id := range userIds {
+	for _, id := range newUsers {
 		list = append(list, uModel.DepartUser{
 			DepartId: departId,
 			UserId:   id,
@@ -42,8 +51,8 @@ func (d DptUserDal) AddRelation(departId uint, userIds []uint) error {
 //  @param userIds
 //  @return error
 //
-func (d DptUserDal) RemoveRelation(departId uint, userIds []uint) error {
-	return d.DB().Where("DepartId = ? AND UserId IN (?)", departId, userIds).Delete(&uModel.DepartUser{}).Error
+func (d DptUserDal) RemoveUser(departId uint, userId uint) error {
+	return d.DB().Where("DepartId = ? AND UserId = ?", departId, userId).Delete(&uModel.DepartUser{}).Error
 }
 
 //
