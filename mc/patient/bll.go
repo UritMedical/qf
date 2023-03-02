@@ -100,10 +100,10 @@ func (b *Bll) GetCase(ctx *qf.Context) (interface{}, error) {
 func (b *Bll) GetCaseList(ctx *qf.Context) (interface{}, error) {
 	// 外部调用时，请用框架创建上下文
 	// qf.BuildContext(map)
-
-	infoId := ctx.GetUIntValue("infoId")
-	caseId := ctx.GetStringValue("caseId")
-	return b.caseDal.Search(infoId, caseId)
+	return nil, nil
+	//infoId := ctx.GetUIntValue("infoId")
+	//caseId := ctx.GetStringValue("caseId")
+	//return b.caseDal.Search(infoId, caseId)
 }
 
 //

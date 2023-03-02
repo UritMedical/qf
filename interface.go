@@ -80,7 +80,7 @@ type IDal interface {
 	//  @param id
 	//  @return error
 	//
-	Delete(id uint) error
+	Delete(id uint64) error
 
 	//
 	// GetModel
@@ -89,7 +89,7 @@ type IDal interface {
 	//  @param dest
 	//  @return error
 	//
-	GetModel(id uint, dest interface{}) error
+	GetModel(id uint64, dest interface{}) error
 
 	//
 	// GetList
@@ -99,7 +99,7 @@ type IDal interface {
 	//  @param dest 目标列表
 	//  @return error 返回异常
 	//
-	GetList(startId uint, maxCount uint, dest interface{}) error
+	GetList(startId uint64, maxCount uint, dest interface{}) error
 
 	//
 	// CheckExists
@@ -107,25 +107,7 @@ type IDal interface {
 	//  @param id
 	//  @return bool
 	//
-	CheckExists(id uint) bool
-
-	//
-	// BeforeAction
-	//  @Description: 内置增删改查执行前触发
-	//  @param kind
-	//  @param content
-	//  @return error
-	//
-	BeforeAction(kind EKind, content interface{}) error
-
-	//
-	// AfterAction
-	//  @Description: 内置增删改查执行后触发
-	//  @param kind
-	//  @param content
-	//  @return error
-	//
-	AfterAction(kind EKind, content interface{}) error
+	CheckExists(id uint64) bool
 
 	//
 	// IQFDal

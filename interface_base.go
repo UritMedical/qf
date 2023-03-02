@@ -187,16 +187,10 @@ func (b *BaseDal) DB() *gorm.DB {
 //  @return error 异常
 //
 func (b *BaseDal) Save(content interface{}) error {
-	// 先执行Before
-	err := b.dal.BeforeAction(EKindSave, content)
-	if err != nil {
-		return err
-	}
 	// 提交
 	result := b.DB().Save(content)
 	if result.RowsAffected > 0 {
-		// 在执行After
-		return b.dal.AfterAction(EKindSave, content)
+		return nil
 	}
 	return result.Error
 }
@@ -207,7 +201,7 @@ func (b *BaseDal) Save(content interface{}) error {
 //  @param id 唯一号
 //  @return error 异常
 //
-func (b *BaseDal) Delete(id uint) error {
+func (b *BaseDal) Delete(id uint64) error {
 	result := b.DB().Where("id = ?", id).Updates(Content{Id: id, Delete: 1})
 	if result.RowsAffected > 0 {
 		return nil
@@ -222,7 +216,7 @@ func (b *BaseDal) Delete(id uint) error {
 //  @param dest 目标实体结构
 //  @return error 返回异常
 //
-func (b *BaseDal) GetModel(id uint, dest interface{}) error {
+func (b *BaseDal) GetModel(id uint64, dest interface{}) error {
 	result := b.DB().Where("id = ?", id).Find(dest)
 	// 如果异常或者未查询到任何数据
 	if result.Error != nil {
@@ -239,7 +233,7 @@ func (b *BaseDal) GetModel(id uint, dest interface{}) error {
 //  @param dest 目标列表
 //  @return error 返回异常
 //
-func (b *BaseDal) GetList(startId uint, maxCount uint, dest interface{}) error {
+func (b *BaseDal) GetList(startId uint64, maxCount uint, dest interface{}) error {
 	result := b.DB().Limit(int(maxCount)).Offset(int(startId)).Find(dest)
 	if result.Error != nil {
 		return result.Error
@@ -253,7 +247,7 @@ func (b *BaseDal) GetList(startId uint, maxCount uint, dest interface{}) error {
 //  @param id 唯一号
 //  @return bool true存在 false不存在
 //
-func (b *BaseDal) CheckExists(id uint) bool {
+func (b *BaseDal) CheckExists(id uint64) bool {
 	count := int64(0)
 	result := b.DB().Where("id = ?", id).Count(&count)
 	if count > 0 && result.Error == nil {
