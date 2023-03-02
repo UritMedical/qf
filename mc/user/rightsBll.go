@@ -7,12 +7,12 @@ import (
 
 func (u *UserBll) regRightsApi(api qf.ApiMap) {
 	//权限组
-	api.Reg(qf.EKindSave, "", u.saveRightGroup)        //添加权限组
-	api.Reg(qf.EKindDelete, "", u.deleteRightGroup)    //删除权限组
-	api.Reg(qf.EKindGetModel, "", u.getRightGroupList) //获取权限组
+	api.Reg(qf.EKindSave, "rights", u.saveRightGroup)        //添加权限组
+	api.Reg(qf.EKindDelete, "rights", u.deleteRightGroup)    //删除权限组
+	api.Reg(qf.EKindGetModel, "rights", u.getRightGroupList) //获取权限组
 
 	//权限组-API
-	api.Reg(qf.EKindSave, "apis", u.setRightGroupApi)
+	api.Reg(qf.EKindSave, "rights/apis", u.setRightGroupApi)
 }
 
 func (u *UserBll) saveRightGroup(ctx *qf.Context) (interface{}, error) {

@@ -24,7 +24,7 @@ func (d DptUserDal) AfterAction(kind qf.EKind, content interface{}) error {
 //  @param userIds
 //  @return error
 //
-func (d DptUserDal) AddUsers(departId uint, userIds []uint) error {
+func (d DptUserDal) AddRelation(departId uint, userIds []uint) error {
 	list := make([]uModel.DepartUser, 0)
 	for _, id := range userIds {
 		list = append(list, uModel.DepartUser{
@@ -42,31 +42,31 @@ func (d DptUserDal) AddUsers(departId uint, userIds []uint) error {
 //  @param userIds
 //  @return error
 //
-func (d DptUserDal) RemoveUsers(departId uint, userIds []uint) error {
+func (d DptUserDal) RemoveRelation(departId uint, userIds []uint) error {
 	return d.DB().Where("DepartId = ? AND UserId IN (?)", departId, userIds).Delete(&uModel.DepartUser{}).Error
 }
 
 //
-// GetDptUsers
+// GetUsersByDptId
 //  @Description: 获取部门中所有用户
 //  @param departId
 //  @return []uint
 //  @return error
 //
-func (d DptUserDal) GetDptUsers(departId uint) ([]uint, error) {
+func (d DptUserDal) GetUsersByDptId(departId uint) ([]uint, error) {
 	userIds := make([]uint, 0)
 	err := d.DB().Where("DepartId = ?", departId).Find(&userIds).Error
 	return userIds, err
 }
 
 //
-// GetUserDpts
+// GetDptsByUserId
 //  @Description: 获取用户所属部门
 //  @param userId
 //  @return []uint
 //  @return error
 //
-func (d DptUserDal) GetUserDpts(userId uint) ([]uint, error) {
+func (d DptUserDal) GetDptsByUserId(userId uint) ([]uint, error) {
 	dptIds := make([]uint, 0)
 	err := d.DB().Where("UserId = ?", userId).Find(&dptIds).Error
 	return dptIds, err

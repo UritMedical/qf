@@ -10,16 +10,16 @@ const tokenExpireDuration = time.Hour * 24 * 3
 
 //Claims token 信息
 type Claims struct {
-	Id   uint
-	Role byte
+	Id      uint
+	RoleIds []uint
 	jwt.StandardClaims
 }
 
 //GenerateToken 生成token
-func GenerateToken(id uint, role byte, jwtSecret []byte) (string, error) {
+func GenerateToken(id uint, roleIds []uint, jwtSecret []byte) (string, error) {
 	claims := Claims{
 		id,
-		role,
+		roleIds,
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(tokenExpireDuration).Unix(),
 		},

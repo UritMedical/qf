@@ -9,25 +9,39 @@ func (u *UserBll) regRoleApi(api qf.ApiMap) {
 	//角色
 	api.Reg(qf.EKindSave, "role", u.saveRole)        //创建、修改角色
 	api.Reg(qf.EKindDelete, "role", u.deleteRole)    //删除角色
-	api.Reg(qf.EKindGetList, "roles", u.getAllRoles) //获取所有就是
+	api.Reg(qf.EKindGetList, "roles", u.getAllRoles) //获取所有角色
 
 	//用户-角色
-	api.Reg(qf.EKindSave, "role/users", u.setRoleUsers)        //给角色设置用户，删除或者添加
-	api.Reg(qf.EKindDelete, "role/user", u.removeUserFromRole) //从指定角色中删除用户
+	api.Reg(qf.EKindSave, "role/users", u.setUserRoleRelation) //给角色删除或者添加用户
+	api.Reg(qf.EKindGetList, "role/users", u.getRoleUsers)     //获取指定角色下的用户
 
 	//角色-权限组
-	api.Reg(qf.EKindSave, "role/rights", u.setRoleRights)    //给角色配置权限
-	api.Reg(qf.EKindGetList, "role/rights", u.getRoleRights) //获取角色拥有的权限
+	api.Reg(qf.EKindSave, "role/rights", u.setRoleRightsRelation) //给角色配置权限
+	api.Reg(qf.EKindGetList, "role/rights/", u.getRoleRights)     //获取角色拥有的权限
 }
 
+//
+// saveRole
+//  @Description: 增改角色
+//  @param ctx
+//  @return interface{}
+//  @return error
+//
 func (u *UserBll) saveRole(ctx *qf.Context) (interface{}, error) {
-	var role uModel.Role
-	if err := ctx.Bind(&role); err != nil {
+	role := &uModel.Role{}
+	if err := ctx.Bind(role); err != nil {
 		return nil, err
 	}
-	return nil, u.roleDal.Save(&role)
+	return nil, u.roleDal.Save(role)
 }
 
+//
+// deleteRole
+//  @Description: 删除角色
+//  @param ctx
+//  @return interface{}
+//  @return error
+//
 func (u *UserBll) deleteRole(ctx *qf.Context) (interface{}, error) {
 	uId := ctx.GetUIntValue("Id")
 	err := u.roleDal.Delete(uId)
@@ -48,13 +62,13 @@ func (u *UserBll) getAllRoles(ctx *qf.Context) (interface{}, error) {
 }
 
 //
-// SetRoleUsers
-//  @Description: 向指定角色添加用户
+// setUserRoleRelation
+//  @Description: 设置角色-用户关系
 //  @param roleId 角色ID
 //  @param userId 用户Id
 //  @return error
 //
-func (u *UserBll) setRoleUsers(ctx *qf.Context) (interface{}, error) {
+func (u *UserBll) setUserRoleRelation(ctx *qf.Context) (interface{}, error) {
 	var params = struct {
 		RoleId  uint
 		UserIds []uint
@@ -62,21 +76,17 @@ func (u *UserBll) setRoleUsers(ctx *qf.Context) (interface{}, error) {
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
-	return nil, u.userRole.SetRoleUsers(params.RoleId, params.UserIds)
+	return nil, u.userRoleDal.SetRoleUsers(params.RoleId, params.UserIds)
 }
 
-func (u *UserBll) removeUserFromRole(ctx *qf.Context) (interface{}, error) {
-	var params = struct {
-		RoleId uint
-		UserId uint
-	}{}
-	if err := ctx.Bind(&params); err != nil {
-		return nil, err
-	}
-	return nil, u.userRole.RemoveUserFromRole(params.RoleId, params.UserId)
-}
-
-func (u *UserBll) setRoleRights(ctx *qf.Context) (interface{}, error) {
+//
+// setRoleRightsRelation
+//  @Description: 设置角色-权限关系
+//  @param ctx
+//  @return interface{}
+//  @return error
+//
+func (u *UserBll) setRoleRightsRelation(ctx *qf.Context) (interface{}, error) {
 	var params = struct {
 		RoleId    uint
 		RightsIds []uint
@@ -87,7 +97,30 @@ func (u *UserBll) setRoleRights(ctx *qf.Context) (interface{}, error) {
 	return nil, u.roleRightsDal.SetRoleRights(params.RoleId, params.RightsIds)
 }
 
+//
+// getRoleUsers
+//  @Description: 获取此角色下的用户
+//  @param ctx
+//  @return interface{}
+//  @return error
+//
+func (u *UserBll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
+	roleId := ctx.GetUIntValue("RoleId")
+	userIds, err := u.userRoleDal.GetUsersByRoleId(roleId)
+	//TODO 把用户Id转换成用户信息
+	return userIds, err
+}
+
+//
+// getRoleRights
+//  @Description: 获取此角色的权限
+//  @param ctx
+//  @return interface{}
+//  @return error
+//
 func (u *UserBll) getRoleRights(ctx *qf.Context) (interface{}, error) {
 	roleId := ctx.GetUIntValue("RoleId")
-	return u.roleRightsDal.GetRoleRights(roleId)
+	rightsId, err := u.roleRightsDal.GetRoleRights(roleId)
+	//TODO 把角色Id转换成角色信息
+	return rightsId, err
 }

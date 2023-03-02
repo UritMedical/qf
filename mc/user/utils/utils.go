@@ -1,4 +1,4 @@
-package user
+package uUtils
 
 import (
 	"crypto/md5"
@@ -14,26 +14,26 @@ const (
 )
 
 //StrToInt 数字字符串转 uint
-func strToInt(str string) uint {
+func StrToInt(str string) uint {
 	i, _ := strconv.Atoi(str)
 	return uint(i)
 }
 
-//转换成MD5加密
-func convertToMD5(str []byte) string {
+//ConvertToMD5 转换成MD5加密
+func ConvertToMD5(str []byte) string {
 	h := md5.New()
 	h.Write(str)
 	return hex.EncodeToString(h.Sum(nil))
 }
 
 //
-// diff
+// DiffIntSet
 //  @Description: 计算a数组元素不在b数组之中的所有元素
 //  @param a
 //  @param b
 //  @return []uint
 //
-func diffIntSet(a []uint, b []uint) []uint {
+func DiffIntSet(a []uint, b []uint) []uint {
 	c := make([]uint, 0)
 	temp := map[uint]struct{}{}
 	//把b所有的值作为key存入temp

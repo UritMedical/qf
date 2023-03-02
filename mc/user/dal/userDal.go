@@ -1,6 +1,9 @@
 package uDal
 
-import "qf"
+import (
+	"qf"
+	uModel "qf/mc/user/model"
+)
 
 type UserDal struct {
 	qf.BaseDal
@@ -32,10 +35,10 @@ func (u *UserDal) SetPassword(id uint, newPwd string) error {
 //  @param password
 //  @return bool
 //
-func (u *UserDal) CheckLogin(loginId, password string) bool {
-	var count int64
-	u.DB().Where("login_id = ? AND password = ?", loginId, password).Count(&count)
-	return count > 0
+func (u *UserDal) CheckLogin(loginId, password string) (uModel.User, bool) {
+	var user uModel.User
+	u.DB().Where("LoginId = ? AND Password = ?", loginId, password).Find(&user)
+	return user, user.Id > 0
 }
 
 //
@@ -49,4 +52,16 @@ func (u UserDal) CheckOldPassword(id uint, password string) bool {
 	var count int64
 	u.DB().Where("id = ? AND password = ?", id, password).Count(&count)
 	return count > 0
+}
+
+//
+// GetAllUsers
+//  @Description: 获取所有用
+//  @return []uModel.User
+//  @return error
+//
+func (u UserDal) GetAllUsers() ([]uModel.User, error) {
+	list := make([]uModel.User, 0)
+	err := u.DB().Where("Id > 0").Find(&list).Error
+	return list, err
 }
