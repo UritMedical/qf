@@ -70,8 +70,8 @@ func (u *UserBll) getAllRoles(ctx *qf.Context) (interface{}, error) {
 //
 func (u *UserBll) setUserRoleRelation(ctx *qf.Context) (interface{}, error) {
 	var params = struct {
-		RoleId  uint
-		UserIds []uint
+		RoleId  uint64
+		UserIds []uint64
 	}{}
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
@@ -88,8 +88,8 @@ func (u *UserBll) setUserRoleRelation(ctx *qf.Context) (interface{}, error) {
 //
 func (u *UserBll) setRoleRightsRelation(ctx *qf.Context) (interface{}, error) {
 	var params = struct {
-		RoleId    uint
-		RightsIds []uint
+		RoleId    uint64
+		RightsIds []uint64
 	}{}
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (u *UserBll) setRoleRightsRelation(ctx *qf.Context) (interface{}, error) {
 //
 func (u *UserBll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
 	roleId := ctx.GetUIntValue("RoleId")
-	userIds, err := u.userRoleDal.GetUsersByRoleId(uint(roleId))
+	userIds, err := u.userRoleDal.GetUsersByRoleId(roleId)
 	//TODO 把用户Id转换成用户信息
 	return userIds, err
 }
@@ -120,7 +120,7 @@ func (u *UserBll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
 //
 func (u *UserBll) getRoleRights(ctx *qf.Context) (interface{}, error) {
 	roleId := ctx.GetUIntValue("RoleId")
-	rightsId, err := u.roleRightsDal.GetRoleRights(uint(roleId))
+	rightsId, err := u.roleRightsDal.GetRoleRights(roleId)
 	//TODO 把角色Id转换成角色信息
 	return rightsId, err
 }

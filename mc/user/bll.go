@@ -98,7 +98,7 @@ func (u *UserBll) initDefUser() {
 		_ = u.roleDal.Save(&uModel.Role{Content: qf.Content{Id: adminId}, Name: "administrator"})
 
 		//分配角色
-		_ = u.userRoleDal.SetRoleUsers(adminId, []uint{adminId}) //admin 分配 administrator角色
+		_ = u.userRoleDal.SetRoleUsers(adminId, []uint64{adminId}) //admin 分配 administrator角色
 
 	}
 }

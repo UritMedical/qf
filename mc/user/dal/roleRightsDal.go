@@ -24,7 +24,7 @@ func (r RoleRightsDal) AfterAction(kind qf.EKind, content interface{}) error {
 //  @param rightsIds
 //  @return error
 //
-func (r RoleRightsDal) SetRoleRights(roleId uint, rightsIds []uint) error {
+func (r RoleRightsDal) SetRoleRights(roleId uint64, rightsIds []uint64) error {
 	tx := r.DB().Begin()
 	//先删除原来的权限
 	if err := tx.Where("role_id = ?", roleId).Delete(&uModel.RoleRights{}).Error; err != nil {
@@ -54,8 +54,8 @@ func (r RoleRightsDal) SetRoleRights(roleId uint, rightsIds []uint) error {
 //  @Description: 获取指定角色拥有的权限
 //  @param roleId
 //
-func (r RoleRightsDal) GetRoleRights(roleId uint) ([]uint, error) {
-	rights := make([]uint, 0)
+func (r RoleRightsDal) GetRoleRights(roleId uint64) ([]uint64, error) {
+	rights := make([]uint64, 0)
 	err := r.DB().Where("role_id = ?", roleId).Select("rights_id").Find(&rights).Error
 	return rights, err
 }

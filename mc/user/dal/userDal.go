@@ -24,7 +24,7 @@ func (u UserDal) AfterAction(kind qf.EKind, content interface{}) error {
 //  @param newPwd 新密码的MD5格式
 //  @return error
 //
-func (u *UserDal) SetPassword(id uint, newPwd string) error {
+func (u *UserDal) SetPassword(id uint64, newPwd string) error {
 	return u.DB().Where("id = ?", id).Update("password", newPwd).Error
 }
 
@@ -48,7 +48,7 @@ func (u *UserDal) CheckLogin(loginId, password string) (uModel.User, bool) {
 //  @param password
 //  @return bool
 //
-func (u UserDal) CheckOldPassword(id uint, password string) bool {
+func (u UserDal) CheckOldPassword(id uint64, password string) bool {
 	var count int64
 	u.DB().Where("id = ? AND password = ?", id, password).Count(&count)
 	return count > 0

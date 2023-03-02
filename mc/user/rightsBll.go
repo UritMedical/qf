@@ -45,7 +45,7 @@ func (u *UserBll) getRightsGroupList(ctx *qf.Context) (interface{}, error) {
 //
 func (u *UserBll) setRightsGroupApi(ctx *qf.Context) (interface{}, error) {
 	params := struct {
-		RightsId uint
+		RightsId uint64
 		ApiIds   []string
 	}{}
 	if err := ctx.Bind(&params); err != nil {

@@ -24,7 +24,7 @@ func (r RightsApiDal) AfterAction(kind qf.EKind, content interface{}) error {
 //  @param apiKeys
 //  @return error
 //
-func (r RightsApiDal) SetRightsApis(rightsId uint, apiKeys []string) error {
+func (r RightsApiDal) SetRightsApis(rightsId uint64, apiKeys []string) error {
 	tx := r.DB().Begin()
 	//先删除此权限组所有的API
 	if err := tx.Where("RightsId = ?", rightsId).Delete(&uModel.RightsApi{}).Error; err != nil {

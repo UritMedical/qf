@@ -10,9 +10,9 @@ import (
 // @Description: 部门树节点
 //
 type DepartNode struct {
-	Id       uint
+	Id       uint64
 	Name     string
-	ParentId uint
+	ParentId uint64
 	Children []*DepartNode
 }
 
@@ -60,7 +60,7 @@ func (u *UserBll) getDptTree(ctx *qf.Context) (interface{}, error) {
 	nodes := make([]*DepartNode, 0)
 	for _, department := range dptList {
 		nodes = append(nodes, &DepartNode{
-			Id:       uint(department.Id),
+			Id:       uint64(department.Id),
 			Name:     department.Name,
 			ParentId: department.ParentId,
 			Children: nil,
@@ -77,7 +77,7 @@ func (u *UserBll) getDptTree(ctx *qf.Context) (interface{}, error) {
 //  @return []*DepartNode
 //
 func (u *UserBll) buildTree(departments []*DepartNode) []*DepartNode {
-	lookup := make(map[uint]*DepartNode)
+	lookup := make(map[uint64]*DepartNode)
 	for _, department := range departments {
 		lookup[department.Id] = department
 		department.Children = []*DepartNode{}
@@ -108,8 +108,8 @@ func (u *UserBll) buildTree(departments []*DepartNode) []*DepartNode {
 //
 func (u *UserBll) addDptUsers(ctx *qf.Context) (interface{}, error) {
 	params := struct {
-		DepartId uint
-		UserIds  []uint
+		DepartId uint64
+		UserIds  []uint64
 	}{}
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
@@ -119,8 +119,8 @@ func (u *UserBll) addDptUsers(ctx *qf.Context) (interface{}, error) {
 
 func (u *UserBll) deleteDptUser(ctx *qf.Context) (interface{}, error) {
 	params := struct {
-		DepartId uint
-		UserId   uint
+		DepartId uint64
+		UserId   uint64
 	}{}
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
