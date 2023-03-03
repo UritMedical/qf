@@ -158,17 +158,17 @@ func (s *Service) RegBll(bll IBll, group string) {
 //  @return error
 //
 func (s *Service) init() error {
-	// 给所有引用的第三方业务赋值
-	for _, bll := range s.bllList {
-		refs := bll.RefBll()
-		for i := 0; i < len(refs); i++ {
-			if b, ok := s.bllList[refs[i].getKey()]; ok {
-				refs[i] = b
-			} else {
-				panic("not found")
-			}
-		}
-	}
+	//// 给所有引用的第三方业务赋值
+	//for _, bll := range s.bllList {
+	//	refs := bll.RefBll()
+	//	for i := 0; i < len(refs); i++ {
+	//		if b, ok := s.bllList[refs[i].getKey()]; ok {
+	//			refs[i] = b
+	//		} else {
+	//			panic("not found")
+	//		}
+	//	}
+	//}
 	// 执行业务初始化
 	for _, bll := range s.bllList {
 		err := bll.Init()

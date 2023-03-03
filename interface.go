@@ -31,11 +31,11 @@ type IBll interface {
 	RegMsg(msg MessageMap)
 
 	//
-	// RefBll
-	//  @Description: 提交需要引用的第三方业务，由框架进行初始化
-	//  @return []IBll
+	// RegRef
+	//  @Description: 注册引用
+	//  @param ref
 	//
-	RefBll() []IBll
+	RegRef(ref RefMap)
 
 	//
 	// Init
@@ -100,6 +100,15 @@ type IDal interface {
 	//  @return error 返回异常
 	//
 	GetList(startId uint64, maxCount uint, dest interface{}) error
+
+	//
+	// GetCount
+	//  @Description: GetCount
+	//  @param query 查询条件，如：a = ? and b = ?
+	//  @param args 条件对应的值
+	//  @return int64 查询到的记录数
+	//
+	GetCount(query interface{}, args ...interface{}) int64
 
 	//
 	// CheckExists

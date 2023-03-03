@@ -14,10 +14,10 @@ type Patient struct {
 	qf.Content
 
 	//
-	// PatName
+	// Name
 	//  @Description: 患者姓名，索引
 	//
-	PatName string `gorm:"index"`
+	Name string `gorm:"index"`
 
 	//
 	// HisId
@@ -41,7 +41,7 @@ type Case struct {
 	// PId
 	//  @Description: 对应基本信息ID
 	//
-	PId uint `gorm:"index"`
+	PId uint64 `gorm:"index"`
 
 	//
 	// CaseId

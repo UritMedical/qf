@@ -42,7 +42,7 @@ func (bll *BaseBll) getKey() string {
 //  @param content 需要发送的调试信息
 //
 func (bll *BaseBll) Debug(info string) {
-
+	fmt.Println(info)
 }
 
 //
@@ -64,6 +64,28 @@ func (bll *BaseBll) SetConfig(config map[string]interface{}) {
 }
 
 //
+// Map
+//  @Description: 将包含内容的结构体转为字典结构
+//  @param model 内容结构
+//  @return map[string]interface{}
+//
+func (bll *BaseBll) Map(model interface{}) map[string]interface{} {
+	// 先转一次json
+	tj, _ := json.Marshal(model)
+	// 然后在反转到内容对象
+	cnt := Content{}
+	_ = json.Unmarshal(tj, &cnt)
+
+	// 生成字典
+	final := bll.create(cnt.FullInfo, model)
+	// 补齐字段的值
+	final["Id"] = cnt.Id
+	final["LastTime"] = cnt.LastTime
+
+	return final
+}
+
+//
 // BuildContent
 //  @Description: 生成新内容
 //  @param model
@@ -77,9 +99,23 @@ func (bll *BaseBll) BuildContent(model interface{}) Content {
 	_ = json.Unmarshal(tj, &cnt)
 
 	// 然后重新生成新的Info
-	info := map[string]interface{}{}
-	_ = json.Unmarshal([]byte(cnt.Info), &info)
-	// 反射对象
+	final := bll.create(cnt.FullInfo, model)
+
+	// 在转为json并写入到info中
+	nj, _ := json.Marshal(final)
+	cnt.FullInfo = string(nj)
+
+	return cnt
+}
+
+// 将完整内容Json和对应的实体，合并为一个字典对象
+func (bll *BaseBll) create(info string, model interface{}) map[string]interface{} {
+	data := map[string]interface{}{}
+
+	// 将内容的信息写入到字典中
+	_ = json.Unmarshal([]byte(info), &data)
+
+	// 反射对象，并将其他字段附加到字典
 	value := reflect.ValueOf(model)
 	if value.Kind() == reflect.Ptr {
 		value = value.Elem()
@@ -92,13 +128,11 @@ func (bll *BaseBll) BuildContent(model interface{}) Content {
 		}
 		tag := value.Type().Field(i).Tag.Get("json")
 		if tag != "-" {
-			info[value.Type().Field(i).Name] = field.Interface()
+			data[value.Type().Field(i).Name] = field.Interface()
 		}
 	}
-	nj, _ := json.Marshal(info)
-	cnt.Info = string(nj)
 
-	return cnt
+	return data
 }
 
 //----------------------------------------------------------------
@@ -146,6 +180,24 @@ type MessageHandler func(ctx *Context) error
 func (m *MessageMap) Reg(bll IBll, router string, function MessageHandler) {
 
 }
+
+//----------------------------------------------------------------
+
+type RefMap map[EKind]map[string]ApiHandler
+
+//
+// Reg
+//  @Description: 注册外部引用
+//  @param pkgName 需要引用的业务所在的包名
+//  @param kind 类型
+//  @param router 相对路由
+//  @param handler 执行函数指针
+//
+func (r *RefMap) Reg(pkgName string, kind EKind, router string, handler ApiHandler) {
+
+}
+
+//----------------------------------------------------------------
 
 type BaseDal struct {
 	db        *gorm.DB
@@ -202,7 +254,7 @@ func (b *BaseDal) Save(content interface{}) error {
 //  @return error 异常
 //
 func (b *BaseDal) Delete(id uint64) error {
-	result := b.DB().Where("id = ?", id).Updates(Content{Id: id, Delete: 1})
+	result := b.DB().Delete(&Content{Id: id})
 	if result.RowsAffected > 0 {
 		return nil
 	}
@@ -239,6 +291,19 @@ func (b *BaseDal) GetList(startId uint64, maxCount uint, dest interface{}) error
 		return result.Error
 	}
 	return nil
+}
+
+//
+// GetCount
+//  @Description: GetCount
+//  @param query 查询条件，如：a = ? and b = ?
+//  @param args 条件对应的值
+//  @return int64 查询到的记录数
+//
+func (b *BaseDal) GetCount(query interface{}, args ...interface{}) int64 {
+	count := int64(0)
+	b.DB().Where(query, args).Count(&count)
+	return count
 }
 
 //

@@ -39,10 +39,9 @@ func (kind EKind) HttpMethod() string {
 //  @Description: 基础内容实体对象
 //
 type Content struct {
-	Id     uint64    `gorm:"primaryKey"` // 唯一号
-	Delete byte      `gorm:"index"`      // 是否删除 0否 1是
-	Time   time.Time `gorm:"index"`      // 操作时间
-	Info   string    // 完整内容信息
+	Id       uint64    `gorm:"primaryKey"` // 唯一号
+	LastTime time.Time `gorm:"index"`      // 最后操作时间时间
+	FullInfo string    // 完整内容信息
 }
 
 //
@@ -108,9 +107,9 @@ func (ctx *Context) build(source map[string]interface{}) Content {
 	}
 	cj, _ := json.Marshal(source)
 	return Content{
-		Id:   uint64(nid),
-		Time: ctx.Time,
-		Info: string(cj),
+		Id:       uint64(nid),
+		LastTime: ctx.Time,
+		FullInfo: string(cj),
 	}
 }
 
