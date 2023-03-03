@@ -14,15 +14,15 @@ var devUser = uModel.User{Content: qf.Content{Id: devId}, LoginId: "developer", 
 
 type UserBll struct {
 	qf.BaseBll
-	userDal       *uDal.UserDal       //用户dal
-	userRoleDal   *uDal.UserRoleDal   //用户-角色
-	roleDal       *uDal.RoleDal       //角色dal
-	roleRightsDal *uDal.RoleRightsDal //角色-权限
-	rightsDal     *uDal.RoleRightsDal //权限dal
-	rightsApiDal  *uDal.RightsApiDal  //权限-api
-	dptDal        *uDal.DepartmentDal //部门dal
-	dptUserDal    *uDal.DptUserDal    //部门-用户
-	jwtSecret     []byte              //token密钥
+	userDal       *uDal.UserDal        //用户dal
+	userRoleDal   *uDal.UserRoleDal    //用户-角色
+	roleDal       *uDal.RoleDal        //角色dal
+	roleRightsDal *uDal.RoleRightsDal  //角色-权限
+	rightsDal     *uDal.RightsGroupDal //权限dal
+	rightsApiDal  *uDal.RightsApiDal   //权限-api
+	dptDal        *uDal.DepartmentDal  //部门dal
+	dptUserDal    *uDal.DptUserDal     //部门-用户
+	jwtSecret     []byte               //token密钥
 }
 
 func (u *UserBll) RegApi(api qf.ApiMap) {
@@ -45,7 +45,7 @@ func (u *UserBll) RegDal(dal qf.DalMap) {
 	u.roleRightsDal = &uDal.RoleRightsDal{}
 	dal.Reg(u.roleRightsDal, uModel.RoleRights{})
 
-	u.rightsDal = &uDal.RoleRightsDal{}
+	u.rightsDal = &uDal.RightsGroupDal{}
 	dal.Reg(u.rightsDal, uModel.RightsGroup{})
 
 	u.rightsApiDal = &uDal.RightsApiDal{}
@@ -90,15 +90,15 @@ func (u *UserBll) initDefUser() {
 	const adminId = 1
 	if len(list) == 0 {
 		_ = u.userDal.Save(&uModel.User{
-			Content:  qf.Content{Id: adminId},
+			Content:  qf.Content{Id: adminId, Info: "{\"LoginId\":\"admin\",\"Name\":\"Admin\"}"},
 			LoginId:  "admin",
 			Password: uUtils.ConvertToMD5([]byte("admin123"))})
 
 		//创建默认角色
-		_ = u.roleDal.Save(&uModel.Role{Content: qf.Content{Id: adminId}, Name: "administrator"})
+		_ = u.roleDal.Save(&uModel.Role{Content: qf.Content{Id: adminId, Info: "{\"Name\":\"administrator\"}"}, Name: "administrator"})
 
 		//分配角色
-		_ = u.userRoleDal.SetRoleUsers(adminId, []uint{adminId}) //admin 分配 administrator角色
+		_ = u.userRoleDal.SetRoleUsers(adminId, []uint64{adminId}) //admin 分配 administrator角色
 
 	}
 }

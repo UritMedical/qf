@@ -9,14 +9,6 @@ type RightsApiDal struct {
 	qf.BaseDal
 }
 
-func (r RightsApiDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (r RightsApiDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
 //
 // SetRightsApis
 //  @Description: 向指定权限组添加，删除API
@@ -24,10 +16,10 @@ func (r RightsApiDal) AfterAction(kind qf.EKind, content interface{}) error {
 //  @param apiKeys
 //  @return error
 //
-func (r RightsApiDal) SetRightsApis(rightsId uint, apiKeys []string) error {
+func (r RightsApiDal) SetRightsApis(rightsId uint64, apiKeys []string) error {
 	tx := r.DB().Begin()
 	//先删除此权限组所有的API
-	if err := tx.Where("rights_id = ?", rightsId).Delete(&uModel.RightsApi{}).Error; err != nil {
+	if err := tx.Where("RightsId = ?", rightsId).Delete(&uModel.RightsApi{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -54,8 +46,8 @@ func (r RightsApiDal) SetRightsApis(rightsId uint, apiKeys []string) error {
 //  @return []string
 //  @return error
 //
-func (r RightsApiDal) GetRightsApi(rightsId uint) ([]string, error) {
+func (r RightsApiDal) GetApisByRightsId(rightsId uint64) ([]string, error) {
 	apis := make([]string, 0)
-	err := r.DB().Where("rights_id = ?", rightsId).Select("api_id").Find(&apis).Error
+	err := r.DB().Where("RightsId = ?", rightsId).Select("ApiId").Find(&apis).Error
 	return apis, err
 }

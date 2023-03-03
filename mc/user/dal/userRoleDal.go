@@ -10,14 +10,6 @@ type UserRoleDal struct {
 	qf.BaseDal
 }
 
-func (u UserRoleDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (u UserRoleDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
 //
 // SetRoleUsers
 //  @Description: 增、删用户-角色关系
@@ -25,7 +17,7 @@ func (u UserRoleDal) AfterAction(kind qf.EKind, content interface{}) error {
 //  @param userIds
 //  @return error
 //
-func (u UserRoleDal) SetRoleUsers(roleId uint, userIds []uint) error {
+func (u UserRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) error {
 	oldUsers, err := u.GetUsersByRoleId(roleId)
 	if err != nil {
 		return err
@@ -61,11 +53,11 @@ func (u UserRoleDal) SetRoleUsers(roleId uint, userIds []uint) error {
 // GetUsersByRoleId
 //  @Description: 获取此角色下的所有用户
 //  @param roleId
-//  @return []uint
+//  @return []uint64
 //  @return error
 //
-func (u UserRoleDal) GetUsersByRoleId(roleId uint) ([]uint, error) {
-	userIds := make([]uint, 0)
+func (u UserRoleDal) GetUsersByRoleId(roleId uint64) ([]uint64, error) {
+	userIds := make([]uint64, 0)
 	err := u.DB().Debug().Where("RoleId = ?", roleId).Select("UserId").Find(&userIds).Error
 	return userIds, err
 }
@@ -74,11 +66,11 @@ func (u UserRoleDal) GetUsersByRoleId(roleId uint) ([]uint, error) {
 // GetRolesByUserId
 //  @Description: 获取用户所拥有的角色
 //  @param userId
-//  @return []uint
+//  @return []uint64
 //  @return error
 //
-func (u UserRoleDal) GetRolesByUserId(userId uint) ([]uint, error) {
-	roleIds := make([]uint, 0)
+func (u UserRoleDal) GetRolesByUserId(userId uint64) ([]uint64, error) {
+	roleIds := make([]uint64, 0)
 	err := u.DB().Where("UserId = ?", userId).Select("RoleId").Find(&roleIds).Error
 	return roleIds, err
 }

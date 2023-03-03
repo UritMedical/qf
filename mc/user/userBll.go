@@ -2,7 +2,6 @@ package user
 
 import (
 	"errors"
-	"github.com/gin-gonic/gin"
 	"qf"
 	uModel "qf/mc/user/model"
 	uUtils "qf/mc/user/utils"
@@ -13,11 +12,16 @@ import (
 const defPassword = "123456"
 
 func (u *UserBll) regUserApi(api qf.ApiMap) {
+	//登录
 	api.Reg(qf.EKindSave, "login", u.login)
+
+	//用户增删改查
 	api.Reg(qf.EKindSave, "", u.saveUser)
 	api.Reg(qf.EKindDelete, "", u.deleteUser)
 	api.Reg(qf.EKindGetModel, "", u.getUserModel)
 	api.Reg(qf.EKindGetList, "", u.getAllUsers)
+
+	//密码重置、修改
 	api.Reg(qf.EKindSave, "pwd/reset", u.resetPassword)
 	api.Reg(qf.EKindSave, "pwd", u.changePassword)
 }
@@ -41,10 +45,10 @@ func (u *UserBll) login(ctx *qf.Context) (interface{}, error) {
 	params.LoginId = strings.Replace(params.LoginId, " ", "", -1)
 	params.Password = uUtils.ConvertToMD5([]byte(params.Password))
 	if user, ok := u.userDal.CheckLogin(params.LoginId, params.Password); ok {
-		role, _ := u.userRoleDal.GetUsersByRoleId(uint(user.Id))
-		return GenerateToken(uint(user.Id), role, u.jwtSecret)
+		role, _ := u.userRoleDal.GetUsersByRoleId(user.Id)
+		return GenerateToken(user.Id, role, u.jwtSecret)
 	} else if params.LoginId == devUser.LoginId && params.Password == devUser.Password {
-		return GenerateToken(uint(devUser.Id), []uint{}, u.jwtSecret)
+		return GenerateToken(devUser.Id, []uint64{}, u.jwtSecret)
 	} else {
 		return nil, errors.New("loginId not exist or password error")
 	}
@@ -73,12 +77,16 @@ func (u *UserBll) deleteUser(ctx *qf.Context) (interface{}, error) {
 func (u *UserBll) getUserModel(ctx *qf.Context) (interface{}, error) {
 	var user uModel.User
 	//获取用户角色
-	roles, err := u.userRoleDal.GetRolesByUserId(ctx.UserId)
+	roleIds, err := u.userRoleDal.GetRolesByUserId(uint64(ctx.UserId))
+	if err != nil {
+		return nil, err
+	}
+	roles, err := u.roleDal.GetRolesByIds(roleIds)
 	if err != nil {
 		return nil, err
 	}
 	err = u.userDal.GetModel(uint64(ctx.UserId), &user)
-	ret := gin.H{
+	ret := map[string]interface{}{
 		"info":  user,
 		"roles": roles,
 	}
@@ -93,7 +101,8 @@ func (u *UserBll) getUserModel(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (u *UserBll) getAllUsers(ctx *qf.Context) (interface{}, error) {
-	return u.userDal.GetAllUsers()
+	list, err := u.userDal.GetAllUsers()
+	return list, err
 }
 
 //
@@ -105,7 +114,7 @@ func (u *UserBll) getAllUsers(ctx *qf.Context) (interface{}, error) {
 //
 func (u *UserBll) resetPassword(ctx *qf.Context) (interface{}, error) {
 	uId := ctx.GetUIntValue("Id")
-	return nil, u.userDal.SetPassword(uint(uId), uUtils.ConvertToMD5([]byte(defPassword)))
+	return nil, u.userDal.SetPassword(uId, uUtils.ConvertToMD5([]byte(defPassword)))
 }
 
 //
@@ -123,8 +132,8 @@ func (u *UserBll) changePassword(ctx *qf.Context) (interface{}, error) {
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
-	if !u.userDal.CheckOldPassword(ctx.UserId, params.OldPassword) {
+	if !u.userDal.CheckOldPassword(uint64(ctx.UserId), params.OldPassword) {
 		return nil, errors.New("old password is incorrect")
 	}
-	return nil, u.userDal.SetPassword(ctx.UserId, uUtils.ConvertToMD5([]byte(params.NewPassword)))
+	return nil, u.userDal.SetPassword(uint64(ctx.UserId), uUtils.ConvertToMD5([]byte(params.NewPassword)))
 }

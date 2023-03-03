@@ -1,6 +1,9 @@
 package uDal
 
-import "qf"
+import (
+	"qf"
+	uModel "qf/mc/user/model"
+)
 
 // DepartmentDal
 // @Description: 部门
@@ -9,12 +12,17 @@ type DepartmentDal struct {
 	qf.BaseDal
 }
 
-func (o DepartmentDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (o DepartmentDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
+//
+// GetDptsByIds
+//  @Description: 获取部门列表
+//  @param dptIds
+//  @return []uModel.Department
+//  @return error
+//
+func (d DepartmentDal) GetDptsByIds(dptIds []uint64) ([]uModel.Department, error) {
+	list := make([]uModel.Department, 0)
+	err := d.DB().Where("Id IN (?)", dptIds).Find(&list).Error
+	return list, err
 }
 
 // RightsGroupDal
@@ -24,12 +32,17 @@ type RightsGroupDal struct {
 	qf.BaseDal
 }
 
-func (r RightsGroupDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (r RightsGroupDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
+//
+// GetRightsGroupByIds
+//  @Description: 获取权限组列表
+//  @param ids
+//  @return []uModel.RightsGroup
+//  @return error
+//
+func (r RightsGroupDal) GetRightsGroupByIds(ids []uint64) ([]uModel.RightsGroup, error) {
+	list := make([]uModel.RightsGroup, 0)
+	err := r.DB().Where("Id IN (?)", ids).Find(&list).Error
+	return list, err
 }
 
 // RoleDal
@@ -39,10 +52,15 @@ type RoleDal struct {
 	qf.BaseDal
 }
 
-func (r RoleDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (r RoleDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
+//
+// GetRolesByIds
+//  @Description: 获取角色列表
+//  @param ids
+//  @return []uModel.Role
+//  @return error
+//
+func (role RoleDal) GetRolesByIds(ids []uint64) ([]uModel.Role, error) {
+	list := make([]uModel.Role, 0)
+	err := role.DB().Where("Id IN (?)", ids).Find(&list).Error
+	return list, err
 }

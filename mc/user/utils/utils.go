@@ -13,10 +13,10 @@ const (
 	ErrTokenInvalid  = "UE103" //授权失败
 )
 
-//StrToInt 数字字符串转 uint
-func StrToInt(str string) uint {
+//StrToInt 数字字符串转 uint64
+func StrToInt(str string) uint64 {
 	i, _ := strconv.Atoi(str)
-	return uint(i)
+	return uint64(i)
 }
 
 //ConvertToMD5 转换成MD5加密
@@ -31,11 +31,11 @@ func ConvertToMD5(str []byte) string {
 //  @Description: 计算a数组元素不在b数组之中的所有元素
 //  @param a
 //  @param b
-//  @return []uint
+//  @return []uint64
 //
-func DiffIntSet(a []uint, b []uint) []uint {
-	c := make([]uint, 0)
-	temp := map[uint]struct{}{}
+func DiffIntSet(a []uint64, b []uint64) []uint64 {
+	c := make([]uint64, 0)
+	temp := map[uint64]struct{}{}
 	//把b所有的值作为key存入temp
 	for _, val := range b {
 		if _, ok := temp[val]; !ok {

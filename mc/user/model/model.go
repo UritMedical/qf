@@ -16,8 +16,8 @@ type User struct {
 //
 type UserRole struct {
 	qf.Content
-	UserId uint `gorm:"index"`
-	RoleId uint `gorm:"index"`
+	UserId uint64 `gorm:"index"`
+	RoleId uint64 `gorm:"index"`
 }
 
 // Role
@@ -33,8 +33,8 @@ type Role struct {
 //
 type RoleRights struct {
 	qf.Content
-	RoleId   uint `gorm:"index"`
-	RightsId uint `gorm:"index"`
+	RoleId   uint64 `gorm:"index"`
+	RightsId uint64 `gorm:"index"`
 }
 
 // RightsGroup
@@ -50,7 +50,7 @@ type RightsGroup struct {
 //
 type RightsApi struct {
 	qf.Content
-	RightsId uint   `gorm:"index"`
+	RightsId uint64 `gorm:"index"`
 	ApiId    string //API key
 }
 
@@ -60,7 +60,7 @@ type RightsApi struct {
 type Department struct {
 	qf.Content
 	Name     string `gorm:"unique"` // 部门名称
-	ParentId uint   `gorm:"index"`  //父级部门Id
+	ParentId uint64 `gorm:"index"`  //父级部门Id
 }
 
 // DepartUser
@@ -68,6 +68,6 @@ type Department struct {
 //
 type DepartUser struct {
 	qf.Content
-	DepartId uint `gorm:"index"`
-	UserId   uint `gorm:"index"`
+	DepartId uint64 `gorm:"index"`
+	UserId   uint64 `gorm:"index"`
 }
