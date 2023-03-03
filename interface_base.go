@@ -91,10 +91,14 @@ func (bll *BaseBll) Map(model interface{}) map[string]interface{} {
 //  @param list 内容结构列表
 //  @return []map[string]interface{} 字典列表
 //
-func (bll *BaseBll) Maps(list []interface{}) []map[string]interface{} {
-	finals := make([]map[string]interface{}, len(list))
-	for i, v := range list {
-		finals[i] = bll.Map(v)
+func (bll *BaseBll) Maps(list interface{}) []map[string]interface{} {
+	values := reflect.ValueOf(list)
+	if values.Kind() != reflect.Slice {
+		panic(fmt.Errorf("list must be slice"))
+	}
+	finals := make([]map[string]interface{}, values.Len())
+	for i := 0; i < values.Len(); i++ {
+		finals[i] = bll.Map(values.Index(i).Interface())
 	}
 	return finals
 }
