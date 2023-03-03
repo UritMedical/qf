@@ -67,7 +67,7 @@ func (bll *BaseBll) SetConfig(config map[string]interface{}) {
 // Map
 //  @Description: 将包含内容的结构体转为字典结构
 //  @param model 内容结构
-//  @return map[string]interface{}
+//  @return map[string]interface{} 字典
 //
 func (bll *BaseBll) Map(model interface{}) map[string]interface{} {
 	// 先转一次json
@@ -83,6 +83,20 @@ func (bll *BaseBll) Map(model interface{}) map[string]interface{} {
 	final["LastTime"] = cnt.LastTime
 
 	return final
+}
+
+//
+// Maps
+//  @Description: 将内容列表转为字典列表
+//  @param list 内容结构列表
+//  @return []map[string]interface{} 字典列表
+//
+func (bll *BaseBll) Maps(list []interface{}) []map[string]interface{} {
+	finals := make([]map[string]interface{}, len(list))
+	for i, v := range list {
+		finals[i] = bll.Map(v)
+	}
+	return finals
 }
 
 //
