@@ -59,11 +59,12 @@ func (u *UserBll) RegDal(dal qf.DalMap) {
 }
 
 func (u *UserBll) RegMsg(msg qf.MessageMap) {
+	
 }
 
-func (u *UserBll) RefBll() []qf.IBll {
-	return nil
+func (u *UserBll) RegRef(ref qf.RefMap) {
 }
+
 
 func (u *UserBll) Init() error {
 	u.initDefUser()
@@ -90,12 +91,12 @@ func (u *UserBll) initDefUser() {
 	const adminId = 1
 	if len(list) == 0 {
 		_ = u.userDal.Save(&uModel.User{
-			Content:  qf.Content{Id: adminId, Info: "{\"LoginId\":\"admin\",\"Name\":\"Admin\"}"},
+			Content:  qf.Content{Id: adminId, FullInfo: "{\"LoginId\":\"admin\",\"Name\":\"Admin\"}"},
 			LoginId:  "admin",
 			Password: uUtils.ConvertToMD5([]byte("admin123"))})
 
 		//创建默认角色
-		_ = u.roleDal.Save(&uModel.Role{Content: qf.Content{Id: adminId, Info: "{\"Name\":\"administrator\"}"}, Name: "administrator"})
+		_ = u.roleDal.Save(&uModel.Role{Content: qf.Content{Id: adminId, FullInfo: "{\"Name\":\"administrator\"}"}, Name: "administrator"})
 
 		//分配角色
 		_ = u.userRoleDal.SetRoleUsers(adminId, []uint64{adminId}) //admin 分配 administrator角色
