@@ -13,7 +13,7 @@ type CaseDal struct {
 }
 
 func (dal *InfoDal) GetListByKey(key string, dest interface{}) error {
-	return dal.DB().Where("HisId = ? or Name LIKE %", key, "%"+key+"%").Find(dest).Error
+	return dal.DB().Where("HisId = ? or Name LIKE ?", key, "%"+key+"%").Find(dest).Error
 }
 
 //

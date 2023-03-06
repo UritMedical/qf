@@ -231,5 +231,5 @@ func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, error) {
 			})
 		}
 	}
-	return nil, nil
+	return rts, nil
 }
