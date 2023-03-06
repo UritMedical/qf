@@ -9,14 +9,14 @@ import (
 	"time"
 )
 
-// EKind 行为类别
-type EKind string
+// EApiKind 行为类别
+type EApiKind string
 
 var (
-	EKindSave     EKind = "Save"     // 新增或修改
-	EKindDelete   EKind = "Delete"   // 删除
-	EKindGetModel EKind = "GetModel" // 获取单条
-	EKindGetList  EKind = "GetList"  // 获取多条
+	EApiKindSave     EApiKind = "Save"     // 新增或修改
+	EApiKindDelete   EApiKind = "Delete"   // 删除
+	EApiKindGetModel EApiKind = "GetModel" // 获取单条
+	EApiKindGetList  EApiKind = "GetList"  // 获取多条
 )
 
 //
@@ -24,24 +24,24 @@ var (
 //  @Description: 返回Http方式名称
 //  @return string
 //
-func (kind EKind) HttpMethod() string {
-	if kind == EKindSave {
+func (kind EApiKind) HttpMethod() string {
+	if kind == EApiKindSave {
 		return "POST"
 	}
-	if kind == EKindDelete {
+	if kind == EApiKindDelete {
 		return "DELETE"
 	}
 	return "GET"
 }
 
 //
-// Content
-//  @Description: 基础内容实体对象
+// BaseModel
+//  @Description: 基础实体对象
 //
-type Content struct {
+type BaseModel struct {
 	Id       uint64    `gorm:"primaryKey"` // 唯一号
 	LastTime time.Time `gorm:"index"`      // 最后操作时间时间
-	FullInfo string    // 完整内容信息
+	Content  string    // 内容
 }
 
 //
@@ -83,7 +83,7 @@ func (ctx *Context) Bind(object interface{}) error {
 	case reflect.Slice: // 列表
 		source := make([]map[string]interface{}, 0)
 		if json.Unmarshal([]byte(ctx.stringValue), &source) == nil {
-			cnt := make([]Content, 0)
+			cnt := make([]BaseModel, 0)
 			for i := 0; i < len(cnt); i++ {
 				cnt = append(cnt, ctx.build(source[i]))
 			}
@@ -94,7 +94,7 @@ func (ctx *Context) Bind(object interface{}) error {
 	return nil
 }
 
-func (ctx *Context) build(source map[string]interface{}) Content {
+func (ctx *Context) build(source map[string]interface{}) BaseModel {
 	nid := 0
 	if id, ok := source["Id"]; ok {
 		v, e := strconv.Atoi(fmt.Sprintf("%v", id))
@@ -106,10 +106,10 @@ func (ctx *Context) build(source map[string]interface{}) Content {
 		// 通过平台获取ID
 	}
 	cj, _ := json.Marshal(source)
-	return Content{
+	return BaseModel{
 		Id:       uint64(nid),
 		LastTime: ctx.Time,
-		FullInfo: string(cj),
+		Content:  string(cj),
 	}
 }
 
@@ -133,4 +133,8 @@ func (ctx *Context) GetStringValue(propName string) string {
 func (ctx *Context) GetUIntValue(propName string) uint64 {
 	num, _ := strconv.Atoi(ctx.GetStringValue(propName))
 	return uint64(num)
+}
+
+func (ctx *Context) GetId() uint64 {
+	return ctx.GetUIntValue("Id")
 }

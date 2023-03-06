@@ -7,11 +7,7 @@ import "qf"
 //  @Description: 患者基础信息
 //
 type Patient struct {
-	//
-	// qf.Content
-	//  @Description: 完整信息
-	//
-	qf.Content
+	qf.BaseModel
 
 	//
 	// Name
@@ -31,11 +27,7 @@ type Patient struct {
 //  @Description: 患者病历信息
 //
 type Case struct {
-	//
-	// qf.Content
-	//  @Description: 病历完整内容
-	//
-	qf.Content
+	qf.BaseModel
 
 	//
 	// PId

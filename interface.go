@@ -80,7 +80,7 @@ type IDal interface {
 	//  @param id
 	//  @return error
 	//
-	Delete(id uint64) error
+	Delete(id uint64) (bool, error)
 
 	//
 	// GetModel

@@ -73,11 +73,11 @@ func (bll *BaseBll) Map(model interface{}) map[string]interface{} {
 	// 先转一次json
 	tj, _ := json.Marshal(model)
 	// 然后在反转到内容对象
-	cnt := Content{}
+	cnt := BaseModel{}
 	_ = json.Unmarshal(tj, &cnt)
 
 	// 生成字典
-	final := bll.create(cnt.FullInfo, model)
+	final := bll.create(cnt.Content, model)
 	// 补齐字段的值
 	final["Id"] = cnt.Id
 	//final["LastTime"] = cnt.LastTime
@@ -104,24 +104,24 @@ func (bll *BaseBll) Maps(list interface{}) []map[string]interface{} {
 }
 
 //
-// BuildContent
-//  @Description: 生成新内容
+// BuildBaseModel
+//  @Description: 生成基础实体
 //  @param model
 //  @return Content
 //
-func (bll *BaseBll) BuildContent(model interface{}) Content {
+func (bll *BaseBll) BuildBaseModel(model interface{}) BaseModel {
 	// 先转一次json
 	tj, _ := json.Marshal(model)
 	// 然后在反转到内容对象
-	cnt := Content{}
+	cnt := BaseModel{}
 	_ = json.Unmarshal(tj, &cnt)
 
 	// 然后重新生成新的Info
-	final := bll.create(cnt.FullInfo, model)
+	final := bll.create(cnt.Content, model)
 
 	// 在转为json并写入到info中
 	nj, _ := json.Marshal(final)
-	cnt.FullInfo = string(nj)
+	cnt.Content = string(nj)
 
 	return cnt
 }
@@ -159,7 +159,7 @@ func (bll *BaseBll) create(info string, model interface{}) map[string]interface{
 type ApiHandler func(ctx *Context) (interface{}, error)
 
 // ApiMap API字典
-type ApiMap map[EKind]map[string]ApiHandler
+type ApiMap map[EApiKind]map[string]ApiHandler
 
 //
 // Reg
@@ -168,7 +168,7 @@ type ApiMap map[EKind]map[string]ApiHandler
 //  @param router 相对路由
 //  @param handler 函数指针
 //
-func (api ApiMap) Reg(kind EKind, router string, handler ApiHandler) {
+func (api ApiMap) Reg(kind EApiKind, router string, handler ApiHandler) {
 	if api[kind] == nil {
 		api[kind] = make(map[string]ApiHandler)
 	}
@@ -201,7 +201,7 @@ func (m *MessageMap) Reg(bll IBll, router string, function MessageHandler) {
 
 //----------------------------------------------------------------
 
-type RefMap map[EKind]map[string]ApiHandler
+type RefMap map[EApiKind]map[string]ApiHandler
 
 //
 // Reg
@@ -211,7 +211,7 @@ type RefMap map[EKind]map[string]ApiHandler
 //  @param router 相对路由
 //  @param handler 执行函数指针
 //
-func (r *RefMap) Reg(pkgName string, kind EKind, router string, handler ApiHandler) {
+func (r *RefMap) Reg(pkgName string, kind EApiKind, router string, handler ApiHandler) {
 
 }
 
@@ -271,12 +271,9 @@ func (b *BaseDal) Save(content interface{}) error {
 //  @param id 唯一号
 //  @return error 异常
 //
-func (b *BaseDal) Delete(id uint64) error {
-	result := b.DB().Delete(&Content{Id: id})
-	if result.RowsAffected > 0 {
-		return nil
-	}
-	return result.Error
+func (b *BaseDal) Delete(id uint64) (bool, error) {
+	result := b.DB().Delete(&BaseModel{Id: id})
+	return result.RowsAffected > 0, result.Error
 }
 
 //

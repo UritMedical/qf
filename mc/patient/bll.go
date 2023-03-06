@@ -13,12 +13,12 @@ type Bll struct {
 }
 
 func (b *Bll) RegApi(api qf.ApiMap) {
-	api.Reg(qf.EKindSave, "", b.SavePatient)      // 保存患者基本信息
-	api.Reg(qf.EKindDelete, "", b.DeletePatient)  // 删除患者，包含基本信息和全部病历
-	api.Reg(qf.EKindSave, "case", b.SaveCase)     // 保存患者病历信息
-	api.Reg(qf.EKindDelete, "case", b.DeleteCase) // 删除单个病历
-	api.Reg(qf.EKindGetModel, "", b.GetFull)      // 按唯一号或HIS唯一号获取完整信息（基本信息+病历列表）
-	api.Reg(qf.EKindGetList, "", b.GetFullList)   // 按条件获取完整列表
+	api.Reg(qf.EApiKindSave, "", b.SavePatient)      // 保存患者基本信息
+	api.Reg(qf.EApiKindDelete, "", b.DeletePatient)  // 删除患者，包含基本信息和全部病历
+	api.Reg(qf.EApiKindSave, "case", b.SaveCase)     // 保存患者病历信息
+	api.Reg(qf.EApiKindDelete, "case", b.DeleteCase) // 删除单个病历
+	api.Reg(qf.EApiKindGetModel, "", b.GetFull)      // 按唯一号或HIS唯一号获取完整信息（基本信息+病历列表）
+	api.Reg(qf.EApiKindGetList, "", b.GetFullList)   // 按条件获取完整列表
 }
 
 func (b *Bll) RegDal(dal qf.DalMap) {
@@ -83,14 +83,13 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (b *Bll) DeletePatient(ctx *qf.Context) (interface{}, error) {
-	id := ctx.GetUIntValue("id")
 	// 删除患者信息
-	err := b.infoDal.Delete(id)
-	if err == nil {
+	ok, err := b.infoDal.Delete(ctx.GetId())
+	if ok && err == nil {
 		// 删除所有病历
-		err = b.caseDal.DeleteByPatientId(id)
+		ok, err = b.caseDal.DeleteByPatientId(ctx.GetId())
 	}
-	return nil, err
+	return ok, err
 }
 
 //
@@ -131,7 +130,7 @@ func (b *Bll) SaveCase(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (b *Bll) DeleteCase(ctx *qf.Context) (interface{}, error) {
-	return nil, b.caseDal.Delete(ctx.GetUIntValue("Id"))
+	return b.caseDal.Delete(ctx.GetId())
 }
 
 //
@@ -147,7 +146,7 @@ func (b *Bll) DeleteCase(ctx *qf.Context) (interface{}, error) {
 func (b *Bll) GetFull(ctx *qf.Context) (interface{}, error) {
 	// 通过ID检索
 	patInfo := Patient{}
-	err := b.infoDal.GetModel(ctx.GetUIntValue("Id"), &patInfo)
+	err := b.infoDal.GetModel(ctx.GetId(), &patInfo)
 	if err != nil || patInfo.Id == 0 {
 		return nil, err
 	}
