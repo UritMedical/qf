@@ -187,11 +187,49 @@ func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	var rts []struct {
+		Patient interface{}
+		Cases   interface{}
+	}
 	if len(pats) == 0 {
 		// 基本信息未查询到数据，尝试查询病历表
-
+		caseList := make([]Case, 0)
+		err = b.caseDal.GetListByCaseId(key, &caseList)
+		if err != nil {
+			return nil, err
+		}
+		// 遍历查询
+		for _, c := range caseList {
+			p := Patient{}
+			err = b.infoDal.GetModel(c.PId, &p)
+			if err != nil {
+				return nil, err
+			}
+			rts = append(rts, struct {
+				Patient interface{}
+				Cases   interface{}
+			}{
+				Patient: b.Map(p),
+				Cases:   b.Maps(caseList),
+			})
+		}
 	} else {
 		// 遍历查询
+		for _, p := range pats {
+			caseList := make([]Case, 0)
+			err = b.caseDal.GetListByPatientId(p.Id, &caseList)
+			if err != nil {
+				return nil, err
+			}
+			rts = append(rts, struct {
+				Patient interface{}
+				Cases   interface{}
+			}{
+				Patient: b.Map(p),
+				Cases:   b.Maps(caseList),
+			})
+		}
 	}
 	return nil, nil
 }

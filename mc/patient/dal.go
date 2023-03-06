@@ -29,3 +29,7 @@ func (dal *CaseDal) DeleteByPatientId(pid uint64) error {
 func (dal *CaseDal) GetListByPatientId(pid uint64, dest interface{}) error {
 	return dal.DB().Where("PId = ?", pid).Find(dest).Error
 }
+
+func (dal *CaseDal) GetListByCaseId(caseId string, dest interface{}) error {
+	return dal.DB().Where("CaseId = ?", caseId).Find(dest).Error
+}
