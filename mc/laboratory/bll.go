@@ -10,7 +10,6 @@ package laboratory
 
 import (
 	"qf"
-	"qf/mc/patient"
 )
 
 //
@@ -26,7 +25,23 @@ type Bll struct {
 	resultDal  *ResultDal
 	graphDal   *GraphDal
 	reportDal  *ReportDal
-	patientBll *patient.Bll
+}
+
+func (bll *Bll) RegMsg(_ qf.MessageMap) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (bll *Bll) RegRef(_ qf.RefMap) {
+
+}
+
+func (bll *Bll) Init() error {
+	return nil
+}
+
+func (bll *Bll) Stop() {
+
 }
 
 func (bll *Bll) RegApi(apiMap qf.ApiMap) {
@@ -47,27 +62,6 @@ func (bll *Bll) RegApi(apiMap qf.ApiMap) {
 	//
 	//apiMap.Reg(qf.EKindSave, "reports", bll.reportDal.Save)
 	//apiMap.Reg(qf.EKindDelete, "reports", bll.reportDal.Delete)
-}
-
-func (bll *Bll) RegDal(dalMap qf.DalMap) {
-	//bll.orderDal =&OrderDal{}
-	//dalMap.Reg(bll.orderDal, Order{})
-}
-
-func (bll *Bll) RefBll() []qf.IBll {
-	return []qf.IBll{bll.patientBll}
-}
-
-func (bll *Bll) RegMsg(msg qf.MessageMap) {
-
-}
-
-func (bll *Bll) Init() error {
-	return nil
-}
-
-func (bll *Bll) Stop() {
-	return
 }
 
 //

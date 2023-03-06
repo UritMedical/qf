@@ -8,16 +8,8 @@ package order
 
 import "qf"
 
-type OrderDal struct {
+type ODal struct {
 	qf.BaseDal
-}
-
-func (dal *OrderDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (dal *OrderDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
 }
 
 //
@@ -25,18 +17,6 @@ func (dal *OrderDal) AfterAction(kind qf.EKind, content interface{}) error {
 //  @Description: 样本dal
 //
 type SampleDal struct {
-	qf.BaseDal
-}
-
-func (dal *SampleDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (dal *SampleDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-type LabDal struct {
 	qf.BaseDal
 }
 

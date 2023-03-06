@@ -18,18 +18,14 @@ type Order struct {
 	// PId
 	//  @Description: 患者唯一号
 	//
-	PId uint `gorm:"index" json:"p_id"`
+	PId uint `gorm:"index"`
 	//
-	// CHId CaseHistoryId
+	// CId CaseId
 	//  @Description: 病历号
 	//
-	CHId uint `gorm:"index" json:"ch_id"`
+	CId uint `gorm:"index"`
 
-	//
-	// content.Content
-	//  @Description:ID 摘要 明文套餐明细等
-	//
-	qf.Content
+	qf.BaseModel
 }
 
 //
@@ -50,16 +46,16 @@ type Sample struct {
 	// OrderId
 	//  @Description: 医嘱号
 	//
-	OrderId uint `gorm:"index" json:"order_id"`
+	OrderId uint `gorm:"index"`
 	//
 	// Barcode
 	//  @Description: 条码号
 	//
-	Barcode string `gorm:"index" json:"barcode"`
+	Barcode string `gorm:"index"`
 
 	//
 	// content.Content
 	//  @Description: ID 明文 分管后所包含的套餐明细、检验项目明细等
 	//
-	qf.Content
+	qf.BaseModel
 }

@@ -14,7 +14,7 @@ import (
 // Lab
 //  @Description: 检验
 //
-type Lab qf.Content
+type Lab qf.BaseModel
 
 //
 // LabSample
@@ -36,7 +36,7 @@ type LabSample struct {
 	//  @Description: 检验日期
 	//
 	SampleDate uint `gorm:"index" json:"sample_date"`
-	qf.Content
+	qf.BaseModel
 }
 
 //
@@ -49,13 +49,13 @@ type LabAudit struct {
 	// AuditorId
 	//  @Description: 审核者id
 	//
-	UserId uint ` json:"user_id"`
+	UserId uint
 
 	//
 	// content.Content
 	//  @Description: 明文时间等
 	//
-	qf.Content
+	qf.BaseModel
 }
 
 //
@@ -67,13 +67,13 @@ type LabResult struct {
 	// LaboratoryId
 	//  @Description: 检验id
 	//
-	LabId uint `gorm:"index" json:"lab_id"`
+	LabId uint `gorm:"index"`
 
 	//
 	// content.Content
 	//  @Description: 应该是一个集合 一般来说应包含当次检验的所有项目，包括项目id 检验结果 参考范围 异常标志等
 	//
-	qf.Content
+	qf.BaseModel
 }
 
 //
@@ -86,4 +86,4 @@ type LabGraph LabResult
 // LabReport
 //  @Description: 检验报告
 //
-type LabReport qf.Content
+type LabReport qf.BaseModel

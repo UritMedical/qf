@@ -5,3 +5,9 @@
  */
 
 package labItem
+
+import "qf"
+
+type LabItem struct {
+	qf.BaseModel
+}

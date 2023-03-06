@@ -15,11 +15,3 @@ import "qf"
 type LabResultDal struct {
 	qf.BaseDal
 }
-
-func (dal *LabResultDal) BeforeAction(kind qf.EKind, content interface{}) error {
-	return nil
-}
-
-func (dal *LabResultDal) AfterAction(kind qf.EKind, content interface{}) error {
-	return nil
-}

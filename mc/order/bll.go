@@ -8,7 +8,6 @@ package order
 
 import (
 	"qf"
-	"qf/mc/patient"
 )
 
 //
@@ -18,32 +17,15 @@ import (
 type Bll struct {
 	qf.BaseBll
 
-	orderDal   *OrderDal
-	sampleDal  *SampleDal
-	patientBll *patient.Bll
+	orderDal  *ODal
+	sampleDal *SampleDal
 }
 
-func (bll *Bll) RegApi(apiMap qf.ApiMap) {
-	apiMap.Reg(qf.EKindSave, "orders", bll.orderSave)
-	apiMap.Reg(qf.EKindDelete, "orders", bll.orderDel)
-
-	apiMap.Reg(qf.EKindSave, "samples", bll.sampleSaveBatch)
-	apiMap.Reg(qf.EKindDelete, "samples", bll.sampleDel)
+func (bll *Bll) RegMsg(_ qf.MessageMap) {
 
 }
 
-func (bll *Bll) RegDal(dalMap qf.DalMap) {
-	bll.orderDal = &OrderDal{}
-	dalMap.Reg(bll.orderDal, Order{})
-	dalMap.Reg(bll.sampleDal, Sample{})
-}
-
-func (bll *Bll) RefBll() []qf.IBll {
-	return []qf.IBll{bll.patientBll}
-}
-
-func (bll *Bll) RegMsg(msg qf.MessageMap) {
-
+func (bll *Bll) RegRef(_ qf.RefMap) {
 }
 
 func (bll *Bll) Init() error {
@@ -51,12 +33,25 @@ func (bll *Bll) Init() error {
 }
 
 func (bll *Bll) Stop() {
-	return
+}
+
+func (bll *Bll) RegApi(apiMap qf.ApiMap) {
+	apiMap.Reg(qf.EApiKindSave, "", bll.orderSave)
+	apiMap.Reg(qf.EApiKindSave, "", bll.orderDel)
+
+	apiMap.Reg(qf.EApiKindSave, "samples", bll.sampleSaveBatch)
+	apiMap.Reg(qf.EApiKindSave, "samples", bll.sampleDel)
+
+}
+
+func (bll *Bll) RegDal(dalMap qf.DalMap) {
+	dalMap.Reg(bll.orderDal, Order{})
+	dalMap.Reg(bll.sampleDal, Sample{})
 }
 
 func (bll *Bll) orderSave(ctx *qf.Context) (interface{}, error) {
 	model := Order{}
-	err := ctx.BindModel(model)
+	err := ctx.Bind(model)
 	if err != nil {
 		return nil, err
 	}
@@ -64,13 +59,12 @@ func (bll *Bll) orderSave(ctx *qf.Context) (interface{}, error) {
 }
 
 func (bll *Bll) orderDel(ctx *qf.Context) (interface{}, error) {
-	id := ctx.GetUIntValue("id")
-	return nil, bll.orderDal.Delete(id)
+	return bll.orderDal.Delete(ctx.GetId())
 }
 
 func (bll *Bll) sampleSaveBatch(ctx *qf.Context) (interface{}, error) {
 	var list []Sample
-	err := ctx.BindModel(list)
+	err := ctx.Bind(list)
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +80,5 @@ func (bll *Bll) sampleSaveBatch(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (bll *Bll) sampleDel(ctx *qf.Context) (interface{}, error) {
-	id := ctx.GetUIntValue("id")
-	return nil, bll.sampleDal.Delete(id)
+	return bll.sampleDal.Delete(ctx.GetId())
 }
