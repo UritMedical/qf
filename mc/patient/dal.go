@@ -1,6 +1,8 @@
 package patient
 
-import "qf"
+import (
+	"qf"
+)
 
 type InfoDal struct {
 	qf.BaseDal
@@ -8,6 +10,10 @@ type InfoDal struct {
 
 type CaseDal struct {
 	qf.BaseDal
+}
+
+func (dal *InfoDal) GetListByKey(key string, dest interface{}) error {
+	return dal.DB().Where("HisId = ? or Name LIKE %", key, "%"+key+"%").Find(dest).Error
 }
 
 //
@@ -18,4 +24,8 @@ type CaseDal struct {
 //
 func (dal *CaseDal) DeleteByPatientId(pid uint64) error {
 	return dal.DB().Where("PId = ?", pid).Delete(Case{PId: pid}).Error
+}
+
+func (dal *CaseDal) GetListByPatientId(pid uint64, dest interface{}) error {
+	return dal.DB().Where("PId = ?", pid).Find(dest).Error
 }

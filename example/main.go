@@ -3,7 +3,6 @@ package main
 import (
 	"qf"
 	"qf/mc/patient"
-	"qf/mc/user"
 	"qf/util/launcher"
 )
 
@@ -16,7 +15,7 @@ var service *qf.Service
 func start() {
 	service = qf.NewService()
 	service.RegBll(&patient.Bll{}, "api")
-	service.RegBll(&user.UserBll{}, "api")
+	//service.RegBll(&user.UserBll{}, "api")
 	service.Run()
 }
 

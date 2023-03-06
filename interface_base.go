@@ -80,7 +80,7 @@ func (bll *BaseBll) Map(model interface{}) map[string]interface{} {
 	final := bll.create(cnt.FullInfo, model)
 	// 补齐字段的值
 	final["Id"] = cnt.Id
-	final["LastTime"] = cnt.LastTime
+	//final["LastTime"] = cnt.LastTime
 
 	return final
 }

@@ -51,10 +51,10 @@ type IBll interface {
 	Stop()
 
 	//
-	// IQFBll
+	// iBll
 	//  @Description: 由框架内部实现方法
 	//
-	IQFBll
+	iBll
 }
 
 // IDal 数据层接口
@@ -119,17 +119,17 @@ type IDal interface {
 	CheckExists(id uint64) bool
 
 	//
-	// IQFDal
+	// iDal
 	//  @Description: 由框架内部实现方法
 	//
-	IQFDal
+	iDal
 }
 
 //
-// IQFBll
+// iBll
 //  @Description: 框架内部使用的业务接口方法
 //
-type IQFBll interface {
+type iBll interface {
 	setPkg(pkg string)
 	setName(name string)
 	setGroup(group string)
@@ -157,7 +157,11 @@ type IQFBll interface {
 	SetConfig(config map[string]interface{})
 }
 
-type IQFDal interface {
+//
+// iDal
+//  @Description: 框架内部使用的数据层接口方法
+//
+type iDal interface {
 	initDB(db *gorm.DB, pkgName string, model interface{})
 	setChild(dal IDal)
 }
