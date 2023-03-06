@@ -33,7 +33,7 @@ func (u *UserBll) deleteRightsGroup(ctx *qf.Context) (interface{}, error) {
 func (u *UserBll) getRightsGroupList(ctx *qf.Context) (interface{}, error) {
 	rights := make([]uModel.RightsGroup, 0)
 	err := u.rightsDal.GetList(0, 100, &rights)
-	return rights, err
+	return u.Maps(rights), err
 }
 
 //

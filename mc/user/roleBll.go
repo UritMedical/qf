@@ -58,7 +58,7 @@ func (u *UserBll) deleteRole(ctx *qf.Context) (interface{}, error) {
 func (u *UserBll) getAllRoles(ctx *qf.Context) (interface{}, error) {
 	roles := make([]uModel.Role, 0)
 	err := u.roleDal.GetList(0, 100, &roles)
-	return roles, err
+	return u.Maps(roles), err
 }
 
 //
@@ -107,7 +107,8 @@ func (u *UserBll) setRoleRightsRelation(ctx *qf.Context) (interface{}, error) {
 func (u *UserBll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
 	roleId := ctx.GetUIntValue("RoleId")
 	userIds, _ := u.userRoleDal.GetUsersByRoleId(roleId)
-	return u.userDal.GetUsersByIds(userIds)
+	users, err := u.userDal.GetUsersByIds(userIds)
+	return u.Maps(users), err
 }
 
 //
@@ -120,5 +121,6 @@ func (u *UserBll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
 func (u *UserBll) getRoleRights(ctx *qf.Context) (interface{}, error) {
 	roleId := ctx.GetUIntValue("RoleId")
 	rightsId, _ := u.roleRightsDal.GetRoleRights(roleId)
-	return u.rightsDal.GetRightsGroupByIds(rightsId)
+	rights, err := u.rightsDal.GetRightsGroupByIds(rightsId)
+	return u.Maps(rights), err
 }

@@ -87,9 +87,10 @@ func (u *UserBll) getUserModel(ctx *qf.Context) (interface{}, error) {
 	}
 	err = u.userDal.GetModel(uint64(ctx.UserId), &user)
 	ret := map[string]interface{}{
-		"info":  user,
-		"roles": roles,
+		"info":  u.Map(user),
+		"roles": u.Maps(roles),
 	}
+
 	return ret, err
 }
 
@@ -102,7 +103,7 @@ func (u *UserBll) getUserModel(ctx *qf.Context) (interface{}, error) {
 //
 func (u *UserBll) getAllUsers(ctx *qf.Context) (interface{}, error) {
 	list, err := u.userDal.GetAllUsers()
-	return list, err
+	return u.Maps(list), err
 }
 
 //
