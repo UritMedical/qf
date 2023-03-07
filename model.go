@@ -41,7 +41,7 @@ func (kind EApiKind) HttpMethod() string {
 type BaseModel struct {
 	Id       uint64    `gorm:"primaryKey"` // 唯一号
 	LastTime time.Time `gorm:"index"`      // 最后操作时间时间
-	Content  string    // 内容
+	FullInfo string    // 内容
 }
 
 //
@@ -57,28 +57,29 @@ type Context struct {
 	stringValue string
 }
 
-func (ctx *Context) Bind(object interface{}) error {
-	if object == nil {
-		return errors.New("object is empty")
+func (ctx *Context) Bind(objectPtr interface{}) error {
+	if objectPtr == nil {
+		return errors.New("the object cannot be empty")
+	}
+	// 必须为指针
+	value := reflect.ValueOf(objectPtr)
+	if value.Kind() != reflect.Ptr {
+		return errors.New("the object must be pointer")
 	}
 
 	// 反转json
-	err := json.Unmarshal([]byte(ctx.stringValue), object)
+	err := json.Unmarshal([]byte(ctx.stringValue), objectPtr)
 	if err != nil {
 		return err
 	}
-	// 反射对象
-	value := reflect.ValueOf(object)
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
-	}
+	value = value.Elem()
 	// 判断类型
 	switch value.Type().Kind() {
 	case reflect.Struct: // 结构体
 		source := map[string]interface{}{}
 		if json.Unmarshal([]byte(ctx.stringValue), &source) == nil {
 			nj, _ := json.Marshal(ctx.build(source))
-			_ = json.Unmarshal(nj, object)
+			_ = json.Unmarshal(nj, objectPtr)
 		}
 	case reflect.Slice: // 列表
 		source := make([]map[string]interface{}, 0)
@@ -88,9 +89,17 @@ func (ctx *Context) Bind(object interface{}) error {
 				cnt = append(cnt, ctx.build(source[i]))
 			}
 			nj, _ := json.Marshal(cnt)
-			_ = json.Unmarshal(nj, object)
+			_ = json.Unmarshal(nj, objectPtr)
 		}
 	}
+	return nil
+}
+
+func (ctx *Context) GetMap() map[string]interface{} {
+	return nil
+}
+
+func (ctx *Context) BindWithMap(objectPtr interface{}, joins ...interface{}) error {
 	return nil
 }
 
@@ -109,7 +118,7 @@ func (ctx *Context) build(source map[string]interface{}) BaseModel {
 	return BaseModel{
 		Id:       uint64(nid),
 		LastTime: ctx.Time,
-		Content:  string(cj),
+		FullInfo: string(cj),
 	}
 }
 

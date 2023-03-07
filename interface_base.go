@@ -77,7 +77,7 @@ func (bll *BaseBll) Map(model interface{}) map[string]interface{} {
 	_ = json.Unmarshal(tj, &cnt)
 
 	// 生成字典
-	final := bll.create(cnt.Content, model)
+	final := bll.create(cnt.FullInfo, model)
 	// 补齐字段的值
 	final["Id"] = cnt.Id
 	//final["LastTime"] = cnt.LastTime
@@ -117,11 +117,11 @@ func (bll *BaseBll) BuildBaseModel(model interface{}) BaseModel {
 	_ = json.Unmarshal(tj, &cnt)
 
 	// 然后重新生成新的Info
-	final := bll.create(cnt.Content, model)
+	final := bll.create(cnt.FullInfo, model)
 
 	// 在转为json并写入到info中
 	nj, _ := json.Marshal(final)
-	cnt.Content = string(nj)
+	cnt.FullInfo = string(nj)
 
 	return cnt
 }

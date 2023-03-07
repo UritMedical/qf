@@ -126,7 +126,7 @@ func (s *Service) RegBll(bll IBll, group string) {
 	for kind, routers := range api {
 		for relative, handler := range routers {
 			path := pkg + "/" + relative
-			if kind == EKindGetList {
+			if kind == EApiKindGetList {
 				path = pkg + "s" + "/" + relative
 			}
 			path = strings.Trim(path, "/")
