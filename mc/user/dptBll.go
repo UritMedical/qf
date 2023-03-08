@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"qf"
-	uModel "qf/mc/user/model"
+	"qf/mc/user/uModel"
 	"sort"
 )
 

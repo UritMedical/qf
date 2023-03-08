@@ -2,7 +2,7 @@ package uDal
 
 import (
 	"qf"
-	uModel "qf/mc/user/model"
+	"qf/mc/user/uModel"
 )
 
 type UserDal struct {

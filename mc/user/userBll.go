@@ -3,7 +3,7 @@ package user
 import (
 	"errors"
 	"qf"
-	uModel "qf/mc/user/model"
+	"qf/mc/user/uModel"
 	uUtils "qf/mc/user/utils"
 	"strings"
 )
@@ -56,14 +56,14 @@ func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 
 func (b *Bll) saveUser(ctx *qf.Context) (interface{}, error) {
 	user := &uModel.User{}
-	if err := ctx.Bind(user); err != nil {
+	dict := map[string]interface{}{}
+	if !b.userDal.CheckExists(user.Id) {
+		dict["Password"] = uUtils.ConvertToMD5([]byte(defPassword))
+	}
+	if err := ctx.Bind(user, dict); err != nil {
 		return nil, err
 	}
 
-	if !b.userDal.CheckExists(user.Id) {
-		user.Password = uUtils.ConvertToMD5([]byte(defPassword))
-	}
-	user.BaseModel = b.BuildBaseModel(user)
 	//创建用户
 	return nil, b.userDal.Save(user)
 }

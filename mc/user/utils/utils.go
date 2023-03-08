@@ -12,13 +12,6 @@ import (
 	"time"
 )
 
-//UE是UserError的缩写
-const (
-	ErrUserNotExist  = "UE101" //用户不存在
-	ErrPasswordError = "UE102" //密码不正确
-	ErrTokenInvalid  = "UE103" //授权失败
-)
-
 //ConvertToMD5 转换成MD5加密
 func ConvertToMD5(str []byte) string {
 	h := md5.New()
@@ -109,6 +102,15 @@ func EncryptAndWriteToFile(data string, filename string, key, iv []byte) error {
 	return nil
 }
 
+//
+// DecodeJwtFromFile
+//  @Description: 从文件读取AES加密的内容进行解密
+//  @param fileName
+//  @param key
+//  @param iv
+//  @return string
+//  @return error
+//
 func DecodeJwtFromFile(fileName string, key, iv []byte) (string, error) {
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {

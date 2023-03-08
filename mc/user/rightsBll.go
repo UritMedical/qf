@@ -2,7 +2,7 @@ package user
 
 import (
 	"qf"
-	uModel "qf/mc/user/model"
+	"qf/mc/user/uModel"
 )
 
 func (b *Bll) regRightsApi(api qf.ApiMap) {

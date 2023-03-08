@@ -3,7 +3,7 @@ package user
 import (
 	"qf"
 	uDal "qf/mc/user/dal"
-	uModel "qf/mc/user/model"
+	"qf/mc/user/uModel"
 	uUtils "qf/mc/user/utils"
 )
 
