@@ -60,7 +60,7 @@ func NewService() *Service {
 	}
 	s.db = db
 	// 初始化Id分配器
-	s.idAllocator = id.NewIdAllocatorByDB(s.setting.Id, db)
+	s.idAllocator = id.NewIdAllocatorByDB(s.setting.Id, 1000, db)
 	// 创建Gin服务
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())

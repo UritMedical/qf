@@ -9,9 +9,10 @@ import (
 )
 
 type ByDB struct {
-	db   *gorm.DB
-	per  uint
-	lock *sync.RWMutex
+	db    *gorm.DB
+	per   uint
+	start uint
+	lock  *sync.RWMutex
 }
 
 type idAllocator struct {
@@ -27,12 +28,13 @@ type idAllocator struct {
 //  @param path
 //  @return *ByDB
 //
-func NewIdAllocatorByDB(per uint, db *gorm.DB) *ByDB {
+func NewIdAllocatorByDB(per uint, start uint, db *gorm.DB) *ByDB {
 	_ = db.Table("id_allocator").AutoMigrate(idAllocator{})
 	return &ByDB{
-		db:   db,
-		per:  per,
-		lock: &sync.RWMutex{},
+		db:    db,
+		per:   per,
+		start: start,
+		lock:  &sync.RWMutex{},
 	}
 }
 
@@ -53,7 +55,7 @@ func (b *ByDB) Next(name string) uint64 {
 	}
 	rs := b.db.Table("id_allocator").First(&val)
 	if rs.RowsAffected == 0 {
-		val.Value = 1
+		val.Value = uint64(b.start)
 	} else {
 		val.Value += 1
 	}

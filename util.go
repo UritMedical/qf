@@ -4,6 +4,7 @@ package qf
 
 import (
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strings"
 )
@@ -19,8 +20,7 @@ func buildTableName(model interface{}) string {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	sp := strings.Split(t.PkgPath(), "/")
-	pName := strings.ToLower(sp[len(sp)-1])
+	pName := strings.ToLower(filepath.Base(t.PkgPath()))
 	bName := strings.ToLower(t.Name())
 	tName := fmt.Sprintf("%s_%s", pName, bName)
 	if pName == bName {
