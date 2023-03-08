@@ -1,23 +1,23 @@
 package user
 
 import (
-    "qf"
-    uModel "qf/mc/user/model"
+	"qf"
+	uModel "qf/mc/user/model"
 )
 
-func (u *UserBll) regRoleApi(api qf.ApiMap) {
-    //角色
-    api.Reg(qf.EApiKindSave, "role", u.saveRole)        //创建、修改角色
-    api.Reg(qf.EApiKindDelete, "role", u.deleteRole)    //删除角色
-    api.Reg(qf.EApiKindGetList, "roles", u.getAllRoles) //获取所有角色
+func (u *Bll) regRoleApi(api qf.ApiMap) {
+	//角色
+	api.Reg(qf.EApiKindSave, "role", u.saveRole)        //创建、修改角色
+	api.Reg(qf.EApiKindDelete, "role", u.deleteRole)    //删除角色
+	api.Reg(qf.EApiKindGetList, "roles", u.getAllRoles) //获取所有角色
 
-    //用户-角色
-    api.Reg(qf.EApiKindSave, "role/users", u.setUserRoleRelation) //给角色删除或者添加用户
-    api.Reg(qf.EApiKindGetList, "role/users", u.getRoleUsers)     //获取指定角色下的用户
+	//用户-角色
+	api.Reg(qf.EApiKindSave, "role/users", u.setUserRoleRelation) //给角色删除或者添加用户
+	api.Reg(qf.EApiKindGetList, "role/users", u.getRoleUsers)     //获取指定角色下的用户
 
-    //角色-权限组
-    api.Reg(qf.EApiKindSave, "role/rights", u.setRoleRightsRelation) //给角色配置权限
-    api.Reg(qf.EApiKindGetList, "role/rights", u.getRoleRights)      //获取角色拥有的权限
+	//角色-权限组
+	api.Reg(qf.EApiKindSave, "role/rights", u.setRoleRightsRelation) //给角色配置权限
+	api.Reg(qf.EApiKindGetList, "role/rights", u.getRoleRights)      //获取角色拥有的权限
 }
 
 //
@@ -27,12 +27,12 @@ func (u *UserBll) regRoleApi(api qf.ApiMap) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) saveRole(ctx *qf.Context) (interface{}, error) {
-    role := &uModel.Role{}
-    if err := ctx.Bind(role); err != nil {
-        return nil, err
-    }
-    return nil, u.roleDal.Save(role)
+func (u *Bll) saveRole(ctx *qf.Context) (interface{}, error) {
+	role := &uModel.Role{}
+	if err := ctx.Bind(role); err != nil {
+		return nil, err
+	}
+	return nil, u.roleDal.Save(role)
 }
 
 //
@@ -42,10 +42,10 @@ func (u *UserBll) saveRole(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) deleteRole(ctx *qf.Context) (interface{}, error) {
-    uId := ctx.GetUIntValue("Id")
-    ret, err := u.roleDal.Delete(uId)
-    return ret, err
+func (u *Bll) deleteRole(ctx *qf.Context) (interface{}, error) {
+	uId := ctx.GetUIntValue("Id")
+	ret, err := u.roleDal.Delete(uId)
+	return ret, err
 }
 
 //
@@ -55,10 +55,10 @@ func (u *UserBll) deleteRole(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) getAllRoles(ctx *qf.Context) (interface{}, error) {
-    roles := make([]uModel.Role, 0)
-    err := u.roleDal.GetList(0, 100, &roles)
-    return u.Maps(roles), err
+func (u *Bll) getAllRoles(ctx *qf.Context) (interface{}, error) {
+	roles := make([]uModel.Role, 0)
+	err := u.roleDal.GetList(0, 100, &roles)
+	return u.Maps(roles), err
 }
 
 //
@@ -68,15 +68,15 @@ func (u *UserBll) getAllRoles(ctx *qf.Context) (interface{}, error) {
 //  @param userId 用户Id
 //  @return error
 //
-func (u *UserBll) setUserRoleRelation(ctx *qf.Context) (interface{}, error) {
-    var params = struct {
-        RoleId  uint64
-        UserIds []uint64
-    }{}
-    if err := ctx.Bind(&params); err != nil {
-        return nil, err
-    }
-    return nil, u.userRoleDal.SetRoleUsers(params.RoleId, params.UserIds)
+func (u *Bll) setUserRoleRelation(ctx *qf.Context) (interface{}, error) {
+	var params = struct {
+		RoleId  uint64
+		UserIds []uint64
+	}{}
+	if err := ctx.Bind(&params); err != nil {
+		return nil, err
+	}
+	return nil, u.userRoleDal.SetRoleUsers(params.RoleId, params.UserIds)
 }
 
 //
@@ -86,15 +86,15 @@ func (u *UserBll) setUserRoleRelation(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) setRoleRightsRelation(ctx *qf.Context) (interface{}, error) {
-    var params = struct {
-        RoleId    uint64
-        RightsIds []uint64
-    }{}
-    if err := ctx.Bind(&params); err != nil {
-        return nil, err
-    }
-    return nil, u.roleRightsDal.SetRoleRights(params.RoleId, params.RightsIds)
+func (u *Bll) setRoleRightsRelation(ctx *qf.Context) (interface{}, error) {
+	var params = struct {
+		RoleId    uint64
+		RightsIds []uint64
+	}{}
+	if err := ctx.Bind(&params); err != nil {
+		return nil, err
+	}
+	return nil, u.roleRightsDal.SetRoleRights(params.RoleId, params.RightsIds)
 }
 
 //
@@ -104,11 +104,11 @@ func (u *UserBll) setRoleRightsRelation(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
-    roleId := ctx.GetUIntValue("RoleId")
-    userIds, _ := u.userRoleDal.GetUsersByRoleId(roleId)
-    users, err := u.userDal.GetUsersByIds(userIds)
-    return u.Maps(users), err
+func (u *Bll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
+	roleId := ctx.GetUIntValue("RoleId")
+	userIds, _ := u.userRoleDal.GetUsersByRoleId(roleId)
+	users, err := u.userDal.GetUsersByIds(userIds)
+	return u.Maps(users), err
 }
 
 //
@@ -118,9 +118,9 @@ func (u *UserBll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) getRoleRights(ctx *qf.Context) (interface{}, error) {
-    roleId := ctx.GetUIntValue("RoleId")
-    rightsId, _ := u.roleRightsDal.GetRoleRights(roleId)
-    rights, err := u.rightsDal.GetRightsGroupByIds(rightsId)
-    return u.Maps(rights), err
+func (u *Bll) getRoleRights(ctx *qf.Context) (interface{}, error) {
+	roleId := ctx.GetUIntValue("RoleId")
+	rightsId, _ := u.roleRightsDal.GetRoleRights(roleId)
+	rights, err := u.rightsDal.GetRightsGroupByIds(rightsId)
+	return u.Maps(rights), err
 }

@@ -16,7 +16,7 @@ var service *qf.Service
 func start() {
 	service = qf.NewService()
 	service.RegBll(&patient.Bll{}, "api")
-	service.RegBll(&user.UserBll{}, "api")
+	service.RegBll(&user.Bll{}, "api")
 	service.Run()
 }
 
