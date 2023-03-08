@@ -7,6 +7,7 @@ import (
 )
 
 type setting struct {
+	Id         uint       `comment:"框架Id，主服务为0"`
 	Name       string     `comment:"框架名称，单体服务为空"`
 	Port       string     `comment:"服务端口"`
 	WebConfig  webConfig  `comment:"web配置"`

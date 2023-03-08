@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"reflect"
-	"strings"
 )
 
 //----------------------------------------------------------------
@@ -77,10 +76,9 @@ func (bll *BaseBll) Map(model interface{}) map[string]interface{} {
 	_ = json.Unmarshal(tj, &cnt)
 
 	// 生成字典
-	final := bll.create(cnt.FullInfo, model)
+	final := bll.join(cnt.FullInfo, model)
 	// 补齐字段的值
 	final["Id"] = cnt.Id
-	//final["LastTime"] = cnt.LastTime
 
 	return final
 }
@@ -103,31 +101,8 @@ func (bll *BaseBll) Maps(list interface{}) []map[string]interface{} {
 	return finals
 }
 
-//
-// BuildBaseModel
-//  @Description: 生成基础实体
-//  @param model
-//  @return Content
-//
-func (bll *BaseBll) BuildBaseModel(model interface{}) BaseModel {
-	// 先转一次json
-	tj, _ := json.Marshal(model)
-	// 然后在反转到内容对象
-	cnt := BaseModel{}
-	_ = json.Unmarshal(tj, &cnt)
-
-	// 然后重新生成新的Info
-	final := bll.create(cnt.FullInfo, model)
-
-	// 在转为json并写入到info中
-	nj, _ := json.Marshal(final)
-	cnt.FullInfo = string(nj)
-
-	return cnt
-}
-
 // 将完整内容Json和对应的实体，合并为一个字典对象
-func (bll *BaseBll) create(info string, model interface{}) map[string]interface{} {
+func (bll *BaseBll) join(info string, model interface{}) map[string]interface{} {
 	data := map[string]interface{}{}
 
 	// 将内容的信息写入到字典中
@@ -141,7 +116,7 @@ func (bll *BaseBll) create(info string, model interface{}) map[string]interface{
 	for i := 0; i < value.NumField(); i++ {
 		field := value.Field(i)
 		// 通过原始内容
-		if field.Kind() == reflect.Struct && field.Type().Name() == "Content" {
+		if field.Kind() == reflect.Struct && field.Type().Name() == "BaseModel" {
 			continue
 		}
 		tag := value.Type().Field(i).Tag.Get("json")
@@ -223,20 +198,28 @@ type BaseDal struct {
 	tableName string
 }
 
-func (b *BaseDal) initDB(db *gorm.DB, pkgName string, model interface{}) {
+//
+// initDB
+//  @Description: 初始化数据库
+//  @receiver b
+//  @param db
+//  @param pkgName
+//  @param model
+//
+func (b *BaseDal) initDB(db *gorm.DB, model interface{}) {
 	b.db = db
 	// 根据实体名称，生成数据库
-	t := reflect.TypeOf(model)
-	pName := strings.ToLower(pkgName)
-	bName := strings.ToLower(t.Name())
-	b.tableName = fmt.Sprintf("%s_%s", pName, bName)
-	if pName == bName {
-		b.tableName = pName
-	}
+	b.tableName = buildTableName(model)
 	// 自动生成表
 	_ = db.Table(b.tableName).AutoMigrate(model)
 }
 
+//
+// setChild
+//  @Description: 设置子集，用于后期反射
+//  @receiver b
+//  @param dal
+//
 func (b *BaseDal) setChild(dal IDal) {
 	b.dal = dal
 }
@@ -302,6 +285,22 @@ func (b *BaseDal) GetModel(id uint64, dest interface{}) error {
 //
 func (b *BaseDal) GetList(startId uint64, maxCount uint, dest interface{}) error {
 	result := b.DB().Limit(int(maxCount)).Offset(int(startId)).Find(dest)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
+}
+
+//
+// GetConditions
+//  @Description: 通过自定义条件获取数据
+//  @param dest 结构体/列表
+//  @param query 条件
+//  @param args 条件参数
+//  @return error
+//
+func (b *BaseDal) GetConditions(dest interface{}, query interface{}, args ...interface{}) error {
+	result := b.DB().Where(query, args...).Find(dest)
 	if result.Error != nil {
 		return result.Error
 	}

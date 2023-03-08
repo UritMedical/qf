@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
+	"qf/util/reflectex"
 	"strconv"
 	"time"
 )
@@ -53,90 +53,102 @@ type Context struct {
 	UserId   uint      // 操作用户账号
 	UserName string    // 操作用户名字
 
-	jsonValue   map[string]interface{}
-	stringValue string
+	// input的原始内容字典
+	inputValue  []map[string]interface{}
+	inputSource string
+	// id分配器
+	idPer       uint
+	idAllocator iIdAllocator
 }
 
-func (ctx *Context) Bind(objectPtr interface{}) error {
+//
+// Bind
+//  @Description: 绑定到新实体对象
+//  @param objectPtr 实体对象指针（必须为指针）
+//  @param joins 需要附加的值（可以是结构体、字典）
+//  @return error
+//
+func (ctx *Context) Bind(objectPtr interface{}, joins ...interface{}) error {
 	if objectPtr == nil {
 		return errors.New("the object cannot be empty")
 	}
 	// 必须为指针
-	value := reflect.ValueOf(objectPtr)
-	if value.Kind() != reflect.Ptr {
+	if reflectex.IsPtr(objectPtr) == false {
 		return errors.New("the object must be pointer")
 	}
 
-	// 反转json
-	err := json.Unmarshal([]byte(ctx.stringValue), objectPtr)
-	if err != nil {
-		return err
-	}
-	value = value.Elem()
-	// 判断类型
-	switch value.Type().Kind() {
-	case reflect.Struct: // 结构体
-		source := map[string]interface{}{}
-		if json.Unmarshal([]byte(ctx.stringValue), &source) == nil {
-			nj, _ := json.Marshal(ctx.build(source))
-			_ = json.Unmarshal(nj, objectPtr)
-		}
-	case reflect.Slice: // 列表
-		source := make([]map[string]interface{}, 0)
-		if json.Unmarshal([]byte(ctx.stringValue), &source) == nil {
-			cnt := make([]BaseModel, 0)
-			for i := 0; i < len(cnt); i++ {
-				cnt = append(cnt, ctx.build(source[i]))
+	// 追加附加内容到字典
+	for _, join := range joins {
+		for k, v := range reflectex.StructToMap(join) {
+			for _, vv := range ctx.inputValue {
+				vv[k] = v
 			}
-			nj, _ := json.Marshal(cnt)
-			_ = json.Unmarshal(nj, objectPtr)
 		}
+	}
+	// 然后根据类型，将字典写入到对象或列表中
+	table := buildTableName(objectPtr)
+	cnt := make([]BaseModel, 0)
+	for i := 0; i < len(ctx.inputValue); i++ {
+		c := ctx.build(ctx.inputValue[i], reflectex.StructToMap(objectPtr))
+		// 如果Id为0，则自动分配信息Id
+		if c.Id == 0 {
+			c.Id = ctx.idAllocator.Next(table)
+		}
+		cnt = append(cnt, c)
+	}
+	if reflectex.IsStruct(objectPtr) {
+		// 先将提交的input填充
+		nj, _ := json.Marshal(ctx.inputValue[0])
+		_ = json.Unmarshal(nj, objectPtr)
+		// 再将重新组织的内容填充
+		nj, _ = json.Marshal(cnt[0])
+		_ = json.Unmarshal(nj, objectPtr)
+	} else if reflectex.IsSlice(objectPtr) {
+		// 同上
+		nj, _ := json.Marshal(ctx.inputValue)
+		_ = json.Unmarshal(nj, objectPtr)
+		nj, _ = json.Marshal(cnt)
+		_ = json.Unmarshal(nj, objectPtr)
 	}
 	return nil
 }
 
-func (ctx *Context) GetMap() map[string]interface{} {
-	return nil
-}
-
-func (ctx *Context) BindWithMap(objectPtr interface{}, joins ...interface{}) error {
-	return nil
-}
-
-func (ctx *Context) build(source map[string]interface{}) BaseModel {
-	nid := 0
+func (ctx *Context) build(source map[string]interface{}, exclude map[string]interface{}) BaseModel {
+	nid := uint64(0)
 	if id, ok := source["Id"]; ok {
 		v, e := strconv.Atoi(fmt.Sprintf("%v", id))
 		if e == nil {
-			nid = v
+			nid = uint64(v)
 		}
 	}
-	if nid == 0 {
-		// 通过平台获取ID
+	// 从完整的原始input中，去掉实体对象中已经存在的
+	finals := map[string]interface{}{}
+	for k, v := range source {
+		if _, ok := exclude[k]; ok == false {
+			finals[k] = v
+		}
 	}
-	cj, _ := json.Marshal(source)
+	cj, _ := json.Marshal(finals)
 	return BaseModel{
-		Id:       uint64(nid),
+		Id:       nid,
 		LastTime: ctx.Time,
 		FullInfo: string(cj),
 	}
 }
 
 func (ctx *Context) GetJsonValue(propName string) string {
-	obj := ctx.jsonValue[propName]
-	if obj == nil {
+	if len(ctx.inputValue) == 0 {
 		return ""
 	}
-	nj, _ := json.Marshal(obj)
+	nj, _ := json.Marshal(ctx.inputValue[0][propName])
 	return string(nj)
 }
 
 func (ctx *Context) GetStringValue(propName string) string {
-	obj := ctx.jsonValue[propName]
-	if obj == nil {
+	if len(ctx.inputValue) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%v", obj)
+	return fmt.Sprintf("%v", ctx.inputValue[0][propName])
 }
 
 func (ctx *Context) GetUIntValue(propName string) uint64 {

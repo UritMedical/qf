@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm/schema"
 	"io/ioutil"
 	"net/http"
+	"qf/helper/id"
 	"qf/util/io"
 	"reflect"
 	"strings"
@@ -18,12 +19,13 @@ import (
 )
 
 type Service struct {
-	folder     string                // 框架的文件夹路径
-	db         *gorm.DB              // 数据库
-	engine     *gin.Engine           // gin
-	bllList    map[string]IBll       // 所有创建的业务层对象
-	apiHandler map[string]ApiHandler // 所有注册的业务API函数指针
-	setting    setting               // 框架配置
+	folder      string                // 框架的文件夹路径
+	db          *gorm.DB              // 数据库
+	engine      *gin.Engine           // gin
+	bllList     map[string]IBll       // 所有创建的业务层对象
+	apiHandler  map[string]ApiHandler // 所有注册的业务API函数指针
+	setting     setting               // 框架配置
+	idAllocator iIdAllocator          // id分配器
 }
 
 //
@@ -57,6 +59,8 @@ func NewService() *Service {
 		return nil
 	}
 	s.db = db
+	// 初始化Id分配器
+	s.idAllocator = id.NewIdAllocatorByDB(s.setting.Id, db)
 	// 创建Gin服务
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
@@ -140,7 +144,7 @@ func (s *Service) RegBll(bll IBll, group string) {
 	bll.RegDal(dal)
 	for d, model := range dal {
 		// 配置数据库给数据层，并初始化表结构
-		d.initDB(s.db, pkg, model)
+		d.initDB(s.db, model)
 		d.setChild(d)
 	}
 
@@ -190,22 +194,31 @@ func (s *Service) context(ctx *gin.Context) {
 	url := fmt.Sprintf("%s:%s", ctx.Request.Method, strings.TrimLeft(ctx.FullPath(), "/"))
 	if handler, ok := s.apiHandler[url]; ok {
 		qfCtx := &Context{
-			Time:      time.Now().Local(),
-			UserId:    1,
-			UserName:  "暂时写死测试用",
-			jsonValue: map[string]interface{}{},
+			Time:        time.Now().Local(),
+			UserId:      1,
+			UserName:    "暂时写死测试用",
+			inputValue:  make([]map[string]interface{}, 0),
+			inputSource: "",
+			idAllocator: s.idAllocator,
 		}
 		// 获取body内容
 		if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil {
-			qfCtx.stringValue = string(body)
+			qfCtx.inputSource = string(body)
 			if json.Valid(body) {
-				// 如果是json格式，则转为字典
-				if strings.HasPrefix(qfCtx.stringValue, "{") &&
-					strings.HasSuffix(qfCtx.stringValue, "}") {
-					_ = json.Unmarshal(body, &qfCtx.jsonValue)
+				// 如果是json列表
+				if strings.HasPrefix(qfCtx.inputSource, "[") &&
+					strings.HasSuffix(qfCtx.inputSource, "]") {
+					_ = json.Unmarshal(body, &qfCtx.inputValue)
+				}
+				// 如果是json结构
+				if strings.HasPrefix(qfCtx.inputSource, "{") &&
+					strings.HasSuffix(qfCtx.inputSource, "}") {
+					iv := map[string]interface{}{}
+					_ = json.Unmarshal(body, &iv)
+					qfCtx.inputValue = append(qfCtx.inputValue, iv)
 				}
 			} else {
-				if qfCtx.stringValue != "" {
+				if qfCtx.inputSource != "" {
 					s.returnError(ctx, errors.New("invalid json format"))
 					return
 				}
@@ -214,10 +227,13 @@ func (s *Service) context(ctx *gin.Context) {
 
 		// 获取全部的Query
 		for k, v := range ctx.Request.URL.Query() {
+			if len(qfCtx.inputValue) == 0 {
+				qfCtx.inputValue = append(qfCtx.inputValue, map[string]interface{}{})
+			}
 			if len(v) > 0 {
-				qfCtx.jsonValue[k] = v[0]
+				qfCtx.inputValue[0][k] = v[0]
 			} else {
-				qfCtx.jsonValue[k] = ""
+				qfCtx.inputValue[0][k] = ""
 			}
 		}
 

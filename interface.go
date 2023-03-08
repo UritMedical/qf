@@ -162,6 +162,14 @@ type iBll interface {
 //  @Description: 框架内部使用的数据层接口方法
 //
 type iDal interface {
-	initDB(db *gorm.DB, pkgName string, model interface{})
+	initDB(db *gorm.DB, model interface{})
 	setChild(dal IDal)
+}
+
+//
+// iIdAllocator
+//  @Description: Id分配器接口
+//
+type iIdAllocator interface {
+	Next(name string) uint64
 }
