@@ -43,7 +43,7 @@ func (b *Bll) saveRole(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (b *Bll) deleteRole(ctx *qf.Context) (interface{}, error) {
-	uId := ctx.GetUIntValue("Id")
+	uId := ctx.GetId()
 	ret, err := b.roleDal.Delete(uId)
 	return ret, err
 }
@@ -105,7 +105,7 @@ func (b *Bll) setRoleRightsRelation(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (b *Bll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
-	roleId := ctx.GetUIntValue("RoleId")
+	roleId := ctx.GetId()
 	userIds, _ := b.userRoleDal.GetUsersByRoleId(roleId)
 	users, err := b.userDal.GetUsersByIds(userIds)
 	return b.Maps(users), err
@@ -119,7 +119,7 @@ func (b *Bll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (b *Bll) getRoleRights(ctx *qf.Context) (interface{}, error) {
-	roleId := ctx.GetUIntValue("RoleId")
+	roleId := ctx.GetId()
 	rightsId, _ := b.roleRightsDal.GetRoleRights(roleId)
 	rights, err := b.rightsDal.GetRightsGroupByIds(rightsId)
 	return b.Maps(rights), err

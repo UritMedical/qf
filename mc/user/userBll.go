@@ -46,9 +46,9 @@ func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 	params.Password = uUtils.ConvertToMD5([]byte(params.Password))
 	if user, ok := b.userDal.CheckLogin(params.LoginId, params.Password); ok {
 		role, _ := b.userRoleDal.GetUsersByRoleId(user.Id)
-		return GenerateToken(user.Id, role, b.jwtSecret)
+		return generateToken(user.Id, role, b.jwtSecret)
 	} else if params.LoginId == devUser.LoginId && params.Password == devUser.Password {
-		return GenerateToken(devUser.Id, []uint64{}, b.jwtSecret)
+		return generateToken(devUser.Id, []uint64{}, b.jwtSecret)
 	} else {
 		return nil, errors.New("loginId not exist or password error")
 	}
@@ -69,7 +69,7 @@ func (b *Bll) saveUser(ctx *qf.Context) (interface{}, error) {
 }
 
 func (b *Bll) deleteUser(ctx *qf.Context) (interface{}, error) {
-	uId := ctx.GetUIntValue("Id")
+	uId := ctx.GetId()
 	ret, err := b.userDal.Delete(uId)
 	return ret, err
 }
@@ -114,7 +114,7 @@ func (b *Bll) getAllUsers(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (b *Bll) resetPassword(ctx *qf.Context) (interface{}, error) {
-	uId := ctx.GetUIntValue("Id")
+	uId := ctx.GetId()
 	return nil, b.userDal.SetPassword(uId, uUtils.ConvertToMD5([]byte(defPassword)))
 }
 

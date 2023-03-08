@@ -25,7 +25,7 @@ func (b *Bll) saveRightsGroup(ctx *qf.Context) (interface{}, error) {
 }
 
 func (b *Bll) deleteRightsGroup(ctx *qf.Context) (interface{}, error) {
-	uId := ctx.GetUIntValue("Id")
+	uId := ctx.GetId()
 	ret, err := b.rightsDal.Delete(uId)
 	return ret, err
 }

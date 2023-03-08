@@ -7,10 +7,9 @@ import (
 	uUtils "qf/mc/user/utils"
 )
 
-//开发者内置账号
 //TODO 开发者密码可以配置
-const devId = 310202303 //此Id用于权限判断时识别
-var devUser = uModel.User{BaseModel: qf.BaseModel{Id: devId}, LoginId: "developer", Password: uUtils.ConvertToMD5([]byte("lisurit"))}
+const DeveloperId = 202303 //开发者内存Id
+var devUser = uModel.User{BaseModel: qf.BaseModel{Id: DeveloperId}, LoginId: "developer", Password: uUtils.ConvertToMD5([]byte("lisurit"))}
 
 type Bll struct {
 	qf.BaseBll
@@ -30,6 +29,8 @@ func (b *Bll) RegApi(api qf.ApiMap) {
 	b.regRoleApi(api)   //注册角色API
 	b.regRightsApi(api) //注册权限组API
 	b.regDptApi(api)    //注册部门组织API
+
+	api.Reg(qf.EApiKindSave, "jwt/reset", b.resetJwtSecret) //刷新jwt密钥
 }
 
 func (b *Bll) RegDal(dal qf.DalMap) {
@@ -67,8 +68,17 @@ func (b *Bll) RegRef(ref qf.RefMap) {
 
 func (b *Bll) Init() error {
 	b.initDefUser()
-	//TODO 使用随机字符串初始化token密钥
-	b.jwtSecret = []byte("asldkfvnkwejfioweklasjfowienalv234Sdf23")
+
+	//初始化token密钥
+	jwt, err := uUtils.DecodeJwtFromFile(JwtSecretFile, []byte(AESKey), []byte(IV))
+	if err != nil || jwt == "" {
+		jwtStr := uUtils.RandomString(32)
+		b.jwtSecret = []byte(jwtStr)
+		//将密钥进行AES加密后存入文件
+		_ = uUtils.EncryptAndWriteToFile(jwtStr, JwtSecretFile, []byte(AESKey), []byte(IV))
+	} else {
+		b.jwtSecret = []byte(jwt)
+	}
 	return nil
 }
 
@@ -101,4 +111,20 @@ func (b *Bll) initDefUser() {
 		_ = b.userRoleDal.SetRoleUsers(adminId, []uint64{adminId}) //admin 分配 administrator角色
 
 	}
+}
+
+//
+//  resetJwtSecret
+//  @Description: 重置密钥，然所有用户重新登录
+//  @receiver b
+//  @param ctx
+//  @return interface{}
+//  @return error
+//
+func (b *Bll) resetJwtSecret(ctx *qf.Context) (interface{}, error) {
+	jwtStr := uUtils.RandomString(32)
+	b.jwtSecret = []byte(jwtStr)
+	//将密钥进行AES加密后存入文件
+	err := uUtils.EncryptAndWriteToFile(jwtStr, JwtSecretFile, []byte(AESKey), []byte(IV))
+	return jwtStr, err
 }

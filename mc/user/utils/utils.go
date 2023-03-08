@@ -1,9 +1,15 @@
 package uUtils
 
 import (
+	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/md5"
 	"encoding/hex"
-	"strconv"
+	"io/ioutil"
+	"math/rand"
+	"os"
+	"time"
 )
 
 //UE是UserError的缩写
@@ -12,12 +18,6 @@ const (
 	ErrPasswordError = "UE102" //密码不正确
 	ErrTokenInvalid  = "UE103" //授权失败
 )
-
-//StrToInt 数字字符串转 uint64
-func StrToInt(str string) uint64 {
-	i, _ := strconv.Atoi(str)
-	return uint64(i)
-}
 
 //ConvertToMD5 转换成MD5加密
 func ConvertToMD5(str []byte) string {
@@ -49,4 +49,101 @@ func DiffIntSet(a []uint64, b []uint64) []uint64 {
 		}
 	}
 	return c
+}
+
+// RandomString
+//  @Description: 生成随机字符串
+//  @param length
+//  @return string
+//
+func RandomString(length int) string {
+	rand.Seed(time.Now().UnixNano())
+
+	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	result := make([]rune, length)
+	for i := range result {
+		result[i] = letters[rand.Intn(len(letters))]
+	}
+
+	return string(result)
+}
+
+//
+// EncryptAndWriteToFile
+//  @Description: 将字符串加密后写入文件
+//  @param data
+//  @param filename
+//  @param key
+//  @return error
+//
+func EncryptAndWriteToFile(data string, filename string, key, iv []byte) error {
+	// 创建文件
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	plaintext := []byte(data)
+
+	// 创建AES块
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+
+	// 对明文进行填充
+	plaintext = pad(plaintext)
+
+	// 创建CBC模式加密器
+	mode := cipher.NewCBCEncrypter(block, iv)
+
+	// 加密明文
+	ciphertext := make([]byte, len(plaintext))
+	mode.CryptBlocks(ciphertext, plaintext)
+
+	// 将加密后的数据写入文件
+	if _, err := file.Write(ciphertext); err != nil {
+		return err
+	}
+	return nil
+}
+
+func DecodeJwtFromFile(fileName string, key, iv []byte) (string, error) {
+	data, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return "", err
+	}
+
+	// 创建AES块
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+
+	// 创建CBC模式解密器
+	mode := cipher.NewCBCDecrypter(block, iv)
+
+	// 解密密文
+	decrypted := make([]byte, len(data))
+	mode.CryptBlocks(decrypted, data)
+
+	// 去除填充
+	decrypted = unpad(decrypted)
+
+	return string(decrypted), nil
+}
+
+// 进行PKCS#7填充
+func pad(plaintext []byte) []byte {
+	padding := aes.BlockSize - len(plaintext)%aes.BlockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(plaintext, padtext...)
+}
+
+// 去除PKCS#7填充
+func unpad(plaintext []byte) []byte {
+	length := len(plaintext)
+	unpadding := int(plaintext[length-1])
+	return plaintext[:(length - unpadding)]
 }

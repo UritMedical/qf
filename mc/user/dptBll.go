@@ -44,7 +44,7 @@ func (b *Bll) saveDpt(ctx *qf.Context) (interface{}, error) {
 }
 
 func (b *Bll) deleteDpt(ctx *qf.Context) (interface{}, error) {
-	uId := ctx.GetUIntValue("Id")
+	uId := ctx.GetId()
 	ret, err := b.dptDal.Delete(uId)
 	return ret, err
 }
