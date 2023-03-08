@@ -29,7 +29,7 @@ func GenerateToken(id uint64, roleIds []uint64, jwtSecret []byte) (string, error
 }
 
 //ParseToken 验证token的函数
-func (u *Bll) ParseToken(token string, jwtSecret []byte) (*Claims, error) {
+func (b *Bll) ParseToken(token string, jwtSecret []byte) (*Claims, error) {
 	tokenClaims, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil
 	})
