@@ -1,39 +1,39 @@
 package user
 
 import (
-    "qf"
-    uModel "qf/mc/user/model"
+	"qf"
+	uModel "qf/mc/user/model"
 )
 
-func (u *UserBll) regRightsApi(api qf.ApiMap) {
-    //权限组
-    api.Reg(qf.EApiKindSave, "rights", u.saveRightsGroup)       //添加权限组
-    api.Reg(qf.EApiKindDelete, "rights", u.deleteRightsGroup)   //删除权限组
-    api.Reg(qf.EApiKindGetList, "rights", u.getRightsGroupList) //获取权限组
+func (b *Bll) regRightsApi(api qf.ApiMap) {
+	//权限组
+	api.Reg(qf.EApiKindSave, "rights", b.saveRightsGroup)       //添加权限组
+	api.Reg(qf.EApiKindDelete, "rights", b.deleteRightsGroup)   //删除权限组
+	api.Reg(qf.EApiKindGetList, "rights", b.getRightsGroupList) //获取权限组
 
-    //权限组-API
-    api.Reg(qf.EApiKindSave, "rights/apis", u.setRightsGroupApi)
-    api.Reg(qf.EApiKindGetList, "rights/apis", u.getRightsGroupApi)
+	//权限组-API
+	api.Reg(qf.EApiKindSave, "rights/apis", b.setRightsGroupApi)
+	api.Reg(qf.EApiKindGetList, "rights/apis", b.getRightsGroupApi)
 }
 
-func (u *UserBll) saveRightsGroup(ctx *qf.Context) (interface{}, error) {
-    var rg uModel.RightsGroup
-    if err := ctx.Bind(&rg); err != nil {
-        return nil, err
-    }
-    return nil, u.rightsDal.Save(&rg)
+func (b *Bll) saveRightsGroup(ctx *qf.Context) (interface{}, error) {
+	var rg uModel.RightsGroup
+	if err := ctx.Bind(&rg); err != nil {
+		return nil, err
+	}
+	return nil, b.rightsDal.Save(&rg)
 }
 
-func (u *UserBll) deleteRightsGroup(ctx *qf.Context) (interface{}, error) {
-    uId := ctx.GetUIntValue("Id")
-    ret, err := u.rightsDal.Delete(uId)
-    return ret, err
+func (b *Bll) deleteRightsGroup(ctx *qf.Context) (interface{}, error) {
+	uId := ctx.GetId()
+	ret, err := b.rightsDal.Delete(uId)
+	return ret, err
 }
 
-func (u *UserBll) getRightsGroupList(ctx *qf.Context) (interface{}, error) {
-    rights := make([]uModel.RightsGroup, 0)
-    err := u.rightsDal.GetList(0, 100, &rights)
-    return u.Maps(rights), err
+func (b *Bll) getRightsGroupList(ctx *qf.Context) (interface{}, error) {
+	rights := make([]uModel.RightsGroup, 0)
+	err := b.rightsDal.GetList(0, 100, &rights)
+	return b.Maps(rights), err
 }
 
 //
@@ -43,15 +43,15 @@ func (u *UserBll) getRightsGroupList(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) setRightsGroupApi(ctx *qf.Context) (interface{}, error) {
-    params := struct {
-        RightsId uint64
-        ApiIds   []string
-    }{}
-    if err := ctx.Bind(&params); err != nil {
-        return nil, err
-    }
-    return nil, u.rightsApiDal.SetRightsApis(params.RightsId, params.ApiIds)
+func (b *Bll) setRightsGroupApi(ctx *qf.Context) (interface{}, error) {
+	params := struct {
+		RightsId uint64
+		ApiIds   []string
+	}{}
+	if err := ctx.Bind(&params); err != nil {
+		return nil, err
+	}
+	return nil, b.rightsApiDal.SetRightsApis(params.RightsId, params.ApiIds)
 }
 
 //
@@ -61,7 +61,7 @@ func (u *UserBll) setRightsGroupApi(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) getRightsGroupApi(ctx *qf.Context) (interface{}, error) {
-    rightId := ctx.GetUIntValue("RightsId")
-    return u.rightsApiDal.GetApisByRightsId(rightId)
+func (b *Bll) getRightsGroupApi(ctx *qf.Context) (interface{}, error) {
+	rightId := ctx.GetUIntValue("RightsId")
+	return b.rightsApiDal.GetApisByRightsId(rightId)
 }

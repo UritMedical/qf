@@ -17,7 +17,7 @@ type UserRoleDal struct {
 //  @param userIds
 //  @return error
 //
-func (u UserRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) error {
+func (u *UserRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) error {
 	oldUsers, err := u.GetUsersByRoleId(roleId)
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func (u UserRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) error {
 //  @return []uint64
 //  @return error
 //
-func (u UserRoleDal) GetUsersByRoleId(roleId uint64) ([]uint64, error) {
+func (u *UserRoleDal) GetUsersByRoleId(roleId uint64) ([]uint64, error) {
 	userIds := make([]uint64, 0)
 	err := u.DB().Debug().Where("RoleId = ?", roleId).Select("UserId").Find(&userIds).Error
 	return userIds, err
@@ -69,7 +69,7 @@ func (u UserRoleDal) GetUsersByRoleId(roleId uint64) ([]uint64, error) {
 //  @return []uint64
 //  @return error
 //
-func (u UserRoleDal) GetRolesByUserId(userId uint64) ([]uint64, error) {
+func (u *UserRoleDal) GetRolesByUserId(userId uint64) ([]uint64, error) {
 	roleIds := make([]uint64, 0)
 	err := u.DB().Where("UserId = ?", userId).Select("RoleId").Find(&roleIds).Error
 	return roleIds, err

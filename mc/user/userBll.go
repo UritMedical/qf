@@ -1,29 +1,29 @@
 package user
 
 import (
-    "errors"
-    "qf"
-    uModel "qf/mc/user/model"
-    uUtils "qf/mc/user/utils"
-    "strings"
+	"errors"
+	"qf"
+	uModel "qf/mc/user/model"
+	uUtils "qf/mc/user/utils"
+	"strings"
 )
 
 //defPassword 默认密码
 const defPassword = "123456"
 
-func (u *UserBll) regUserApi(api qf.ApiMap) {
-    //登录
-    api.Reg(qf.EApiKindSave, "login", u.login)
+func (b *Bll) regUserApi(api qf.ApiMap) {
+	//登录
+	api.Reg(qf.EApiKindSave, "login", b.login)
 
-    //用户增删改查
-    api.Reg(qf.EApiKindSave, "", u.saveUser)
-    api.Reg(qf.EApiKindDelete, "", u.deleteUser)
-    api.Reg(qf.EApiKindGetModel, "", u.getUserModel)
-    api.Reg(qf.EApiKindGetList, "", u.getAllUsers)
+	//用户增删改查
+	api.Reg(qf.EApiKindSave, "", b.saveUser)
+	api.Reg(qf.EApiKindDelete, "", b.deleteUser)
+	api.Reg(qf.EApiKindGetModel, "", b.getUserModel)
+	api.Reg(qf.EApiKindGetList, "", b.getAllUsers)
 
-    //密码重置、修改
-    api.Reg(qf.EApiKindSave, "pwd/reset", u.resetPassword)
-    api.Reg(qf.EApiKindSave, "pwd", u.changePassword)
+	//密码重置、修改
+	api.Reg(qf.EApiKindSave, "pwd/reset", b.resetPassword)
+	api.Reg(qf.EApiKindSave, "pwd", b.changePassword)
 }
 
 //
@@ -33,65 +33,65 @@ func (u *UserBll) regUserApi(api qf.ApiMap) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) login(ctx *qf.Context) (interface{}, error) {
-    var params = struct {
-        LoginId  string
-        Password string
-    }{}
+func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
+	var params = struct {
+		LoginId  string
+		Password string
+	}{}
 
-    if err := ctx.Bind(&params); err != nil {
-        return nil, err
-    }
-    params.LoginId = strings.Replace(params.LoginId, " ", "", -1)
-    params.Password = uUtils.ConvertToMD5([]byte(params.Password))
-    if user, ok := u.userDal.CheckLogin(params.LoginId, params.Password); ok {
-        role, _ := u.userRoleDal.GetUsersByRoleId(user.Id)
-        return GenerateToken(user.Id, role, u.jwtSecret)
-    } else if params.LoginId == devUser.LoginId && params.Password == devUser.Password {
-        return GenerateToken(devUser.Id, []uint64{}, u.jwtSecret)
-    } else {
-        return nil, errors.New("loginId not exist or password error")
-    }
+	if err := ctx.Bind(&params); err != nil {
+		return nil, err
+	}
+	params.LoginId = strings.Replace(params.LoginId, " ", "", -1)
+	params.Password = uUtils.ConvertToMD5([]byte(params.Password))
+	if user, ok := b.userDal.CheckLogin(params.LoginId, params.Password); ok {
+		role, _ := b.userRoleDal.GetUsersByRoleId(user.Id)
+		return generateToken(user.Id, role, b.jwtSecret)
+	} else if params.LoginId == devUser.LoginId && params.Password == devUser.Password {
+		return generateToken(devUser.Id, []uint64{}, b.jwtSecret)
+	} else {
+		return nil, errors.New("loginId not exist or password error")
+	}
 }
 
-func (u *UserBll) saveUser(ctx *qf.Context) (interface{}, error) {
-    user := &uModel.User{}
-    if err := ctx.Bind(user); err != nil {
-        return nil, err
-    }
+func (b *Bll) saveUser(ctx *qf.Context) (interface{}, error) {
+	user := &uModel.User{}
+	if err := ctx.Bind(user); err != nil {
+		return nil, err
+	}
 
-    if !u.userDal.CheckExists(user.Id) {
-        user.Password = uUtils.ConvertToMD5([]byte(defPassword))
-    }
-    user.BaseModel = u.BuildBaseModel(user)
-    //创建用户
-    return nil, u.userDal.Save(user)
+	if !b.userDal.CheckExists(user.Id) {
+		user.Password = uUtils.ConvertToMD5([]byte(defPassword))
+	}
+	user.BaseModel = b.BuildBaseModel(user)
+	//创建用户
+	return nil, b.userDal.Save(user)
 }
 
-func (u *UserBll) deleteUser(ctx *qf.Context) (interface{}, error) {
-    uId := ctx.GetUIntValue("Id")
-    ret, err := u.userDal.Delete(uId)
-    return ret, err
+func (b *Bll) deleteUser(ctx *qf.Context) (interface{}, error) {
+	uId := ctx.GetId()
+	ret, err := b.userDal.Delete(uId)
+	return ret, err
 }
 
-func (u *UserBll) getUserModel(ctx *qf.Context) (interface{}, error) {
-    var user uModel.User
-    //获取用户角色
-    roleIds, err := u.userRoleDal.GetRolesByUserId(uint64(ctx.UserId))
-    if err != nil {
-        return nil, err
-    }
-    roles, err := u.roleDal.GetRolesByIds(roleIds)
-    if err != nil {
-        return nil, err
-    }
-    err = u.userDal.GetModel(uint64(ctx.UserId), &user)
-    ret := map[string]interface{}{
-        "info":  u.Map(user),
-        "roles": u.Maps(roles),
-    }
+func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
+	var user uModel.User
+	//获取用户角色
+	roleIds, err := b.userRoleDal.GetRolesByUserId(uint64(ctx.UserId))
+	if err != nil {
+		return nil, err
+	}
+	roles, err := b.roleDal.GetRolesByIds(roleIds)
+	if err != nil {
+		return nil, err
+	}
+	err = b.userDal.GetModel(uint64(ctx.UserId), &user)
+	ret := map[string]interface{}{
+		"info":  b.Map(user),
+		"roles": b.Maps(roles),
+	}
 
-    return ret, err
+	return ret, err
 }
 
 //
@@ -101,9 +101,9 @@ func (u *UserBll) getUserModel(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) getAllUsers(ctx *qf.Context) (interface{}, error) {
-    list, err := u.userDal.GetAllUsers()
-    return u.Maps(list), err
+func (b *Bll) getAllUsers(ctx *qf.Context) (interface{}, error) {
+	list, err := b.userDal.GetAllUsers()
+	return b.Maps(list), err
 }
 
 //
@@ -113,9 +113,9 @@ func (u *UserBll) getAllUsers(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) resetPassword(ctx *qf.Context) (interface{}, error) {
-    uId := ctx.GetUIntValue("Id")
-    return nil, u.userDal.SetPassword(uId, uUtils.ConvertToMD5([]byte(defPassword)))
+func (b *Bll) resetPassword(ctx *qf.Context) (interface{}, error) {
+	uId := ctx.GetId()
+	return nil, b.userDal.SetPassword(uId, uUtils.ConvertToMD5([]byte(defPassword)))
 }
 
 //
@@ -125,16 +125,16 @@ func (u *UserBll) resetPassword(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (u *UserBll) changePassword(ctx *qf.Context) (interface{}, error) {
-    var params = struct {
-        OldPassword string
-        NewPassword string
-    }{}
-    if err := ctx.Bind(&params); err != nil {
-        return nil, err
-    }
-    if !u.userDal.CheckOldPassword(uint64(ctx.UserId), params.OldPassword) {
-        return nil, errors.New("old password is incorrect")
-    }
-    return nil, u.userDal.SetPassword(uint64(ctx.UserId), uUtils.ConvertToMD5([]byte(params.NewPassword)))
+func (b *Bll) changePassword(ctx *qf.Context) (interface{}, error) {
+	var params = struct {
+		OldPassword string
+		NewPassword string
+	}{}
+	if err := ctx.Bind(&params); err != nil {
+		return nil, err
+	}
+	if !b.userDal.CheckOldPassword(uint64(ctx.UserId), params.OldPassword) {
+		return nil, errors.New("old password is incorrect")
+	}
+	return nil, b.userDal.SetPassword(uint64(ctx.UserId), uUtils.ConvertToMD5([]byte(params.NewPassword)))
 }
