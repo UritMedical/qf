@@ -56,14 +56,12 @@ func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 
 func (b *Bll) saveUser(ctx *qf.Context) (interface{}, error) {
 	user := &uModel.User{}
-	dict := map[string]interface{}{}
-	if !b.userDal.CheckExists(user.Id) {
-		dict["Password"] = uUtils.ConvertToMD5([]byte(defPassword))
-	}
-	if err := ctx.Bind(user, dict); err != nil {
+	if err := ctx.Bind(user); err != nil {
 		return nil, err
 	}
-
+	if !b.userDal.CheckExists(user.Id) {
+		user.Password = uUtils.ConvertToMD5([]byte(defPassword))
+	}
 	//创建用户
 	return nil, b.userDal.Save(user)
 }

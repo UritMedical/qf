@@ -64,6 +64,10 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 	if err := ctx.Bind(model); err != nil {
 		return nil, err
 	}
+	// 将空字符串作为nil
+	if *model.HisId == "" {
+		model.HisId = nil
+	}
 
 	// 提交，如果HisId重复，则返回失败
 	err := b.infoDal.Save(model)

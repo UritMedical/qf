@@ -17,9 +17,9 @@ type Patient struct {
 
 	//
 	// HisId
-	//  @Description: HIS唯一号，唯一索引，通过院内唯一号快速查找患者信息
+	//  @Description: HIS唯一号，唯一索引
 	//
-	HisId string `gorm:"uniqueIndex"`
+	HisId *string `gorm:"uniqueIndex:null"`
 }
 
 //
