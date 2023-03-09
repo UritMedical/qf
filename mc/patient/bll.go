@@ -9,7 +9,7 @@ type Bll struct {
 	infoDal *InfoDal
 	caseDal *CaseDal
 
-	getDict qf.ApiHandler
+	getUser qf.ApiHandler
 }
 
 func (b *Bll) RegApi(api qf.ApiMap) {
@@ -33,7 +33,7 @@ func (b *Bll) RegMsg(msg qf.MessageMap) {
 }
 
 func (b *Bll) RegRef(ref qf.RefMap) {
-
+	ref.Reg("user", qf.EApiKindGetModel, "", b.getUser)
 }
 
 func (b *Bll) Init() error {
@@ -68,6 +68,8 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 	if *model.HisId == "" {
 		model.HisId = nil
 	}
+
+	//fmt.Println(b.getUser(qf.BuildContext(ctx)))
 
 	// 提交，如果HisId重复，则返回失败
 	err := b.infoDal.Save(model)

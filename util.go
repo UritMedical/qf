@@ -9,14 +9,18 @@ import (
 	"strings"
 )
 
-//
-// BuildContext
-//  @Description: 生成上下位对象
-//  @param value
-//  @return Context
-//
-func BuildContext(value map[string]interface{}) Context {
-	return Context{}
+func BuildContext(ctx Context, input interface{}) Context {
+	nctx := Context{
+		Time:        ctx.Time,
+		UserId:      ctx.UserId,
+		UserName:    ctx.UserName,
+		inputValue:  nil,
+		inputSource: "",
+		idPer:       ctx.idPer,
+		idAllocator: ctx.idAllocator,
+	}
+
+	return nctx
 }
 
 //
