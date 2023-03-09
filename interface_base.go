@@ -150,7 +150,7 @@ func (api ApiMap) Reg(kind EApiKind, router string, handler ApiHandler) {
 	if _, ok := api[kind][router]; ok == false {
 		api[kind][router] = handler
 	} else {
-		panic(fmt.Sprintf("%s:%s already exists", kind, router))
+		panic(fmt.Sprintf("api.reg: %s:%s already exists", kind, router))
 	}
 }
 
@@ -162,16 +162,30 @@ func (d DalMap) Reg(dal IDal, model interface{}) {
 	if _, ok := d[dal]; ok == false {
 		d[dal] = model
 	} else {
-		panic(fmt.Sprintf("dal already exists"))
+		t := reflect.TypeOf(dal)
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
+		panic(fmt.Sprintf("dal.reg: %s/%s already exists", t.PkgPath(), t.Name()))
 	}
 }
 
-type MessageMap map[string]interface{}
+//----------------------------------------------------------------
+
+type MessageMap map[EApiKind]map[string]MessageHandler
 
 type MessageHandler func(ctx *Context) error
 
-func (m *MessageMap) Reg(bll IBll, router string, function MessageHandler) {
-
+func (msg MessageMap) Reg(pkgName string, kind EApiKind, router string, function MessageHandler) {
+	if msg[kind] == nil {
+		msg[kind] = make(map[string]MessageHandler)
+	}
+	key := fmt.Sprintf("%s,%s", pkgName, router)
+	if _, ok := msg[kind][key]; ok == false {
+		msg[kind][key] = function
+	} else {
+		panic(fmt.Sprintf("msg.api: %s:%s already exists", kind, key))
+	}
 }
 
 //----------------------------------------------------------------

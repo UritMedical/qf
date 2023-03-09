@@ -19,13 +19,14 @@ import (
 )
 
 type Service struct {
-	folder      string                // 框架的文件夹路径
-	db          *gorm.DB              // 数据库
-	engine      *gin.Engine           // gin
-	bllList     map[string]IBll       // 所有创建的业务层对象
-	apiHandler  map[string]ApiHandler // 所有注册的业务API函数指针
-	setting     setting               // 框架配置
-	idAllocator iIdAllocator          // id分配器
+	folder      string                    // 框架的文件夹路径
+	db          *gorm.DB                  // 数据库
+	engine      *gin.Engine               // gin
+	bllList     map[string]IBll           // 所有创建的业务层对象
+	apiHandler  map[string]ApiHandler     // 所有注册的业务API函数指针
+	msgHandler  map[string]MessageHandler // 所有消息执行的函数指针
+	setting     setting                   // 框架配置
+	idAllocator iIdAllocator              // id分配器
 }
 
 //
@@ -37,6 +38,7 @@ func NewService() *Service {
 	s := &Service{
 		bllList:    map[string]IBll{},
 		apiHandler: map[string]ApiHandler{},
+		msgHandler: map[string]MessageHandler{},
 		setting:    setting{},
 	}
 	// 默认文件夹路径
@@ -74,6 +76,7 @@ func NewService() *Service {
 	for _, any := range s.setting.WebConfig.Any {
 		s.engine.Any(any)
 	}
+
 	return s
 }
 
@@ -136,6 +139,20 @@ func (s *Service) RegBll(bll IBll, group string) {
 			path = strings.Trim(path, "/")
 			router.Handle(kind.HttpMethod(), path, s.context)
 			s.apiHandler[fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), group, path)] = handler
+		}
+	}
+
+	msg := MessageMap{}
+	bll.RegMsg(msg)
+	for kind, routers := range msg {
+		for relative, handler := range routers {
+			sp := strings.Split(relative, ",")
+			path := sp[0] + "/" + sp[1]
+			if kind == EApiKindGetList {
+				path = sp[0] + "s" + "/" + sp[1]
+			}
+			path = strings.Trim(path, "/")
+			s.msgHandler[fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), group, path)] = handler
 		}
 	}
 
@@ -238,15 +255,25 @@ func (s *Service) context(ctx *gin.Context) {
 		}
 
 		// 执行业务方法
-		rs, err := handler(qfCtx)
-
-		// TODO：记录日志
+		result, err := handler(qfCtx)
 
 		// 返回给前端
 		if err != nil {
 			s.returnError(ctx, err)
 		} else {
-			s.returnOk(ctx, rs)
+			// 判断框架内部业务是否有订阅该消息的
+			if mh, ok := s.msgHandler[url]; ok {
+				go func() {
+					e := mh(qfCtx)
+					if e != nil {
+
+					}
+				}()
+			}
+
+			// TODO：记录日志
+
+			s.returnOk(ctx, result)
 		}
 	}
 }
@@ -283,14 +310,4 @@ func (s *Service) getCors() gin.HandlerFunc {
 		// 处理请求
 		c.Next()
 	}
-}
-
-//
-// BuildContext
-//  @Description: 生成上下位对象
-//  @param value
-//  @return Context
-//
-func BuildContext(value map[string]interface{}) Context {
-	return Context{}
 }

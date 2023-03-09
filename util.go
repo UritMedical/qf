@@ -10,6 +10,16 @@ import (
 )
 
 //
+// BuildContext
+//  @Description: 生成上下位对象
+//  @param value
+//  @return Context
+//
+func BuildContext(value map[string]interface{}) Context {
+	return Context{}
+}
+
+//
 // buildTableName
 //  @Description: 根据结构体，生成对应的数据库表名
 //  @param model 结构体

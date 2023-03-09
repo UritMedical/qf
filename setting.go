@@ -7,11 +7,11 @@ import (
 )
 
 type setting struct {
-	Id         uint       `comment:"框架Id，主服务为0"`
-	Name       string     `comment:"框架名称，单体服务为空"`
-	Port       string     `comment:"服务端口"`
-	WebConfig  webConfig  `comment:"web配置"`
-	GormConfig gormConfig `comment:"gorm配置"`
+	Id         uint        `comment:"框架Id，主服务为0"`
+	Name       string      `comment:"框架名称，用于网络发现，单体服务可为空"`
+	Port       string      `comment:"服务端口"`
+	WebConfig  *webConfig  `comment:"web配置"`
+	GormConfig *gormConfig `comment:"gorm配置"`
 }
 
 type webConfig struct {
@@ -33,6 +33,10 @@ func (s *setting) Load(path string) {
 		s.Port = "80"
 		changed = true
 	}
+	if s.WebConfig == nil {
+		s.WebConfig = &webConfig{}
+		changed = true
+	}
 	if s.WebConfig.Static == nil {
 		s.WebConfig.Static = [][]string{
 			{"/assets", "./res/assets"},
@@ -52,6 +56,10 @@ func (s *setting) Load(path string) {
 	}
 	if s.WebConfig.Any == nil {
 		s.WebConfig.Any = []string{"index.html/*any"}
+		changed = true
+	}
+	if s.GormConfig == nil {
+		s.GormConfig = &gormConfig{}
 		changed = true
 	}
 	// 保存
