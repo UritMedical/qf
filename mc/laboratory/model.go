@@ -7,7 +7,7 @@
 package laboratory
 
 import (
-	"qf"
+	"github.com/Urit-Mediacal/qf"
 )
 
 //

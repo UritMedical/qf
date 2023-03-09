@@ -7,7 +7,7 @@
 package order
 
 import (
-	"qf"
+	"github.com/Urit-Mediacal/qf"
 )
 
 //

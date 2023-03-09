@@ -1,4 +1,4 @@
-module qf
+module github.com/Urit-Mediacal/qf
 
 go 1.17
 

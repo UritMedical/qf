@@ -2,8 +2,8 @@ package qf
 
 import (
 	"bytes"
+	"github.com/Urit-Mediacal/qf/util/io"
 	"github.com/pelletier/go-toml/v2"
-	"qf/util/io"
 )
 
 type setting struct {

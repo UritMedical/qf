@@ -1,7 +1,7 @@
 package patient
 
 import (
-	"qf"
+	"github.com/Urit-Mediacal/qf"
 )
 
 type InfoDal struct {

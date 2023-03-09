@@ -6,7 +6,7 @@
 
 package labItem
 
-import "qf"
+import "github.com/Urit-Mediacal/qf"
 
 type LabItem struct {
 	qf.BaseModel

@@ -1,6 +1,6 @@
 package patient
 
-import "qf"
+import "github.com/Urit-Mediacal/qf"
 
 //
 // Patient

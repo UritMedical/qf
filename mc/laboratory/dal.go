@@ -6,7 +6,7 @@
 
 package laboratory
 
-import "qf"
+import "github.com/Urit-Mediacal/qf"
 
 //
 // LabDal

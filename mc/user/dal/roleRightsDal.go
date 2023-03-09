@@ -1,8 +1,8 @@
 package uDal
 
 import (
-	"qf"
-	"qf/mc/user/uModel"
+	"github.com/Urit-Mediacal/qf"
+	"github.com/Urit-Mediacal/qf/mc/user/uModel"
 )
 
 type RoleRightsDal struct {

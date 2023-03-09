@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	uUtils "github.com/Urit-Mediacal/qf/mc/user/utils"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
 	"os"
-	uUtils "qf/mc/user/utils"
 	"time"
 )
 

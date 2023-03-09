@@ -6,7 +6,7 @@
 
 package order
 
-import "qf"
+import "github.com/Urit-Mediacal/qf"
 
 type ODal struct {
 	qf.BaseDal

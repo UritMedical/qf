@@ -1,6 +1,6 @@
 package dform
 
-import "qf"
+import "github.com/Urit-Mediacal/qf"
 
 //DynamicForm 动态表单
 type DynamicForm struct {
