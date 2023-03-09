@@ -1,14 +1,9 @@
 package uUtils
 
 import (
-	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/md5"
 	"encoding/hex"
-	"io/ioutil"
 	"math/rand"
-	"os"
 	"time"
 )
 
@@ -59,93 +54,4 @@ func RandomString(length int) string {
 	}
 
 	return string(result)
-}
-
-//
-// EncryptAndWriteToFile
-//  @Description: 将字符串加密后写入文件
-//  @param data
-//  @param filename
-//  @param key
-//  @return error
-//
-func EncryptAndWriteToFile(data string, filename string, key, iv []byte) error {
-	// 创建文件
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	plaintext := []byte(data)
-
-	// 创建AES块
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		panic(err)
-	}
-
-	// 对明文进行填充
-	plaintext = pad(plaintext)
-
-	// 创建CBC模式加密器
-	mode := cipher.NewCBCEncrypter(block, iv)
-
-	// 加密明文
-	ciphertext := make([]byte, len(plaintext))
-	mode.CryptBlocks(ciphertext, plaintext)
-
-	// 将加密后的数据写入文件
-	if _, err := file.Write(ciphertext); err != nil {
-		return err
-	}
-	return nil
-}
-
-//
-// DecodeJwtFromFile
-//  @Description: 从文件读取AES加密的内容进行解密
-//  @param fileName
-//  @param key
-//  @param iv
-//  @return string
-//  @return error
-//
-func DecodeJwtFromFile(fileName string, key, iv []byte) (string, error) {
-	data, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		return "", err
-	}
-
-	// 创建AES块
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		panic(err)
-	}
-
-	// 创建CBC模式解密器
-	mode := cipher.NewCBCDecrypter(block, iv)
-
-	// 解密密文
-	decrypted := make([]byte, len(data))
-	mode.CryptBlocks(decrypted, data)
-
-	// 去除填充
-	decrypted = unpad(decrypted)
-
-	return string(decrypted), nil
-}
-
-// 进行PKCS#7填充
-func pad(plaintext []byte) []byte {
-	padding := aes.BlockSize - len(plaintext)%aes.BlockSize
-	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
-	return append(plaintext, padtext...)
-}
-
-// 去除PKCS#7填充
-func unpad(plaintext []byte) []byte {
-	length := len(plaintext)
-	unpadding := int(plaintext[length-1])
-	return plaintext[:(length - unpadding)]
 }

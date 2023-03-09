@@ -2,6 +2,7 @@ package user
 
 import (
 	"qf"
+	"qf/helper"
 	uDal "qf/mc/user/dal"
 	"qf/mc/user/uModel"
 	uUtils "qf/mc/user/utils"
@@ -21,7 +22,6 @@ type Bll struct {
 	rightsApiDal  *uDal.RightsApiDal   //权限-api
 	dptDal        *uDal.DepartmentDal  //部门dal
 	dptUserDal    *uDal.DptUserDal     //部门-用户
-	jwtSecret     []byte               //token密钥
 }
 
 func (b *Bll) RegApi(api qf.ApiMap) {
@@ -30,7 +30,8 @@ func (b *Bll) RegApi(api qf.ApiMap) {
 	b.regRightsApi(api) //注册权限组API
 	b.regDptApi(api)    //注册部门组织API
 
-	api.Reg(qf.EApiKindSave, "jwt/reset", b.resetJwtSecret) //刷新jwt密钥
+	api.Reg(qf.EApiKindSave, "jwt/reset", b.resetJwtSecret)  //刷新jwt密钥
+	api.Reg(qf.EApiKindSave, "parseToken", b.testParseToken) //测试token
 }
 
 func (b *Bll) RegDal(dal qf.DalMap) {
@@ -68,17 +69,7 @@ func (b *Bll) RegRef(ref qf.RefMap) {
 
 func (b *Bll) Init() error {
 	b.initDefUser()
-
-	//初始化token密钥
-	jwt, err := uUtils.DecodeJwtFromFile(JwtSecretFile, []byte(AESKey), []byte(IV))
-	if err != nil || jwt == "" {
-		jwtStr := uUtils.RandomString(32)
-		b.jwtSecret = []byte(jwtStr)
-		//将密钥进行AES加密后存入文件
-		_ = uUtils.EncryptAndWriteToFile(jwtStr, JwtSecretFile, []byte(AESKey), []byte(IV))
-	} else {
-		b.jwtSecret = []byte(jwt)
-	}
+	helper.InitJwtSecret()
 	return nil
 }
 
@@ -123,8 +114,13 @@ func (b *Bll) initDefUser() {
 //
 func (b *Bll) resetJwtSecret(ctx *qf.Context) (interface{}, error) {
 	jwtStr := uUtils.RandomString(32)
-	b.jwtSecret = []byte(jwtStr)
+	helper.JwtSecret = []byte(jwtStr)
 	//将密钥进行AES加密后存入文件
-	err := uUtils.EncryptAndWriteToFile(jwtStr, JwtSecretFile, []byte(AESKey), []byte(IV))
+	err := helper.EncryptAndWriteToFile(jwtStr, helper.JwtSecretFile, []byte(helper.AESKey), []byte(helper.IV))
 	return jwtStr, err
+}
+
+func (b *Bll) testParseToken(ctx *qf.Context) (interface{}, error) {
+	token := ctx.GetStringValue("token")
+	return helper.ParseToken(token)
 }
