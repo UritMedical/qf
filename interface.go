@@ -2,65 +2,174 @@ package qf
 
 import (
 	"gorm.io/gorm"
-	"qf/helper/content"
-	"time"
 )
 
-// ISetBll 公用方法资源初始化接口
-type ISetBll interface {
-	setDB(db *gorm.DB)
-	setContent(adapter IContentAdapter)
-	setSetting(adapter ISettingAdapter)
-	setMessage(adapter IMessageAdapter)
-	setLog(adapter ILogAdapter)
-}
-
-// IBll 主业务接口
+//
+// IBll
+//  @Description: 通用业务接口方法
+//
 type IBll interface {
-	// ISetBll 公共方法配置接口
-	ISetBll
-	// RegApis 注册需要暴露的Api方法
-	RegApis(apis *Apis)
-	// RegMessages 注册需要暴露的消息
-	RegMessages(messages *Messages)
-	// RegReferences 引用其他模块方法的约素及校验
-	RegReferences(references *References)
-	// Init 初始化
-	Init() (err error)
-	// Stop 释放
+	//
+	// RegApi
+	//  @Description: 注册需要暴露的API方法
+	//  @param api api字典
+	//
+	RegApi(api ApiMap)
+
+	//
+	// RegDal
+	//  @Description: 注册需要框架初始化的数据访问层对象
+	//  @param dal 数据层字典
+	//
+	RegDal(dal DalMap)
+
+	//
+	// RegMsg
+	//  @Description: 注册需要接收处理的消息
+	//  @param msg 消息字典
+	//
+	RegMsg(msg MessageMap)
+
+	//
+	// RegRef
+	//  @Description: 注册引用
+	//  @param ref
+	//
+	RegRef(ref RefMap)
+
+	//
+	// Init
+	//  @Description: 业务自己的初始化方法
+	//  @return error
+	//
+	Init() error
+
+	//
+	// Stop
+	//  @Description: 业务自己的资源释放方法
+	//
 	Stop()
+
+	//
+	// iBll
+	//  @Description: 由框架内部实现方法
+	//
+	iBll
 }
 
-// ILogAdapter 日志接口
-type ILogAdapter interface {
-	Debug(title, content string)
-	Info(title, content string)
-	Warn(title, content string)
-	Error(title, content string)
-	Fatal(title, content string)
+// IDal 数据层接口
+type IDal interface {
+	//
+	// DB
+	//  @Description: 返回数据库对象
+	//  @return *gorm.DB
+	//
+	DB() *gorm.DB
+
+	//
+	// Save
+	//  @Description: 执行新增或修改操作
+	//  @param content
+	//  @return error
+	//
+	Save(content interface{}) error
+
+	//
+	// Delete
+	//  @Description: 执行删除操作
+	//  @param id
+	//  @return error
+	//
+	Delete(id uint64) (bool, error)
+
+	//
+	// GetModel
+	//  @Description:
+	//  @param id
+	//  @param dest
+	//  @return error
+	//
+	GetModel(id uint64, dest interface{}) error
+
+	//
+	// GetList
+	//  @Description: 按唯一号区间，获取一组列表
+	//  @param startId 起始编号
+	//  @param maxCount 最大获取数
+	//  @param dest 目标列表
+	//  @return error 返回异常
+	//
+	GetList(startId uint64, maxCount uint, dest interface{}) error
+
+	//
+	// GetCount
+	//  @Description: GetCount
+	//  @param query 查询条件，如：a = ? and b = ?
+	//  @param args 条件对应的值
+	//  @return int64 查询到的记录数
+	//
+	GetCount(query interface{}, args ...interface{}) int64
+
+	//
+	// CheckExists
+	//  @Description:
+	//  @param id
+	//  @return bool
+	//
+	CheckExists(id uint64) bool
+
+	//
+	// iDal
+	//  @Description: 由框架内部实现方法
+	//
+	iDal
 }
 
-// IMessageAdapter 消息接口，用于模块间的消息通信，默认为eventbus方式
-type IMessageAdapter interface {
-	Publish(msgId string, payload interface{}) error // 发布消息
+//
+// iBll
+//  @Description: 框架内部使用的业务接口方法
+//
+type iBll interface {
+	setPkg(pkg string)
+	setName(name string)
+	setGroup(group string)
+	getKey() string
+
+	//
+	// Debug
+	//  @Description: 调试日志输出
+	//  @param content
+	//
+	Debug(content string)
+
+	//
+	// GetConfig
+	//  @Description: 获取配置
+	//  @return map[string]interface{}
+	//
+	GetConfig() map[string]interface{}
+
+	//
+	// SetConfig
+	//  @Description: 写入配置
+	//  @param config
+	//
+	SetConfig(config map[string]interface{})
 }
 
-// IContentAdapter 内容操作接口
-type IContentAdapter interface {
-	Insert(cnt content.Content) (content.Content, error)
-	Update(cnt content.Content) (content.Content, error)
-	Save(cnt content.Content) (content.Content, error)
-	Delete(id uint) error
-	GetModel(id uint) (content.Content, error)
-	GetList(startTime, endTime time.Time) ([]content.Content, error)
+//
+// iDal
+//  @Description: 框架内部使用的数据层接口方法
+//
+type iDal interface {
+	initDB(db *gorm.DB, model interface{})
+	setChild(dal IDal)
 }
 
-// ISettingAdapter 配置类操作接口
-type ISettingAdapter interface {
-	Get(id string) string
-	Set(id string, value string) (bool, error)
-}
-
-type IActionAdapter interface {
-	Call(bllId string, method, relative string, content content.Content) (string, error)
+//
+// iIdAllocator
+//  @Description: Id分配器接口
+//
+type iIdAllocator interface {
+	Next(name string) uint64
 }

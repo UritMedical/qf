@@ -1,12 +1,14 @@
-module qf
+module github.com/Urit-Mediacal/qf
 
 go 1.17
 
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/eclipse/paho.mqtt.golang v1.4.2
 	github.com/fhmq/hmq v1.5.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/kardianos/service v1.2.2
+	github.com/pelletier/go-toml/v2 v2.0.7
 	gorm.io/driver/sqlite v1.4.4
 	gorm.io/gorm v1.24.0
 )
@@ -45,7 +47,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
