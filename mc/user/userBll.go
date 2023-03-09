@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"qf"
+	"qf/helper"
 	"qf/mc/user/uModel"
 	uUtils "qf/mc/user/utils"
 	"strings"
@@ -46,9 +47,10 @@ func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 	params.Password = uUtils.ConvertToMD5([]byte(params.Password))
 	if user, ok := b.userDal.CheckLogin(params.LoginId, params.Password); ok {
 		role, _ := b.userRoleDal.GetUsersByRoleId(user.Id)
-		return generateToken(user.Id, role, b.jwtSecret)
+		return helper.GenerateToken(user.Id, role)
 	} else if params.LoginId == devUser.LoginId && params.Password == devUser.Password {
-		return generateToken(devUser.Id, []uint64{}, b.jwtSecret)
+		//开发者账号
+		return helper.GenerateToken(devUser.Id, []uint64{})
 	} else {
 		return nil, errors.New("loginId not exist or password error")
 	}
