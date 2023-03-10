@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Urit-Mediacal/qf/util/reflectex"
+	"github.com/UritMedical/qf/util/reflectex"
 	"strconv"
 	"time"
 )

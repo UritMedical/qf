@@ -1,9 +1,9 @@
 package uDal
 
 import (
-	"github.com/Urit-Mediacal/qf"
-	"github.com/Urit-Mediacal/qf/mc/user/uModel"
-	uUtils "github.com/Urit-Mediacal/qf/mc/user/utils"
+	"github.com/UritMedical/qf"
+	"github.com/UritMedical/qf/mc/user/uModel"
+	uUtils "github.com/UritMedical/qf/mc/user/utils"
 )
 
 type DptUserDal struct {

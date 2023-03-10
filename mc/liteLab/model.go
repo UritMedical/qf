@@ -7,7 +7,7 @@
 package liteLab
 
 import (
-	"github.com/Urit-Mediacal/qf"
+	"github.com/UritMedical/qf"
 )
 
 //EValueFlag 结果标志枚举

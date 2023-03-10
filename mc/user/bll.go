@@ -1,11 +1,11 @@
 package user
 
 import (
-	"github.com/Urit-Mediacal/qf"
-	"github.com/Urit-Mediacal/qf/helper"
-	uDal "github.com/Urit-Mediacal/qf/mc/user/dal"
-	"github.com/Urit-Mediacal/qf/mc/user/uModel"
-	uUtils "github.com/Urit-Mediacal/qf/mc/user/utils"
+	"github.com/UritMedical/qf"
+	"github.com/UritMedical/qf/helper"
+	uDal "github.com/UritMedical/qf/mc/user/dal"
+	"github.com/UritMedical/qf/mc/user/uModel"
+	uUtils "github.com/UritMedical/qf/mc/user/utils"
 )
 
 //TODO 开发者密码可以配置

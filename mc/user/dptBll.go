@@ -3,8 +3,8 @@ package user
 import (
 	"errors"
 	"fmt"
-	"github.com/Urit-Mediacal/qf"
-	"github.com/Urit-Mediacal/qf/mc/user/uModel"
+	"github.com/UritMedical/qf"
+	"github.com/UritMedical/qf/mc/user/uModel"
 	"sort"
 )
 

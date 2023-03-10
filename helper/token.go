@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	uUtils "github.com/Urit-Mediacal/qf/mc/user/utils"
+	uUtils "github.com/UritMedical/qf/mc/user/utils"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
 	"os"

@@ -18,8 +18,8 @@ _SYNCAPP
 /.vscode
 /BuildBack.bat
 /BuildFront.bat
-/service
-/electron/service
+/Service
+/electron/Service
 /electron/node_modules
 /electron/fcms-electron-win32-ia32
 /simulator/output/log02B5R3.txt
