@@ -6,7 +6,7 @@
 
 package order
 
-import "github.com/Urit-Mediacal/qf"
+import "github.com/UritMedical/qf"
 
 //
 // Order

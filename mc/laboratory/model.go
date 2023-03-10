@@ -7,7 +7,7 @@
 package laboratory
 
 import (
-	"github.com/Urit-Mediacal/qf"
+	"github.com/UritMedical/qf"
 )
 
 //

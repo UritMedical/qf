@@ -1,7 +1,7 @@
 package patient
 
 import (
-	"github.com/Urit-Mediacal/qf"
+	"github.com/UritMedical/qf"
 )
 
 type Bll struct {

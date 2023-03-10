@@ -2,7 +2,7 @@ package launcher
 
 import (
 	"fmt"
-	"github.com/Urit-Mediacal/qf/util/io"
+	"github.com/UritMedical/qf/util/io"
 	"github.com/kardianos/service"
 	"log"
 	"os"

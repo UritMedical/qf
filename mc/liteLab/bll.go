@@ -6,7 +6,7 @@
 
 package liteLab
 
-import "github.com/Urit-Mediacal/qf"
+import "github.com/UritMedical/qf"
 
 type Bll struct {
 	qf.BaseBll

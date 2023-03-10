@@ -1,4 +1,4 @@
-module github.com/Urit-Mediacal/qf
+module github.com/UritMedical/qf
 
 go 1.17
 

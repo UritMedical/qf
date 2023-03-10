@@ -2,7 +2,7 @@ package qf
 
 import (
 	"bytes"
-	"github.com/Urit-Mediacal/qf/util/io"
+	"github.com/UritMedical/qf/util/io"
 	"github.com/pelletier/go-toml/v2"
 )
 
