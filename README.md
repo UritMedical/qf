@@ -4,6 +4,14 @@
 
 # 快速开始
 
+获取包
+
+```go
+go get github.com/UritMedical/qf
+```
+
+快速开始
+
 ```go
 import (
 	"github.com/UritMedical/qf"

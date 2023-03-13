@@ -49,9 +49,8 @@ type BaseModel struct {
 //  @Description: Api上下文参数
 //
 type Context struct {
-	Time     time.Time // 操作时间
-	UserId   uint64    // 操作用户账号
-	UserName string    // 操作用户名字
+	Time      time.Time // 操作时间
+	LoginUser LoginUser // 登陆用户信息
 
 	// input的原始内容字典
 	inputValue  []map[string]interface{}
@@ -62,13 +61,51 @@ type Context struct {
 }
 
 //
+// LoginUser
+//  @Description: 登陆用户信息
+//
+type LoginUser struct {
+	UserId   uint64 // 登陆用户账号
+	UserName string // 登陆用户名字
+	RoleId   uint64 // 所属角色ID
+	RoleName string // 所属角色名称
+	DpId     uint64 // 所属部门ID
+	DpName   string // 所属部门名称
+}
+
+//
+// NewId
+//  @Description: 获取最新Id
+//  @param tableName 表明
+//  @return uint64
+//
+func (ctx *Context) NewId(tableName string) uint64 {
+	return ctx.idAllocator.Next(tableName)
+}
+
+//
 // Bind
 //  @Description: 绑定到新实体对象
 //  @param objectPtr 实体对象指针（必须为指针）
-//  @param joins 需要附加的值（可以是结构体、字典）
+//  @param attachValues 需要附加的值（可以是结构体、字典）
 //  @return error
 //
-func (ctx *Context) Bind(objectPtr interface{}, joins ...interface{}) error {
+func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) error {
+	return ctx.bind(objectPtr, true, attachValues)
+}
+
+//
+// BindWithoutAutoId
+//  @Description: 绑定到新实体对象（不会自动分配新ID）
+//  @param objectPtr 实体对象指针（必须为指针）
+//  @param attachValues 需要附加的值（可以是结构体、字典）
+//  @return error
+//
+func (ctx *Context) BindWithoutAutoId(objectPtr interface{}, attachValues ...interface{}) error {
+	return ctx.bind(objectPtr, false, attachValues)
+}
+
+func (ctx *Context) bind(objectPtr interface{}, autoId bool, attachValues ...interface{}) error {
 	if objectPtr == nil {
 		return errors.New("the object cannot be empty")
 	}
@@ -78,7 +115,7 @@ func (ctx *Context) Bind(objectPtr interface{}, joins ...interface{}) error {
 	}
 
 	// 追加附加内容到字典
-	for _, join := range joins {
+	for _, join := range attachValues {
 		for k, v := range reflectex.StructToMap(join) {
 			for _, vv := range ctx.inputValue {
 				vv[k] = v
@@ -91,7 +128,7 @@ func (ctx *Context) Bind(objectPtr interface{}, joins ...interface{}) error {
 	for i := 0; i < len(ctx.inputValue); i++ {
 		c := ctx.build(ctx.inputValue[i], reflectex.StructToMap(objectPtr))
 		// 如果Id为0，则自动分配信息Id
-		if c.Id == 0 {
+		if autoId == true && c.Id == 0 {
 			c.Id = ctx.idAllocator.Next(table)
 		}
 		cnt = append(cnt, c)
@@ -110,6 +147,9 @@ func (ctx *Context) Bind(objectPtr interface{}, joins ...interface{}) error {
 		nj, _ = json.Marshal(cnt)
 		_ = json.Unmarshal(nj, objectPtr)
 	}
+	// 将用户信息覆盖
+	uj, _ := json.Marshal(ctx.LoginUser)
+	_ = json.Unmarshal(uj, objectPtr)
 	return nil
 }
 

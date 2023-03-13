@@ -143,6 +143,16 @@ func (s *Service) RegBll(bll IBll, group string) {
 		}
 	}
 
+	// 注册数据访问层并初始化
+	dal := DalMap{}
+	bll.RegDal(dal)
+	for d, model := range dal {
+		// 配置数据库给数据层，并初始化表结构
+		d.initDB(s.db, model)
+		d.setChild(d)
+	}
+
+	// 注册消息
 	msg := MessageMap{}
 	bll.RegMsg(msg)
 	for kind, routers := range msg {
@@ -157,14 +167,20 @@ func (s *Service) RegBll(bll IBll, group string) {
 		}
 	}
 
-	// 注册数据访问层并初始化
-	dal := DalMap{}
-	bll.RegDal(dal)
-	for d, model := range dal {
-		// 配置数据库给数据层，并初始化表结构
-		d.initDB(s.db, model)
-		d.setChild(d)
-	}
+	//// 注册其他包引用
+	//ref := RefMap{}
+	//bll.RegRef(ref)
+	//for kind, routers := range ref {
+	//	for relative, handler := range routers {
+	//		sp := strings.Split(relative, ",")
+	//		path := sp[0] + "/" + sp[1]
+	//		if kind == EApiKindGetList {
+	//			path = sp[0] + "s" + "/" + sp[1]
+	//		}
+	//		path = strings.Trim(path, "/")
+	//		s.refHandler[fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), group, path)] = handler
+	//	}
+	//}
 
 	// 加入到业务列表
 	if _, ok := s.bllList[bll.getKey()]; ok == false {
@@ -180,17 +196,15 @@ func (s *Service) RegBll(bll IBll, group string) {
 //  @return error
 //
 func (s *Service) init() error {
-	//// 给所有引用的第三方业务赋值
-	//for _, bll := range s.bllList {
-	//	refs := bll.RefBll()
-	//	for i := 0; i < len(refs); i++ {
-	//		if b, ok := s.bllList[refs[i].getKey()]; ok {
-	//			refs[i] = b
-	//		} else {
-	//			panic("not found")
-	//		}
-	//	}
-	//}
+	// 绑定外包引用到业务API
+	for _, bll := range s.bllList {
+		// 注册其他包引用
+		ref := RefMap{}
+		ref.bllGroup = bll.getGroup()
+		ref.allApis = s.apiHandler
+		bll.RegRef(ref)
+	}
+
 	// 执行业务初始化
 	for _, bll := range s.bllList {
 		err := bll.Init()
@@ -213,8 +227,7 @@ func (s *Service) context(ctx *gin.Context) {
 	if handler, ok := s.apiHandler[url]; ok {
 		qfCtx := &Context{
 			Time:        time.Now().Local(),
-			UserId:      1,
-			UserName:    "暂时写死测试用",
+			LoginUser:   LoginUser{}, // TODO
 			inputValue:  make([]map[string]interface{}, 0),
 			inputSource: "",
 			idAllocator: s.idAllocator,
@@ -313,18 +326,32 @@ func (s *Service) getCors() gin.HandlerFunc {
 	}
 }
 
-func BuildContext(ctx Context, input interface{}) Context {
-	nctx := Context{
+func BuildContext(ctx *Context, input interface{}) *Context {
+	context := &Context{
 		Time:        ctx.Time,
-		UserId:      ctx.UserId,
-		UserName:    ctx.UserName,
+		LoginUser:   ctx.LoginUser,
 		inputValue:  nil,
 		inputSource: "",
 		idPer:       ctx.idPer,
 		idAllocator: ctx.idAllocator,
 	}
-
-	return nctx
+	body, _ := json.Marshal(input)
+	context.inputSource = string(body)
+	if json.Valid(body) {
+		// 如果是json列表
+		if strings.HasPrefix(context.inputSource, "[") &&
+			strings.HasSuffix(context.inputSource, "]") {
+			_ = json.Unmarshal(body, &context.inputValue)
+		}
+		// 如果是json结构
+		if strings.HasPrefix(context.inputSource, "{") &&
+			strings.HasSuffix(context.inputSource, "}") {
+			iv := map[string]interface{}{}
+			_ = json.Unmarshal(body, &iv)
+			context.inputValue = append(context.inputValue, iv)
+		}
+	}
+	return context
 }
 
 //

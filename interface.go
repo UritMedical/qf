@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"reflect"
+	"strings"
 )
 
 //
@@ -12,17 +13,18 @@ import (
 //  @Description: 通用业务接口方法
 //
 type IBll interface {
-	RegApi(api ApiMap)     // 注册需要暴露的API方法
-	RegDal(dal DalMap)     // 注册需要框架初始化的数据访问层对象
-	RegMsg(msg MessageMap) // 注册需要接收处理的消息
-	RegRef(ref RefMap)     // 注册引用
-	Init() error           // 业务自己的初始化方法
-	Stop()                 // 业务自己的资源释放方法
+	RegApi(regApi ApiMap)     // 注册需要暴露的API方法
+	RegDal(regDal DalMap)     // 注册需要框架初始化的数据访问层对象
+	RegMsg(regMsg MessageMap) // 注册需要接收处理的消息
+	RegRef(regRef RefMap)     // 注册引用
+	Init() error              // 业务自己的初始化方法
+	Stop()                    // 业务自己的资源释放方法
 	// 框架内部实现的方法
 	setPkg(pkg string)                       // 1
 	setName(name string)                     // 1
 	setGroup(group string)                   // 1
 	getKey() string                          // 1
+	getGroup() string                        // 1
 	Debug(content string)                    // 1
 	GetConfig() map[string]interface{}       // 1
 	SetConfig(config map[string]interface{}) // 1
@@ -52,6 +54,10 @@ func (bll *BaseBll) setGroup(group string) {
 
 func (bll *BaseBll) getKey() string {
 	return fmt.Sprintf("%s/%s.%s", bll.group, bll.pkg, bll.name)
+}
+
+func (bll *BaseBll) getGroup() string {
+	return bll.group
 }
 
 //
@@ -341,34 +347,64 @@ func (api ApiMap) Reg(kind EApiKind, router string, handler ApiHandler) {
 
 type DalMap map[IDal]interface{}
 
-func (d DalMap) Reg(dal IDal, model interface{}) {
-	if _, ok := d[dal]; ok == false {
-		d[dal] = model
+func (d DalMap) Reg(iDal IDal, model interface{}) {
+	t := reflect.TypeOf(iDal)
+	if t.Kind() != reflect.Ptr {
+		panic(fmt.Sprintf("【RegDal】: %s/%s this model must be of type pointer", t.PkgPath(), t.Name()))
+	}
+	t = t.Elem()
+	v := reflect.ValueOf(iDal)
+	if v.IsNil() {
+		panic(fmt.Sprintf("【RegDal】: %s/%s has not been initialized", t.PkgPath(), t.Name()))
+	}
+	if _, ok := d[iDal]; ok == false {
+		d[iDal] = model
 	} else {
-		t := reflect.TypeOf(dal)
-		if t.Kind() == reflect.Ptr {
-			t = t.Elem()
-		}
-		panic(fmt.Sprintf("dal.reg: %s/%s already exists", t.PkgPath(), t.Name()))
+
+		panic(fmt.Sprintf("【RegDal】: %s/%s already exists", t.PkgPath(), t.Name()))
 	}
 }
 
 type MessageMap map[EApiKind]map[string]MessageHandler
 
-func (msg MessageMap) Reg(pkgName string, kind EApiKind, router string, function MessageHandler) {
+func (msg MessageMap) Reg(pkgName string, kind EApiKind, router string, handler MessageHandler) {
 	if msg[kind] == nil {
 		msg[kind] = make(map[string]MessageHandler)
 	}
 	key := fmt.Sprintf("%s,%s", pkgName, router)
 	if _, ok := msg[kind][key]; ok == false {
-		msg[kind][key] = function
+		msg[kind][key] = handler
 	} else {
-		panic(fmt.Sprintf("msg.api: %s:%s already exists", kind, key))
+		panic(fmt.Sprintf("【RegMsg】: %s:%s already exists", kind, key))
 	}
 }
 
-type RefMap map[EApiKind]map[string]ApiHandler
-
-func (r *RefMap) Reg(pkgName string, kind EApiKind, router string, handler ApiHandler) {
-
+type RefMap struct {
+	bllGroup string
+	allApis  map[string]ApiHandler
 }
+
+func (ref RefMap) Load(pkgName string, kind EApiKind, router string) ApiHandler {
+	path := pkgName + "/" + router
+	if kind == EApiKindGetList {
+		path = pkgName + "s" + "/" + router
+	}
+	path = strings.Trim(path, "/")
+	key := fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), ref.bllGroup, path)
+	if api, ok := ref.allApis[key]; ok {
+		return api
+	}
+	return nil
+}
+
+//func (ref RefMap) Reg(pkgName string, kind EApiKind, router string, handler *ApiHandler) {
+//	path := pkgName + "/" + router
+//	if kind == EApiKindGetList {
+//		path = pkgName + "s" + "/" + router
+//	}
+//	path = strings.Trim(path, "/")
+//	key := fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), ref.bllGroup, path)
+//	if api, ok := ref.allApis[key]; ok {
+//		handler = &api
+//	}
+//}

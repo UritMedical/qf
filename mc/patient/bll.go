@@ -1,6 +1,7 @@
 package patient
 
 import (
+	"fmt"
 	"github.com/UritMedical/qf"
 )
 
@@ -12,28 +13,28 @@ type Bll struct {
 	getUser qf.ApiHandler
 }
 
-func (b *Bll) RegApi(api qf.ApiMap) {
-	api.Reg(qf.EApiKindSave, "", b.SavePatient)      // 保存患者基本信息
-	api.Reg(qf.EApiKindDelete, "", b.DeletePatient)  // 删除患者，包含基本信息和全部病历
-	api.Reg(qf.EApiKindSave, "case", b.SaveCase)     // 保存患者病历信息
-	api.Reg(qf.EApiKindDelete, "case", b.DeleteCase) // 删除单个病历
-	api.Reg(qf.EApiKindGetModel, "", b.GetFull)      // 按唯一号或HIS唯一号获取完整信息（基本信息+病历列表）
-	api.Reg(qf.EApiKindGetList, "", b.GetFullList)   // 按条件获取完整列表
+func (b *Bll) RegApi(regApi qf.ApiMap) {
+	regApi.Reg(qf.EApiKindSave, "", b.SavePatient)      // 保存患者基本信息
+	regApi.Reg(qf.EApiKindDelete, "", b.DeletePatient)  // 删除患者，包含基本信息和全部病历
+	regApi.Reg(qf.EApiKindSave, "case", b.SaveCase)     // 保存患者病历信息
+	regApi.Reg(qf.EApiKindDelete, "case", b.DeleteCase) // 删除单个病历
+	regApi.Reg(qf.EApiKindGetModel, "", b.GetFull)      // 按唯一号或HIS唯一号获取完整信息（基本信息+病历列表）
+	regApi.Reg(qf.EApiKindGetList, "", b.GetFullList)   // 按条件获取完整列表
 }
 
-func (b *Bll) RegDal(dal qf.DalMap) {
+func (b *Bll) RegDal(regDal qf.DalMap) {
 	b.infoDal = &InfoDal{}
 	b.caseDal = &CaseDal{}
-	dal.Reg(b.infoDal, Patient{})
-	dal.Reg(b.caseDal, Case{})
+	regDal.Reg(b.infoDal, Patient{})
+	regDal.Reg(b.caseDal, Case{})
 }
 
-func (b *Bll) RegMsg(msg qf.MessageMap) {
+func (b *Bll) RegMsg(_ qf.MessageMap) {
 
 }
 
-func (b *Bll) RegRef(ref qf.RefMap) {
-	ref.Reg("user", qf.EApiKindGetModel, "", b.getUser)
+func (b *Bll) RegRef(regRef qf.RefMap) {
+	b.getUser = regRef.Load("user", qf.EApiKindGetModel, "")
 }
 
 func (b *Bll) Init() error {
@@ -69,7 +70,7 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 		model.HisId = nil
 	}
 
-	//fmt.Println(b.getUser(qf.BuildContext(ctx)))
+	fmt.Println(b.getUser(qf.BuildContext(ctx, "")))
 
 	// 提交，如果HisId重复，则返回失败
 	err := b.infoDal.Save(model)
