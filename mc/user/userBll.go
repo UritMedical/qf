@@ -77,7 +77,7 @@ func (b *Bll) deleteUser(ctx *qf.Context) (interface{}, error) {
 func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
 	var user uModel.User
 	//获取用户角色
-	roleIds, err := b.userRoleDal.GetRolesByUserId(uint64(ctx.UserId))
+	roleIds, err := b.userRoleDal.GetRolesByUserId(ctx.LoginUser().UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = b.userDal.GetModel(uint64(ctx.UserId), &user)
+	err = b.userDal.GetModel(ctx.LoginUser().UserId, &user)
 	ret := map[string]interface{}{
 		"info":  b.Map(user),
 		"roles": b.Maps(roles),
@@ -133,8 +133,8 @@ func (b *Bll) changePassword(ctx *qf.Context) (interface{}, error) {
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
-	if !b.userDal.CheckOldPassword(uint64(ctx.UserId), params.OldPassword) {
+	if !b.userDal.CheckOldPassword(ctx.LoginUser().UserId, params.OldPassword) {
 		return nil, errors.New("old password is incorrect")
 	}
-	return nil, b.userDal.SetPassword(uint64(ctx.UserId), uUtils.ConvertToMD5([]byte(params.NewPassword)))
+	return nil, b.userDal.SetPassword(ctx.LoginUser().UserId, uUtils.ConvertToMD5([]byte(params.NewPassword)))
 }
