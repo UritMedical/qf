@@ -2,7 +2,8 @@ package user
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/uModel"
+	"github.com/UritMedical/qf/mc/user/model"
+	"github.com/UritMedical/qf/util"
 )
 
 func (b *Bll) regRoleApi(api qf.ApiMap) {
@@ -28,7 +29,7 @@ func (b *Bll) regRoleApi(api qf.ApiMap) {
 //  @return error
 //
 func (b *Bll) saveRole(ctx *qf.Context) (interface{}, error) {
-	role := &uModel.Role{}
+	role := &model.Role{}
 	if err := ctx.Bind(role); err != nil {
 		return nil, err
 	}
@@ -56,9 +57,9 @@ func (b *Bll) deleteRole(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (b *Bll) getAllRoles(ctx *qf.Context) (interface{}, error) {
-	roles := make([]uModel.Role, 0)
+	roles := make([]model.Role, 0)
 	err := b.roleDal.GetList(0, 100, &roles)
-	return b.Maps(roles), err
+	return util.ToMaps(roles), err
 }
 
 //
@@ -108,7 +109,7 @@ func (b *Bll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
 	roleId := ctx.GetId()
 	userIds, _ := b.userRoleDal.GetUsersByRoleId(roleId)
 	users, err := b.userDal.GetUsersByIds(userIds)
-	return b.Maps(users), err
+	return util.ToMaps(users), err
 }
 
 //
@@ -122,5 +123,5 @@ func (b *Bll) getRoleRights(ctx *qf.Context) (interface{}, error) {
 	roleId := ctx.GetId()
 	rightsId, _ := b.roleRightsDal.GetRoleRights(roleId)
 	rights, err := b.rightsDal.GetRightsGroupByIds(rightsId)
-	return b.Maps(rights), err
+	return util.ToMaps(rights), err
 }

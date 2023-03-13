@@ -1,8 +1,8 @@
-package uDal
+package dal
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/uModel"
+	"github.com/UritMedical/qf/mc/user/model"
 )
 
 type RoleRightsDal struct {
@@ -19,15 +19,15 @@ type RoleRightsDal struct {
 func (r RoleRightsDal) SetRoleRights(roleId uint64, rightsIds []uint64) error {
 	tx := r.DB().Begin()
 	//先删除原来的权限
-	if err := tx.Where("RoleId = ?", roleId).Delete(&uModel.RoleRights{}).Error; err != nil {
+	if err := tx.Where("RoleId = ?", roleId).Delete(&model.RoleRights{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	//再将权限添加到数据库
-	list := make([]uModel.RoleRights, 0)
+	list := make([]model.RoleRights, 0)
 	for _, id := range rightsIds {
-		list = append(list, uModel.RoleRights{
+		list = append(list, model.RoleRights{
 			RoleId:   roleId,
 			RightsId: id,
 		})

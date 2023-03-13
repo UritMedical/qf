@@ -14,7 +14,7 @@ import (
 //AESKey 注意：此密钥长度必须为16、32、64，否则生成加密模块时会报错
 const AESKey = "wwuritcomlisurit"
 const IV = "wwwuritcom123456"
-const JwtSecretFile = "jwtSecret" //密钥存储的文件名称
+const JwtSecretFile = "./config/jwtSecret" //密钥存储的文件名称
 
 //token有效期
 const tokenExpireDuration = time.Hour * 24 * 3

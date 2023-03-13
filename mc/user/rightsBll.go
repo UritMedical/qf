@@ -2,7 +2,8 @@ package user
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/uModel"
+	"github.com/UritMedical/qf/mc/user/model"
+	"github.com/UritMedical/qf/util"
 )
 
 func (b *Bll) regRightsApi(api qf.ApiMap) {
@@ -17,7 +18,7 @@ func (b *Bll) regRightsApi(api qf.ApiMap) {
 }
 
 func (b *Bll) saveRightsGroup(ctx *qf.Context) (interface{}, error) {
-	var rg uModel.RightsGroup
+	var rg model.RightsGroup
 	if err := ctx.Bind(&rg); err != nil {
 		return nil, err
 	}
@@ -31,9 +32,9 @@ func (b *Bll) deleteRightsGroup(ctx *qf.Context) (interface{}, error) {
 }
 
 func (b *Bll) getRightsGroupList(ctx *qf.Context) (interface{}, error) {
-	rights := make([]uModel.RightsGroup, 0)
+	rights := make([]model.RightsGroup, 0)
 	err := b.rightsDal.GetList(0, 100, &rights)
-	return b.Maps(rights), err
+	return util.ToMaps(rights), err
 }
 
 //

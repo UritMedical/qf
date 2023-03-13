@@ -3,25 +3,25 @@ package user
 import (
 	"github.com/UritMedical/qf"
 	"github.com/UritMedical/qf/helper"
-	uDal "github.com/UritMedical/qf/mc/user/dal"
-	"github.com/UritMedical/qf/mc/user/uModel"
-	uUtils "github.com/UritMedical/qf/mc/user/utils"
+	"github.com/UritMedical/qf/mc/user/dal"
+	"github.com/UritMedical/qf/mc/user/model"
+	utils "github.com/UritMedical/qf/mc/user/utils"
 )
 
 //TODO 开发者密码可以配置
 const DeveloperId = 202303 //开发者内存Id
-var devUser = uModel.User{BaseModel: qf.BaseModel{Id: DeveloperId}, LoginId: "developer", Password: uUtils.ConvertToMD5([]byte("lisurit"))}
+var devUser = model.User{BaseModel: qf.BaseModel{Id: DeveloperId}, LoginId: "developer", Password: utils.ConvertToMD5([]byte("lisurit"))}
 
 type Bll struct {
 	qf.BaseBll
-	userDal       *uDal.UserDal        //用户dal
-	userRoleDal   *uDal.UserRoleDal    //用户-角色
-	roleDal       *uDal.RoleDal        //角色dal
-	roleRightsDal *uDal.RoleRightsDal  //角色-权限
-	rightsDal     *uDal.RightsGroupDal //权限dal
-	rightsApiDal  *uDal.RightsApiDal   //权限-api
-	dptDal        *uDal.DepartmentDal  //部门dal
-	dptUserDal    *uDal.DptUserDal     //部门-用户
+	userDal       *dal.UserDal        //用户dal
+	userRoleDal   *dal.UserRoleDal    //用户-角色
+	roleDal       *dal.RoleDal        //角色dal
+	roleRightsDal *dal.RoleRightsDal  //角色-权限
+	rightsDal     *dal.RightsGroupDal //权限dal
+	rightsApiDal  *dal.RightsApiDal   //权限-api
+	dptDal        *dal.DepartmentDal  //部门dal
+	dptUserDal    *dal.DptUserDal     //部门-用户
 }
 
 func (b *Bll) RegApi(api qf.ApiMap) {
@@ -34,30 +34,30 @@ func (b *Bll) RegApi(api qf.ApiMap) {
 	api.Reg(qf.EApiKindSave, "parseToken", b.testParseToken) //测试token
 }
 
-func (b *Bll) RegDal(dal qf.DalMap) {
-	b.userDal = &uDal.UserDal{}
-	dal.Reg(b.userDal, uModel.User{})
+func (b *Bll) RegDal(regDal qf.DalMap) {
+	b.userDal = &dal.UserDal{}
+	regDal.Reg(b.userDal, model.User{})
 
-	b.userRoleDal = &uDal.UserRoleDal{}
-	dal.Reg(b.userRoleDal, uModel.UserRole{})
+	b.userRoleDal = &dal.UserRoleDal{}
+	regDal.Reg(b.userRoleDal, model.UserRole{})
 
-	b.roleDal = &uDal.RoleDal{}
-	dal.Reg(b.roleDal, uModel.Role{})
+	b.roleDal = &dal.RoleDal{}
+	regDal.Reg(b.roleDal, model.Role{})
 
-	b.roleRightsDal = &uDal.RoleRightsDal{}
-	dal.Reg(b.roleRightsDal, uModel.RoleRights{})
+	b.roleRightsDal = &dal.RoleRightsDal{}
+	regDal.Reg(b.roleRightsDal, model.RoleRights{})
 
-	b.rightsDal = &uDal.RightsGroupDal{}
-	dal.Reg(b.rightsDal, uModel.RightsGroup{})
+	b.rightsDal = &dal.RightsGroupDal{}
+	regDal.Reg(b.rightsDal, model.RightsGroup{})
 
-	b.rightsApiDal = &uDal.RightsApiDal{}
-	dal.Reg(b.rightsApiDal, uModel.RightsApi{})
+	b.rightsApiDal = &dal.RightsApiDal{}
+	regDal.Reg(b.rightsApiDal, model.RightsApi{})
 
-	b.dptDal = &uDal.DepartmentDal{}
-	dal.Reg(b.dptDal, uModel.Department{})
+	b.dptDal = &dal.DepartmentDal{}
+	regDal.Reg(b.dptDal, model.Department{})
 
-	b.dptUserDal = &uDal.DptUserDal{}
-	dal.Reg(b.dptUserDal, uModel.DepartUser{})
+	b.dptUserDal = &dal.DptUserDal{}
+	regDal.Reg(b.dptUserDal, model.DepartUser{})
 }
 
 func (b *Bll) RegMsg(msg qf.MessageMap) {
@@ -83,20 +83,20 @@ func (b *Bll) Stop() {
 //
 func (b *Bll) initDefUser() {
 	//创建admin,developer账号
-	list := make([]uModel.User, 0)
+	list := make([]model.User, 0)
 	err := b.userDal.GetList(0, 10, &list)
 	if err != nil {
 		panic("can't create default user")
 	}
 	const adminId = 1
 	if len(list) == 0 {
-		_ = b.userDal.Save(&uModel.User{
+		_ = b.userDal.Save(&model.User{
 			BaseModel: qf.BaseModel{Id: adminId, FullInfo: "{\"LoginId\":\"admin\",\"Name\":\"Admin\"}"},
 			LoginId:   "admin",
-			Password:  uUtils.ConvertToMD5([]byte("admin123"))})
+			Password:  utils.ConvertToMD5([]byte("admin123"))})
 
 		//创建默认角色
-		_ = b.roleDal.Save(&uModel.Role{BaseModel: qf.BaseModel{Id: adminId, FullInfo: "{\"Name\":\"administrator\"}"}, Name: "administrator"})
+		_ = b.roleDal.Save(&model.Role{BaseModel: qf.BaseModel{Id: adminId, FullInfo: "{\"Name\":\"administrator\"}"}, Name: "administrator"})
 
 		//分配角色
 		_ = b.userRoleDal.SetRoleUsers(adminId, []uint64{adminId}) //admin 分配 administrator角色
@@ -113,7 +113,7 @@ func (b *Bll) initDefUser() {
 //  @return error
 //
 func (b *Bll) resetJwtSecret(ctx *qf.Context) (interface{}, error) {
-	jwtStr := uUtils.RandomString(32)
+	jwtStr := utils.RandomString(32)
 	helper.JwtSecret = []byte(jwtStr)
 	//将密钥进行AES加密后存入文件
 	err := helper.EncryptAndWriteToFile(jwtStr, helper.JwtSecretFile, []byte(helper.AESKey), []byte(helper.IV))

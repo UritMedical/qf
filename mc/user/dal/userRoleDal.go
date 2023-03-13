@@ -1,8 +1,8 @@
-package uDal
+package dal
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/uModel"
+	"github.com/UritMedical/qf/mc/user/model"
 	uUtils "github.com/UritMedical/qf/mc/user/utils"
 )
 
@@ -28,9 +28,9 @@ func (u *UserRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) error {
 	tx := u.DB().Begin()
 	//新增关系
 	if len(newUsers) > 0 {
-		addList := make([]uModel.UserRole, 0)
+		addList := make([]model.UserRole, 0)
 		for _, id := range newUsers {
-			addList = append(addList, uModel.UserRole{
+			addList = append(addList, model.UserRole{
 				RoleId: roleId,
 				UserId: id,
 			})
@@ -42,7 +42,7 @@ func (u *UserRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) error {
 	}
 
 	//删除关系
-	if err := tx.Where("RoleId = ? and UserId IN (?)", roleId, removeUsers).Delete(uModel.UserRole{}).Error; err != nil {
+	if err := tx.Where("RoleId = ? and UserId IN (?)", roleId, removeUsers).Delete(model.UserRole{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}

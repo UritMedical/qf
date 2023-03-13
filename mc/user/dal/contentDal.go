@@ -1,8 +1,8 @@
-package uDal
+package dal
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/uModel"
+	"github.com/UritMedical/qf/mc/user/model"
 )
 
 // DepartmentDal
@@ -19,8 +19,8 @@ type DepartmentDal struct {
 //  @return []uModel.Department
 //  @return error
 //
-func (d DepartmentDal) GetDptsByIds(dptIds []uint64) ([]uModel.Department, error) {
-	list := make([]uModel.Department, 0)
+func (d DepartmentDal) GetDptsByIds(dptIds []uint64) ([]model.Department, error) {
+	list := make([]model.Department, 0)
 	err := d.DB().Where("Id IN (?)", dptIds).Find(&list).Error
 	return list, err
 }
@@ -39,8 +39,8 @@ type RightsGroupDal struct {
 //  @return []uModel.RightsGroup
 //  @return error
 //
-func (r RightsGroupDal) GetRightsGroupByIds(ids []uint64) ([]uModel.RightsGroup, error) {
-	list := make([]uModel.RightsGroup, 0)
+func (r RightsGroupDal) GetRightsGroupByIds(ids []uint64) ([]model.RightsGroup, error) {
+	list := make([]model.RightsGroup, 0)
 	err := r.DB().Where("Id IN (?)", ids).Find(&list).Error
 	return list, err
 }
@@ -59,8 +59,8 @@ type RoleDal struct {
 //  @return []uModel.Role
 //  @return error
 //
-func (role RoleDal) GetRolesByIds(ids []uint64) ([]uModel.Role, error) {
-	list := make([]uModel.Role, 0)
+func (role RoleDal) GetRolesByIds(ids []uint64) ([]model.Role, error) {
+	list := make([]model.Role, 0)
 	err := role.DB().Where("Id IN (?)", ids).Find(&list).Error
 	return list, err
 }

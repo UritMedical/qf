@@ -1,8 +1,8 @@
-package uDal
+package dal
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/uModel"
+	"github.com/UritMedical/qf/mc/user/model"
 )
 
 type RightsApiDal struct {
@@ -19,14 +19,14 @@ type RightsApiDal struct {
 func (r RightsApiDal) SetRightsApis(rightsId uint64, apiKeys []string) error {
 	tx := r.DB().Begin()
 	//先删除此权限组所有的API
-	if err := tx.Where("RightsId = ?", rightsId).Delete(&uModel.RightsApi{}).Error; err != nil {
+	if err := tx.Where("RightsId = ?", rightsId).Delete(&model.RightsApi{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	apis := make([]uModel.RightsApi, 0)
+	apis := make([]model.RightsApi, 0)
 	for _, key := range apiKeys {
-		apis = append(apis, uModel.RightsApi{
+		apis = append(apis, model.RightsApi{
 			RightsId: rightsId,
 			ApiId:    key,
 		})

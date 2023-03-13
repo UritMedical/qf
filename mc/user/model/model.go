@@ -1,4 +1,4 @@
-package uModel
+package model
 
 import "github.com/UritMedical/qf"
 

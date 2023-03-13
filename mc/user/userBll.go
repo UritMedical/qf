@@ -4,8 +4,9 @@ import (
 	"errors"
 	"github.com/UritMedical/qf"
 	"github.com/UritMedical/qf/helper"
-	"github.com/UritMedical/qf/mc/user/uModel"
+	"github.com/UritMedical/qf/mc/user/model"
 	uUtils "github.com/UritMedical/qf/mc/user/utils"
+	"github.com/UritMedical/qf/util"
 	"strings"
 )
 
@@ -57,7 +58,7 @@ func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 }
 
 func (b *Bll) saveUser(ctx *qf.Context) (interface{}, error) {
-	user := &uModel.User{}
+	user := &model.User{}
 	if err := ctx.Bind(user); err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ func (b *Bll) deleteUser(ctx *qf.Context) (interface{}, error) {
 }
 
 func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
-	var user uModel.User
+	var user model.User
 	//获取用户角色
 	roleIds, err := b.userRoleDal.GetRolesByUserId(ctx.LoginUser().UserId)
 	if err != nil {
@@ -87,8 +88,8 @@ func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
 	}
 	err = b.userDal.GetModel(ctx.LoginUser().UserId, &user)
 	ret := map[string]interface{}{
-		"info":  b.Map(user),
-		"roles": b.Maps(roles),
+		"info":  util.ToMaps(user),
+		"roles": util.ToMaps(roles),
 	}
 
 	return ret, err
@@ -103,7 +104,7 @@ func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
 //
 func (b *Bll) getAllUsers(ctx *qf.Context) (interface{}, error) {
 	list, err := b.userDal.GetAllUsers()
-	return b.Maps(list), err
+	return util.ToMaps(list), err
 }
 
 //
