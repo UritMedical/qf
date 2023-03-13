@@ -131,14 +131,6 @@ func (ctx *Context) bind(objectPtr interface{}, autoId bool, attachValues ...int
 		return errors.New("the object must be pointer")
 	}
 
-	//// 追加附加内容到字典
-	//for _, join := range attachValues {
-	//	for k, v := range reflectex.StructToMap(join) {
-	//		for _, vv := range ctx.inputValue {
-	//			vv[k] = v
-	//		}
-	//	}
-	//}
 	// 然后根据类型，将字典写入到对象或列表中
 	table := buildTableName(objectPtr)
 	cnt := make([]BaseModel, 0)

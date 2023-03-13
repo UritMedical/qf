@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/UritMedical/qf/helper/config"
 	"github.com/UritMedical/qf/helper/id"
 	"github.com/UritMedical/qf/util/io"
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,6 @@ import (
 	"gorm.io/gorm/schema"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -28,6 +28,7 @@ type Service struct {
 	msgHandler  map[string]MessageHandler // 所有消息执行的函数指针
 	setting     setting                   // 框架配置
 	idAllocator iIdAllocator              // id分配器
+	config      iConfig                   // 配置文件接口
 }
 
 //
@@ -45,7 +46,7 @@ func newService() *Service {
 	// 默认文件夹路径
 	s.folder = "."
 	// 加载配置
-	s.setting.Load(fmt.Sprintf("%s/config.toml", s.folder))
+	s.setting.Load(fmt.Sprintf("%s/config/config.toml", s.folder))
 	// 创建数据库
 	dbDir := io.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
 	gc := gorm.Config{
@@ -64,6 +65,7 @@ func newService() *Service {
 	s.db = db
 	// 初始化Id分配器
 	s.idAllocator = id.NewIdAllocatorByDB(s.setting.Id, 1000, db)
+	s.config = config.NewConfigByDB(db)
 	// 创建Gin服务
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
@@ -126,6 +128,7 @@ func (s *Service) RegBll(bll IBll, group string) {
 	bll.setPkg(pkg)
 	bll.setName(name)
 	bll.setGroup(group)
+	bll.setIConfig(s.config)
 
 	// 注册API和路由
 	api := ApiMap{}
@@ -365,7 +368,11 @@ func buildTableName(model interface{}) string {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	pName := strings.ToLower(filepath.Base(t.PkgPath()))
+	sp := strings.Split(t.PkgPath(), "/")
+	pName := strings.ToLower(sp[len(sp)-1])
+	if pName == "model" && len(sp) > 2 {
+		pName = strings.ToLower(sp[len(sp)-2])
+	}
 	bName := strings.ToLower(t.Name())
 	tName := fmt.Sprintf("%s_%s", pName, bName)
 	if pName == bName {

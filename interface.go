@@ -1,7 +1,6 @@
 package qf
 
 import (
-	"encoding/json"
 	"fmt"
 	"gorm.io/gorm"
 	"reflect"
@@ -20,14 +19,15 @@ type IBll interface {
 	Init() error              // 业务自己的初始化方法
 	Stop()                    // 业务自己的资源释放方法
 	// 框架内部实现的方法
-	setPkg(pkg string)                       // 1
-	setName(name string)                     // 1
-	setGroup(group string)                   // 1
-	getKey() string                          // 1
-	getGroup() string                        // 1
-	Debug(content string)                    // 1
-	GetConfig() map[string]interface{}       // 1
-	SetConfig(config map[string]interface{}) // 1
+	setPkg(pkg string)                                    // 1
+	setName(name string)                                  // 1
+	setGroup(group string)                                // 1
+	setIConfig(config iConfig)                            // 1
+	getKey() string                                       // 1
+	getGroup() string                                     // 1
+	Debug(content string)                                 // 1
+	GetConfig() map[string]interface{}                    // 1
+	SetConfig(value map[string]interface{}) (bool, error) // 1
 }
 
 //
@@ -35,9 +35,10 @@ type IBll interface {
 //  @Description: 提供业务基础通用方法
 //
 type BaseBll struct {
-	pkg   string
-	name  string
-	group string
+	pkg    string
+	name   string
+	group  string
+	config iConfig
 }
 
 func (bll *BaseBll) setPkg(pkg string) {
@@ -50,6 +51,10 @@ func (bll *BaseBll) setName(name string) {
 
 func (bll *BaseBll) setGroup(group string) {
 	bll.group = group
+}
+
+func (bll *BaseBll) setIConfig(config iConfig) {
+	bll.config = config
 }
 
 func (bll *BaseBll) getKey() string {
@@ -71,86 +76,22 @@ func (bll *BaseBll) Debug(info string) {
 
 //
 // GetConfig
-//  @Description: 获取配置
+//  @Description:
 //  @return map[string]interface{}
 //
 func (bll *BaseBll) GetConfig() map[string]interface{} {
-	return nil
+	return bll.config.GetConfig(bll.getKey())
 }
 
 //
 // SetConfig
-//  @Description: 保存配置
-//  @param config
+//  @Description:
+//  @param value
+//  @return bool
+//  @return error
 //
-func (bll *BaseBll) SetConfig(config map[string]interface{}) {
-
-}
-
-//
-// Map
-//  @Description: 将包含内容的结构体转为字典结构
-//  @param model 内容结构
-//  @return map[string]interface{} 字典
-//
-func (bll *BaseBll) Map(model interface{}) map[string]interface{} {
-	// 先转一次json
-	tj, _ := json.Marshal(model)
-	// 然后在反转到内容对象
-	cnt := BaseModel{}
-	_ = json.Unmarshal(tj, &cnt)
-
-	// 生成字典
-	final := bll.join(cnt.FullInfo, model)
-	// 补齐字段的值
-	final["Id"] = cnt.Id
-
-	return final
-}
-
-//
-// Maps
-//  @Description: 将内容列表转为字典列表
-//  @param list 内容结构列表
-//  @return []map[string]interface{} 字典列表
-//
-func (bll *BaseBll) Maps(list interface{}) []map[string]interface{} {
-	values := reflect.ValueOf(list)
-	if values.Kind() != reflect.Slice {
-		panic(fmt.Errorf("list must be slice"))
-	}
-	finals := make([]map[string]interface{}, values.Len())
-	for i := 0; i < values.Len(); i++ {
-		finals[i] = bll.Map(values.Index(i).Interface())
-	}
-	return finals
-}
-
-// 将完整内容Json和对应的实体，合并为一个字典对象
-func (bll *BaseBll) join(info string, model interface{}) map[string]interface{} {
-	data := map[string]interface{}{}
-
-	// 将内容的信息写入到字典中
-	_ = json.Unmarshal([]byte(info), &data)
-
-	// 反射对象，并将其他字段附加到字典
-	value := reflect.ValueOf(model)
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
-	}
-	for i := 0; i < value.NumField(); i++ {
-		field := value.Field(i)
-		// 通过原始内容
-		if field.Kind() == reflect.Struct && field.Type().Name() == "BaseModel" {
-			continue
-		}
-		tag := value.Type().Field(i).Tag.Get("json")
-		if tag != "-" {
-			data[value.Type().Field(i).Name] = field.Interface()
-		}
-	}
-
-	return data
+func (bll *BaseBll) SetConfig(value map[string]interface{}) (bool, error) {
+	return bll.config.SetConfig(bll.getKey(), value)
 }
 
 //
@@ -325,6 +266,15 @@ type iIdAllocator interface {
 	Next(name string) uint64
 }
 
+//
+// iConfig
+//  @Description: 业务配置文件接口
+//
+type iConfig interface {
+	GetConfig(name string) map[string]interface{}
+	SetConfig(name string, value map[string]interface{}) (bool, error)
+}
+
 // ApiHandler API指针
 type ApiHandler func(ctx *Context) (interface{}, error)
 
@@ -396,15 +346,3 @@ func (ref RefMap) Load(pkgName string, kind EApiKind, router string) ApiHandler 
 	}
 	return nil
 }
-
-//func (ref RefMap) Reg(pkgName string, kind EApiKind, router string, handler *ApiHandler) {
-//	path := pkgName + "/" + router
-//	if kind == EApiKindGetList {
-//		path = pkgName + "s" + "/" + router
-//	}
-//	path = strings.Trim(path, "/")
-//	key := fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), ref.bllGroup, path)
-//	if api, ok := ref.allApis[key]; ok {
-//		handler = &api
-//	}
-//}

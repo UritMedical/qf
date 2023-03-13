@@ -2,6 +2,7 @@ package patient
 
 import (
 	"github.com/UritMedical/qf"
+	"github.com/UritMedical/qf/util"
 )
 
 type Bll struct {
@@ -167,8 +168,8 @@ func (b *Bll) GetFull(ctx *qf.Context) (interface{}, error) {
 		Patient interface{}
 		Cases   interface{}
 	}{
-		Patient: b.Map(patInfo),
-		Cases:   b.Maps(caseList),
+		Patient: util.ToMap(patInfo),
+		Cases:   util.ToMaps(caseList),
 	}
 	return rt, nil
 }
@@ -214,8 +215,8 @@ func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, error) {
 				Patient interface{}
 				Cases   interface{}
 			}{
-				Patient: b.Map(p),
-				Cases:   b.Maps(caseList),
+				Patient: util.ToMap(p),
+				Cases:   util.ToMaps(caseList),
 			})
 		}
 	} else {
@@ -230,8 +231,8 @@ func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, error) {
 				Patient interface{}
 				Cases   interface{}
 			}{
-				Patient: b.Map(p),
-				Cases:   b.Maps(caseList),
+				Patient: util.ToMap(p),
+				Cases:   util.ToMaps(caseList),
 			})
 		}
 	}
