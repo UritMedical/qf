@@ -49,9 +49,8 @@ type BaseModel struct {
 //  @Description: Api上下文参数
 //
 type Context struct {
-	Time      time.Time // 操作时间
-	LoginUser LoginUser // 登陆用户信息
-
+	time      time.Time // 操作时间
+	loginUser LoginUser // 登陆用户信息
 	// input的原始内容字典
 	inputValue  []map[string]interface{}
 	inputSource string
@@ -65,12 +64,11 @@ type Context struct {
 //  @Description: 登陆用户信息
 //
 type LoginUser struct {
-	UserId   uint64 // 登陆用户账号
-	UserName string // 登陆用户名字
-	RoleId   uint64 // 所属角色ID
-	RoleName string // 所属角色名称
-	DpId     uint64 // 所属部门ID
-	DpName   string // 所属部门名称
+	UserId     uint64 // 登陆用户账号
+	UserName   string // 登陆用户名字
+	Department map[uint64]struct {
+		Name string
+	} // 所属部门列表
 }
 
 //
@@ -81,6 +79,25 @@ type LoginUser struct {
 //
 func (ctx *Context) NewId(tableName string) uint64 {
 	return ctx.idAllocator.Next(tableName)
+}
+
+//
+// LoginUser
+//  @Description: 获取登陆用户信息
+//  @return LoginUser
+//
+func (ctx *Context) LoginUser() LoginUser {
+	user := LoginUser{
+		UserId:     ctx.loginUser.UserId,
+		UserName:   ctx.loginUser.UserName,
+		Department: map[uint64]struct{ Name string }{},
+	}
+	for id, info := range ctx.loginUser.Department {
+		user.Department[id] = struct{ Name string }{
+			Name: info.Name,
+		}
+	}
+	return user
 }
 
 //
@@ -114,14 +131,14 @@ func (ctx *Context) bind(objectPtr interface{}, autoId bool, attachValues ...int
 		return errors.New("the object must be pointer")
 	}
 
-	// 追加附加内容到字典
-	for _, join := range attachValues {
-		for k, v := range reflectex.StructToMap(join) {
-			for _, vv := range ctx.inputValue {
-				vv[k] = v
-			}
-		}
-	}
+	//// 追加附加内容到字典
+	//for _, join := range attachValues {
+	//	for k, v := range reflectex.StructToMap(join) {
+	//		for _, vv := range ctx.inputValue {
+	//			vv[k] = v
+	//		}
+	//	}
+	//}
 	// 然后根据类型，将字典写入到对象或列表中
 	table := buildTableName(objectPtr)
 	cnt := make([]BaseModel, 0)
@@ -171,7 +188,7 @@ func (ctx *Context) build(source map[string]interface{}, exclude map[string]inte
 	cj, _ := json.Marshal(finals)
 	return BaseModel{
 		Id:       nid,
-		LastTime: ctx.Time,
+		LastTime: ctx.time,
 		FullInfo: string(cj),
 	}
 }

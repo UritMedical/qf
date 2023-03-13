@@ -226,8 +226,8 @@ func (s *Service) context(ctx *gin.Context) {
 	url := fmt.Sprintf("%s:%s", ctx.Request.Method, strings.TrimLeft(ctx.FullPath(), "/"))
 	if handler, ok := s.apiHandler[url]; ok {
 		qfCtx := &Context{
-			Time:        time.Now().Local(),
-			LoginUser:   LoginUser{}, // TODO
+			time:        time.Now().Local(),
+			loginUser:   LoginUser{}, // TODO
 			inputValue:  make([]map[string]interface{}, 0),
 			inputSource: "",
 			idAllocator: s.idAllocator,
@@ -328,8 +328,8 @@ func (s *Service) getCors() gin.HandlerFunc {
 
 func BuildContext(ctx *Context, input interface{}) *Context {
 	context := &Context{
-		Time:        ctx.Time,
-		LoginUser:   ctx.LoginUser,
+		time:        ctx.time,
+		loginUser:   ctx.loginUser,
 		inputValue:  nil,
 		inputSource: "",
 		idPer:       ctx.idPer,

@@ -1,7 +1,6 @@
 package patient
 
 import (
-	"fmt"
 	"github.com/UritMedical/qf"
 )
 
@@ -69,8 +68,6 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 	if *model.HisId == "" {
 		model.HisId = nil
 	}
-
-	fmt.Println(b.getUser(qf.BuildContext(ctx, "")))
 
 	// 提交，如果HisId重复，则返回失败
 	err := b.infoDal.Save(model)
