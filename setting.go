@@ -10,19 +10,20 @@ type setting struct {
 	Id         uint        `comment:"框架Id，主服务为0"`
 	Name       string      `comment:"框架名称，用于网络发现，单体服务可为空"`
 	Port       string      `comment:"服务端口"`
-	UrlGroup   string      `comment:"路由的默认所在组"`
 	WebConfig  *webConfig  `comment:"web配置"`
 	GormConfig *gormConfig `comment:"gorm配置"`
 }
 
 type webConfig struct {
+	DefGroup   string     `comment:"路由的默认所在组"`
 	Static     [][]string `toml:",multiline" comment:"静态资源配置，格式为：相对路径,root路径"`
 	StaticFile [][]string `toml:",multiline" comment:"静态资源配置，格式为：相对路径,文件路径"`
 	Any        []string   `toml:",multiline" comment:"特殊路由注册"`
 }
 
 type gormConfig struct {
-	OpenLog byte `comment:"是否输出脚本日志 0否 1是"`
+	DBName  string `comment:"默认数据库名称"`
+	OpenLog byte   `comment:"是否输出脚本日志 0否 1是"`
 }
 
 func (s *setting) Load(path string) {
@@ -34,12 +35,12 @@ func (s *setting) Load(path string) {
 		s.Port = "80"
 		changed = true
 	}
-	if s.UrlGroup == "" {
-		s.UrlGroup = "api"
-		changed = true
-	}
 	if s.WebConfig == nil {
 		s.WebConfig = &webConfig{}
+		changed = true
+	}
+	if s.WebConfig.DefGroup == "" {
+		s.WebConfig.DefGroup = "api"
 		changed = true
 	}
 	if s.WebConfig.Static == nil {
@@ -65,6 +66,10 @@ func (s *setting) Load(path string) {
 	}
 	if s.GormConfig == nil {
 		s.GormConfig = &gormConfig{}
+		changed = true
+	}
+	if s.GormConfig.DBName == "" {
+		s.GormConfig.DBName = "data"
 		changed = true
 	}
 	// 保存

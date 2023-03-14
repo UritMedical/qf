@@ -163,11 +163,15 @@ func (ctx *Context) build(source map[string]interface{}, exclude map[string]inte
 			finals[k] = v
 		}
 	}
-	cj, _ := json.Marshal(finals)
+	info := ""
+	if len(finals) > 0 {
+		cj, _ := json.Marshal(finals)
+		info = string(cj)
+	}
 	return BaseModel{
 		Id:       nid,
 		LastTime: ctx.time,
-		FullInfo: string(cj),
+		FullInfo: info,
 	}
 }
 

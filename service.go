@@ -58,7 +58,7 @@ func newService() *Service {
 	if s.setting.GormConfig.OpenLog == 1 {
 		gc.Logger = logger.Default.LogMode(logger.Info)
 	}
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/data.db", dbDir)), &gc)
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/%s.db", dbDir, s.setting.GormConfig.DBName)), &gc)
 	if err != nil {
 		return nil
 	}
@@ -128,7 +128,7 @@ func (s *Service) stop() {
 func (s *Service) RegBll(bll IBll, group string) {
 	group = strings.Trim(group, "/")
 	// 初始化业务对象
-	bll.set(bll, s.setting.UrlGroup, group, s.config)
+	bll.set(bll, s.setting.WebConfig.DefGroup, group, s.config)
 	// 加入到业务列表
 	if _, ok := s.bllList[bll.key()]; ok == false {
 		s.bllList[bll.key()] = bll

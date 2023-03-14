@@ -77,7 +77,11 @@ func recursionStructToMap(output map[string]interface{}, t reflect.Type, v refle
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
 		if field.Kind() == reflect.Struct {
-			recursionStructToMap(output, field.Type(), field)
+			if field.String() == "<time.Time Value>" {
+				output[t.Field(i).Name] = field.Interface()
+			} else {
+				recursionStructToMap(output, field.Type(), field)
+			}
 		} else if field.CanInterface() {
 			output[t.Field(i).Name] = field.Interface()
 		}
