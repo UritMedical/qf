@@ -14,21 +14,21 @@ var devUser = model.User{BaseModel: qf.BaseModel{Id: DeveloperId}, LoginId: "dev
 
 type Bll struct {
 	qf.BaseBll
-	userDal       *dal.UserDal        //用户dal
-	userRoleDal   *dal.UserRoleDal    //用户-角色
-	roleDal       *dal.RoleDal        //角色dal
-	roleRightsDal *dal.RoleRightsDal  //角色-权限
-	rightsDal     *dal.RightsGroupDal //权限dal
-	rightsApiDal  *dal.RightsApiDal   //权限-api
-	dptDal        *dal.DepartmentDal  //部门dal
-	dptUserDal    *dal.DptUserDal     //部门-用户
+	userDal           *dal.UserDal           //用户dal
+	userRoleDal       *dal.UserRoleDal       //用户-角色
+	roleDal           *dal.RoleDal           //角色dal
+	rolePermissionDal *dal.RolePermissionDal //角色-权限
+	permissionDal     *dal.PermissionDal     //权限dal
+	permissionApiDal  *dal.PermissionApiDal  //权限-api
+	dptDal            *dal.DepartmentDal     //部门dal
+	dptUserDal        *dal.DptUserDal        //部门-用户
 }
 
 func (b *Bll) RegApi(api qf.ApiMap) {
-	b.regUserApi(api)   //注册用户API
-	b.regRoleApi(api)   //注册角色API
-	b.regRightsApi(api) //注册权限组API
-	b.regDptApi(api)    //注册部门组织API
+	b.regUserApi(api)       //注册用户API
+	b.regRoleApi(api)       //注册角色API
+	b.regPermissionApi(api) //注册权限组API
+	b.regDptApi(api)        //注册部门组织API
 
 	api.Reg(qf.EApiKindSave, "jwt/reset", b.resetJwtSecret)  //刷新jwt密钥
 	api.Reg(qf.EApiKindSave, "parseToken", b.testParseToken) //测试token
@@ -44,14 +44,14 @@ func (b *Bll) RegDal(regDal qf.DalMap) {
 	b.roleDal = &dal.RoleDal{}
 	regDal.Reg(b.roleDal, model.Role{})
 
-	b.roleRightsDal = &dal.RoleRightsDal{}
-	regDal.Reg(b.roleRightsDal, model.RoleRights{})
+	b.rolePermissionDal = &dal.RolePermissionDal{}
+	regDal.Reg(b.rolePermissionDal, model.RolePermission{})
 
-	b.rightsDal = &dal.RightsGroupDal{}
-	regDal.Reg(b.rightsDal, model.RightsGroup{})
+	b.permissionDal = &dal.PermissionDal{}
+	regDal.Reg(b.permissionDal, model.PermissionGroup{})
 
-	b.rightsApiDal = &dal.RightsApiDal{}
-	regDal.Reg(b.rightsApiDal, model.RightsApi{})
+	b.permissionApiDal = &dal.PermissionApiDal{}
+	regDal.Reg(b.permissionApiDal, model.PermissionApi{})
 
 	b.dptDal = &dal.DepartmentDal{}
 	regDal.Reg(b.dptDal, model.Department{})

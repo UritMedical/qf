@@ -17,8 +17,8 @@ func (b *Bll) regRoleApi(api qf.ApiMap) {
 	api.Reg(qf.EApiKindGetList, "role/users", b.getRoleUsers)     //获取指定角色下的用户
 
 	//角色-权限组
-	api.Reg(qf.EApiKindSave, "role/rights", b.setRoleRightsRelation) //给角色配置权限
-	api.Reg(qf.EApiKindGetList, "role/rights", b.getRoleRights)      //获取角色拥有的权限
+	api.Reg(qf.EApiKindSave, "role/permission", b.setRolePermission)      //给角色配置权限
+	api.Reg(qf.EApiKindGetList, "role/permissions", b.getRolePermissions) //获取角色拥有的权限
 }
 
 //
@@ -81,21 +81,21 @@ func (b *Bll) setUserRoleRelation(ctx *qf.Context) (interface{}, error) {
 }
 
 //
-// setRoleRightsRelation
+// setRolePermission
 //  @Description: 设置角色-权限关系
 //  @param ctx
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) setRoleRightsRelation(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) setRolePermission(ctx *qf.Context) (interface{}, error) {
 	var params = struct {
-		RoleId    uint64
-		RightsIds []uint64
+		RoleId        uint64
+		PermissionIds []uint64
 	}{}
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
-	return nil, b.roleRightsDal.SetRoleRights(params.RoleId, params.RightsIds)
+	return nil, b.rolePermissionDal.SetRolePermission(params.RoleId, params.PermissionIds)
 }
 
 //
@@ -113,15 +113,15 @@ func (b *Bll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
 }
 
 //
-// getRoleRights
+// getRolePermissions
 //  @Description: 获取此角色的权限
 //  @param ctx
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) getRoleRights(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) getRolePermissions(ctx *qf.Context) (interface{}, error) {
 	roleId := ctx.GetId()
-	rightsId, _ := b.roleRightsDal.GetRoleRights(roleId)
-	rights, err := b.rightsDal.GetRightsGroupByIds(rightsId)
-	return util.ToMaps(rights), err
+	permissionId, _ := b.rolePermissionDal.GetRolePermission(roleId)
+	permissions, err := b.permissionDal.GetPermissionsByIds(permissionId)
+	return util.ToMaps(permissions), err
 }
