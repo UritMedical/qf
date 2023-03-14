@@ -22,9 +22,9 @@ func (dal *InfoDal) GetListByKey(key string, dest interface{}) error {
 //  @param pid
 //  @return error
 //
-func (dal *CaseDal) DeleteByPatientId(pid uint64) (bool, error) {
+func (dal *CaseDal) DeleteByPatientId(pid uint64) error {
 	rs := dal.DB().Where("PId = ?", pid).Delete(PatientCase{PId: pid})
-	return rs.RowsAffected > 0, rs.Error
+	return rs.Error
 }
 
 func (dal *CaseDal) GetListByPatientId(pid uint64, dest interface{}) error {

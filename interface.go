@@ -1,6 +1,7 @@
 package qf
 
 import (
+	"errors"
 	"fmt"
 	"gorm.io/gorm"
 	"reflect"
@@ -139,7 +140,7 @@ func (bll *BaseBll) SetConfig(value map[string]interface{}) (bool, error) {
 type IDal interface {
 	DB() *gorm.DB                                                  // 返回数据库对象
 	Save(content interface{}) error                                // 执行新增或修改操作
-	Delete(id uint64) (bool, error)                                // 执行删除操作
+	Delete(id uint64) error                                        // 执行删除操作
 	GetModel(id uint64, dest interface{}) error                    // 根据Id获取单条信息
 	GetList(startId uint64, maxCount uint, dest interface{}) error // 根据起始Id和最大数量，获取一组信息
 	GetCount(query interface{}, args ...interface{}) int64         // 根据条件获取数量
@@ -206,9 +207,12 @@ func (b *BaseDal) Save(content interface{}) error {
 //  @param id 唯一号
 //  @return error 异常
 //
-func (b *BaseDal) Delete(id uint64) (bool, error) {
+func (b *BaseDal) Delete(id uint64) error {
 	result := b.DB().Delete(&BaseModel{Id: id})
-	return result.RowsAffected > 0, result.Error
+	if result.RowsAffected == 0 {
+		return errors.New(fmt.Sprintf("delete failed, id=%d does not exist", id))
+	}
+	return result.Error
 }
 
 //

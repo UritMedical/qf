@@ -88,12 +88,12 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 //
 func (b *Bll) DeletePatient(ctx *qf.Context) (interface{}, error) {
 	// 删除患者信息
-	ok, err := b.infoDal.Delete(ctx.GetId())
-	if ok && err == nil {
+	err := b.infoDal.Delete(ctx.GetId())
+	if err == nil {
 		// 删除所有病历
-		ok, err = b.caseDal.DeleteByPatientId(ctx.GetId())
+		err = b.caseDal.DeleteByPatientId(ctx.GetId())
 	}
-	return ok, err
+	return nil, err
 }
 
 //
@@ -134,7 +134,7 @@ func (b *Bll) SaveCase(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (b *Bll) DeleteCase(ctx *qf.Context) (interface{}, error) {
-	return b.caseDal.Delete(ctx.GetId())
+	return nil, b.caseDal.Delete(ctx.GetId())
 }
 
 //

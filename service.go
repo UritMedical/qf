@@ -126,6 +126,7 @@ func (s *Service) stop() {
 //  @param group 子组路径名
 //
 func (s *Service) RegBll(bll IBll, group string) {
+	group = strings.Trim(group, "/")
 	// 初始化业务对象
 	bll.set(bll, s.setting.UrlGroup, group, s.config)
 	// 加入到业务列表
@@ -286,34 +287,6 @@ func (s *Service) getCors() gin.HandlerFunc {
 		// 处理请求
 		c.Next()
 	}
-}
-
-func BuildContext(ctx *Context, input interface{}) *Context {
-	context := &Context{
-		time:        ctx.time,
-		loginUser:   ctx.loginUser,
-		inputValue:  nil,
-		inputSource: "",
-		idPer:       ctx.idPer,
-		idAllocator: ctx.idAllocator,
-	}
-	body, _ := json.Marshal(input)
-	context.inputSource = string(body)
-	if json.Valid(body) {
-		// 如果是json列表
-		if strings.HasPrefix(context.inputSource, "[") &&
-			strings.HasSuffix(context.inputSource, "]") {
-			_ = json.Unmarshal(body, &context.inputValue)
-		}
-		// 如果是json结构
-		if strings.HasPrefix(context.inputSource, "{") &&
-			strings.HasSuffix(context.inputSource, "}") {
-			iv := map[string]interface{}{}
-			_ = json.Unmarshal(body, &iv)
-			context.inputValue = append(context.inputValue, iv)
-		}
-	}
-	return context
 }
 
 //
