@@ -3,32 +3,32 @@ package user
 import (
 	"github.com/UritMedical/qf"
 	"github.com/UritMedical/qf/helper"
-	"github.com/UritMedical/qf/mc/user/dal"
-	"github.com/UritMedical/qf/mc/user/model"
-	utils "github.com/UritMedical/qf/mc/user/utils"
+	"github.com/UritMedical/qf/user/dal"
+	"github.com/UritMedical/qf/user/model"
+	"github.com/UritMedical/qf/util"
 )
 
 //TODO 开发者密码可以配置
 const DeveloperId = 202303 //开发者内存Id
-var devUser = model.User{BaseModel: qf.BaseModel{Id: DeveloperId}, LoginId: "developer", Password: utils.ConvertToMD5([]byte("lisurit"))}
+var devUser = model.User{BaseModel: qf.BaseModel{Id: DeveloperId}, LoginId: "developer", Password: util.ConvertToMD5([]byte("lisurit"))}
 
 type Bll struct {
 	qf.BaseBll
-	userDal       *dal.UserDal        //用户dal
-	userRoleDal   *dal.UserRoleDal    //用户-角色
-	roleDal       *dal.RoleDal        //角色dal
-	roleRightsDal *dal.RoleRightsDal  //角色-权限
-	rightsDal     *dal.RightsGroupDal //权限dal
-	rightsApiDal  *dal.RightsApiDal   //权限-api
-	dptDal        *dal.DepartmentDal  //部门dal
-	dptUserDal    *dal.DptUserDal     //部门-用户
+	userDal           *dal.UserDal           //用户dal
+	userRoleDal       *dal.UserRoleDal       //用户-角色
+	roleDal           *dal.RoleDal           //角色dal
+	rolePermissionDal *dal.RolePermissionDal //角色-权限
+	permissionDal     *dal.PermissionDal     //权限dal
+	permissionApiDal  *dal.PermissionApiDal  //权限-api
+	dptDal            *dal.DepartmentDal     //部门dal
+	dptUserDal        *dal.DptUserDal        //部门-用户
 }
 
 func (b *Bll) RegApi(api qf.ApiMap) {
-	b.regUserApi(api)   //注册用户API
-	b.regRoleApi(api)   //注册角色API
-	b.regRightsApi(api) //注册权限组API
-	b.regDptApi(api)    //注册部门组织API
+	b.regUserApi(api)       //注册用户API
+	b.regRoleApi(api)       //注册角色API
+	b.regPermissionApi(api) //注册权限组API
+	b.regDptApi(api)        //注册部门组织API
 
 	api.Reg(qf.EApiKindSave, "jwt/reset", b.resetJwtSecret)  //刷新jwt密钥
 	api.Reg(qf.EApiKindSave, "parseToken", b.testParseToken) //测试token
@@ -44,14 +44,14 @@ func (b *Bll) RegDal(regDal qf.DalMap) {
 	b.roleDal = &dal.RoleDal{}
 	regDal.Reg(b.roleDal, model.Role{})
 
-	b.roleRightsDal = &dal.RoleRightsDal{}
-	regDal.Reg(b.roleRightsDal, model.RoleRights{})
+	b.rolePermissionDal = &dal.RolePermissionDal{}
+	regDal.Reg(b.rolePermissionDal, model.RolePermission{})
 
-	b.rightsDal = &dal.RightsGroupDal{}
-	regDal.Reg(b.rightsDal, model.RightsGroup{})
+	b.permissionDal = &dal.PermissionDal{}
+	regDal.Reg(b.permissionDal, model.Permission{})
 
-	b.rightsApiDal = &dal.RightsApiDal{}
-	regDal.Reg(b.rightsApiDal, model.RightsApi{})
+	b.permissionApiDal = &dal.PermissionApiDal{}
+	regDal.Reg(b.permissionApiDal, model.PermissionApi{})
 
 	b.dptDal = &dal.DepartmentDal{}
 	regDal.Reg(b.dptDal, model.Department{})
@@ -93,7 +93,7 @@ func (b *Bll) initDefUser() {
 		_ = b.userDal.Save(&model.User{
 			BaseModel: qf.BaseModel{Id: adminId, FullInfo: "{\"LoginId\":\"admin\",\"Name\":\"Admin\"}"},
 			LoginId:   "admin",
-			Password:  utils.ConvertToMD5([]byte("admin123"))})
+			Password:  util.ConvertToMD5([]byte("admin123"))})
 
 		//创建默认角色
 		_ = b.roleDal.Save(&model.Role{BaseModel: qf.BaseModel{Id: adminId, FullInfo: "{\"Name\":\"administrator\"}"}, Name: "administrator"})
@@ -113,7 +113,7 @@ func (b *Bll) initDefUser() {
 //  @return error
 //
 func (b *Bll) resetJwtSecret(ctx *qf.Context) (interface{}, error) {
-	jwtStr := utils.RandomString(32)
+	jwtStr := util.RandomString(32)
 	helper.JwtSecret = []byte(jwtStr)
 	//将密钥进行AES加密后存入文件
 	err := helper.EncryptAndWriteToFile(jwtStr, helper.JwtSecretFile, []byte(helper.AESKey), []byte(helper.IV))

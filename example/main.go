@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/UritMedical/qf"
 	"github.com/UritMedical/qf/mc/patient"
-	"github.com/UritMedical/qf/mc/user"
+	"github.com/UritMedical/qf/user"
 )
 
 func main() {

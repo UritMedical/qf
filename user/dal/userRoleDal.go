@@ -2,8 +2,8 @@ package dal
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/model"
-	uUtils "github.com/UritMedical/qf/mc/user/utils"
+	"github.com/UritMedical/qf/user/model"
+	"github.com/UritMedical/qf/util"
 )
 
 type UserRoleDal struct {
@@ -22,8 +22,8 @@ func (u *UserRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) error {
 	if err != nil {
 		return err
 	}
-	newUsers := uUtils.DiffIntSet(userIds, oldUsers)
-	removeUsers := uUtils.DiffIntSet(oldUsers, userIds)
+	newUsers := util.DiffIntSet(userIds, oldUsers)
+	removeUsers := util.DiffIntSet(oldUsers, userIds)
 
 	tx := u.DB().Begin()
 	//新增关系
