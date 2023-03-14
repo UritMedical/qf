@@ -29,6 +29,7 @@ type Service struct {
 	setting     setting                   // 框架配置
 	idAllocator iIdAllocator              // id分配器
 	config      iConfig                   // 配置文件接口
+	loginUser   LoginUser                 // 登陆用户信息
 }
 
 //
@@ -190,7 +191,7 @@ func (s *Service) context(ctx *gin.Context) {
 	if handler, ok := s.apiHandler[url]; ok {
 		qfCtx := &Context{
 			time:        time.Now().Local(),
-			loginUser:   LoginUser{}, // TODO
+			loginUser:   s.loginUser,
 			inputValue:  make([]map[string]interface{}, 0),
 			inputSource: "",
 			idAllocator: s.idAllocator,
@@ -247,7 +248,27 @@ func (s *Service) context(ctx *gin.Context) {
 					}
 				}()
 			}
-
+			// 截取登陆接口，获取登陆信息
+			if url == fmt.Sprintf("POST:/%s/login", s.setting.WebConfig.DefGroup) {
+				value := result.(map[string]interface{})
+				userInfo := value["UserInfo"].(map[string]interface{})
+				s.loginUser.UserId = userInfo["Id"].(uint64)
+				s.loginUser.UserName = userInfo["Name"].(string)
+				s.loginUser.LoginId = userInfo["LoginId"].(string)
+				s.loginUser.Departments = map[uint64]struct{ Name string }{}
+				s.loginUser.token = value["Token"].(string)
+				s.loginUser.roles = map[uint64]struct{ Name string }{}
+				for _, role := range value["Roles"].([]map[string]interface{}) {
+					s.loginUser.roles[role["Id"].(uint64)] = struct{ Name string }{
+						Name: role["Name"].(string),
+					}
+				}
+				for _, dp := range value["Departs"].([]map[string]interface{}) {
+					s.loginUser.Departments[dp["Id"].(uint64)] = struct{ Name string }{
+						Name: dp["Name"].(string),
+					}
+				}
+			}
 			// TODO：记录日志
 
 			s.returnOk(ctx, result)

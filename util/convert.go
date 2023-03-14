@@ -97,20 +97,25 @@ func join(info string, model interface{}) map[string]interface{} {
 
 	// 反射对象，并将其他字段附加到字典
 	value := reflect.ValueOf(model)
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
-	}
-	for i := 0; i < value.NumField(); i++ {
-		field := value.Field(i)
-		// 通过原始内容
-		if field.Kind() == reflect.Struct && field.Type().Name() == "BaseModel" {
-			continue
+	if value.Kind() == reflect.Map {
+		for _, v := range value.MapKeys() {
+			data[v.String()] = value.MapIndex(v).Interface()
 		}
-		tag := value.Type().Field(i).Tag.Get("json")
-		if tag != "-" {
-			data[value.Type().Field(i).Name] = field.Interface()
+	} else {
+		if value.Kind() == reflect.Ptr {
+			value = value.Elem()
+		}
+		for i := 0; i < value.NumField(); i++ {
+			field := value.Field(i)
+			// 通过原始内容
+			if field.Kind() == reflect.Struct && field.Type().Name() == "BaseModel" {
+				continue
+			}
+			tag := value.Type().Field(i).Tag.Get("json")
+			if tag != "-" {
+				data[value.Type().Field(i).Name] = field.Interface()
+			}
 		}
 	}
-
 	return data
 }

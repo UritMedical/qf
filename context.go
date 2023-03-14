@@ -77,12 +77,20 @@ func (ctx *Context) NewId(object interface{}) uint64 {
 //
 func (ctx *Context) LoginUser() LoginUser {
 	user := LoginUser{
-		UserId:     ctx.loginUser.UserId,
-		UserName:   ctx.loginUser.UserName,
-		Department: map[uint64]struct{ Name string }{},
+		UserId:      ctx.loginUser.UserId,
+		UserName:    ctx.loginUser.UserName,
+		LoginId:     ctx.loginUser.LoginId,
+		Departments: map[uint64]struct{ Name string }{},
+		token:       ctx.loginUser.token,
+		roles:       map[uint64]struct{ Name string }{},
 	}
-	for id, info := range ctx.loginUser.Department {
-		user.Department[id] = struct{ Name string }{
+	for id, info := range ctx.loginUser.Departments {
+		user.Departments[id] = struct{ Name string }{
+			Name: info.Name,
+		}
+	}
+	for id, info := range ctx.loginUser.roles {
+		user.roles[id] = struct{ Name string }{
 			Name: info.Name,
 		}
 	}
@@ -133,11 +141,15 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) err
 	}
 	if reflectex.IsStruct(objectPtr) {
 		// 先将提交的input填充
-		nj, _ := json.Marshal(ctx.inputValue[0])
-		_ = json.Unmarshal(nj, objectPtr)
+		if len(ctx.inputValue) > 0 {
+			nj, _ := json.Marshal(ctx.inputValue[0])
+			_ = json.Unmarshal(nj, objectPtr)
+		}
 		// 再将重新组织的内容填充
-		nj, _ = json.Marshal(cnt[0])
-		_ = json.Unmarshal(nj, objectPtr)
+		if len(cnt) > 0 {
+			nj, _ := json.Marshal(cnt[0])
+			_ = json.Unmarshal(nj, objectPtr)
+		}
 	} else if reflectex.IsSlice(objectPtr) {
 		// 同上
 		nj, _ := json.Marshal(ctx.inputValue)

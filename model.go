@@ -34,8 +34,8 @@ func (kind EApiKind) HttpMethod() string {
 //  @Description: 基础实体对象
 //
 type BaseModel struct {
-	Id       uint64    `gorm:"primaryKey"` // 唯一号
-	LastTime time.Time `gorm:"index"`      // 最后操作时间时间
+	Id       uint64    `gorm:"primaryKey;autoIncrement:false"` // 唯一号
+	LastTime time.Time `gorm:"index"`                          // 最后操作时间时间
 	FullInfo string    // 内容
 }
 
@@ -44,9 +44,14 @@ type BaseModel struct {
 //  @Description: 登陆用户信息
 //
 type LoginUser struct {
-	UserId     uint64 // 登陆用户账号
-	UserName   string // 登陆用户名字
-	Department map[uint64]struct {
+	UserId      uint64 // 登陆用户唯一号
+	UserName    string // 登陆用户名字
+	LoginId     string // 登陆用户账号
+	Departments map[uint64]struct {
 		Name string
 	} // 所属部门列表
+	token string // 登陆的token信息
+	roles map[uint64]struct {
+		Name string
+	} // 角色列表
 }
