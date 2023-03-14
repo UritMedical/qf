@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/model"
+	"github.com/UritMedical/qf/user/model"
 	"github.com/UritMedical/qf/util"
 	"sort"
 )

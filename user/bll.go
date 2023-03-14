@@ -3,14 +3,14 @@ package user
 import (
 	"github.com/UritMedical/qf"
 	"github.com/UritMedical/qf/helper"
-	"github.com/UritMedical/qf/mc/user/dal"
-	"github.com/UritMedical/qf/mc/user/model"
-	utils "github.com/UritMedical/qf/mc/user/utils"
+	"github.com/UritMedical/qf/user/dal"
+	"github.com/UritMedical/qf/user/model"
+	"github.com/UritMedical/qf/util"
 )
 
 //TODO 开发者密码可以配置
 const DeveloperId = 202303 //开发者内存Id
-var devUser = model.User{BaseModel: qf.BaseModel{Id: DeveloperId}, LoginId: "developer", Password: utils.ConvertToMD5([]byte("lisurit"))}
+var devUser = model.User{BaseModel: qf.BaseModel{Id: DeveloperId}, LoginId: "developer", Password: util.ConvertToMD5([]byte("lisurit"))}
 
 type Bll struct {
 	qf.BaseBll
@@ -48,7 +48,7 @@ func (b *Bll) RegDal(regDal qf.DalMap) {
 	regDal.Reg(b.rolePermissionDal, model.RolePermission{})
 
 	b.permissionDal = &dal.PermissionDal{}
-	regDal.Reg(b.permissionDal, model.PermissionGroup{})
+	regDal.Reg(b.permissionDal, model.Permission{})
 
 	b.permissionApiDal = &dal.PermissionApiDal{}
 	regDal.Reg(b.permissionApiDal, model.PermissionApi{})
@@ -93,7 +93,7 @@ func (b *Bll) initDefUser() {
 		_ = b.userDal.Save(&model.User{
 			BaseModel: qf.BaseModel{Id: adminId, FullInfo: "{\"LoginId\":\"admin\",\"Name\":\"Admin\"}"},
 			LoginId:   "admin",
-			Password:  utils.ConvertToMD5([]byte("admin123"))})
+			Password:  util.ConvertToMD5([]byte("admin123"))})
 
 		//创建默认角色
 		_ = b.roleDal.Save(&model.Role{BaseModel: qf.BaseModel{Id: adminId, FullInfo: "{\"Name\":\"administrator\"}"}, Name: "administrator"})
@@ -113,7 +113,7 @@ func (b *Bll) initDefUser() {
 //  @return error
 //
 func (b *Bll) resetJwtSecret(ctx *qf.Context) (interface{}, error) {
-	jwtStr := utils.RandomString(32)
+	jwtStr := util.RandomString(32)
 	helper.JwtSecret = []byte(jwtStr)
 	//将密钥进行AES加密后存入文件
 	err := helper.EncryptAndWriteToFile(jwtStr, helper.JwtSecretFile, []byte(helper.AESKey), []byte(helper.IV))

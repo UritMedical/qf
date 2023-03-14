@@ -2,7 +2,7 @@ package user
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/model"
+	"github.com/UritMedical/qf/user/model"
 	"github.com/UritMedical/qf/util"
 )
 
@@ -18,7 +18,7 @@ func (b *Bll) regPermissionApi(api qf.ApiMap) {
 }
 
 func (b *Bll) savePermission(ctx *qf.Context) (interface{}, error) {
-	var rg model.PermissionGroup
+	var rg model.Permission
 	if err := ctx.Bind(&rg); err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (b *Bll) deletePermission(ctx *qf.Context) (interface{}, error) {
 }
 
 func (b *Bll) getPermissions(ctx *qf.Context) (interface{}, error) {
-	permissions := make([]model.PermissionGroup, 0)
+	permissions := make([]model.Permission, 0)
 	err := b.permissionDal.GetList(0, 100, &permissions)
 	return util.ToMaps(permissions), err
 }

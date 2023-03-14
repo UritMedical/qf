@@ -2,7 +2,7 @@ package dal
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/model"
+	"github.com/UritMedical/qf/user/model"
 )
 
 type RolePermissionDal struct {

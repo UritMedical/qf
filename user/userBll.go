@@ -4,8 +4,7 @@ import (
 	"errors"
 	"github.com/UritMedical/qf"
 	"github.com/UritMedical/qf/helper"
-	"github.com/UritMedical/qf/mc/user/model"
-	uUtils "github.com/UritMedical/qf/mc/user/utils"
+	"github.com/UritMedical/qf/user/model"
 	"github.com/UritMedical/qf/util"
 	"strings"
 )
@@ -62,7 +61,7 @@ func (b *Bll) saveUser(ctx *qf.Context) (interface{}, error) {
 		return nil, err
 	}
 	if !b.userDal.CheckExists(user.Id) {
-		user.Password = uUtils.ConvertToMD5([]byte(defPassword))
+		user.Password = util.ConvertToMD5([]byte(defPassword))
 	}
 	//创建用户
 	return nil, b.userDal.Save(user)
@@ -115,7 +114,7 @@ func (b *Bll) getAllUsers(ctx *qf.Context) (interface{}, error) {
 //
 func (b *Bll) resetPassword(ctx *qf.Context) (interface{}, error) {
 	uId := ctx.GetId()
-	return nil, b.userDal.SetPassword(uId, uUtils.ConvertToMD5([]byte(defPassword)))
+	return nil, b.userDal.SetPassword(uId, util.ConvertToMD5([]byte(defPassword)))
 }
 
 //

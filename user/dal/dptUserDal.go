@@ -2,8 +2,8 @@ package dal
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/model"
-	uUtils "github.com/UritMedical/qf/mc/user/utils"
+	"github.com/UritMedical/qf/user/model"
+	"github.com/UritMedical/qf/util"
 )
 
 type DptUserDal struct {
@@ -24,7 +24,7 @@ func (d DptUserDal) AddUsers(departId uint64, userIds []uint64) error {
 	}
 
 	//过滤出部门中已经存在的账号
-	newUsers := uUtils.DiffIntSet(userIds, oldUserIds)
+	newUsers := util.DiffIntSet(userIds, oldUserIds)
 
 	list := make([]model.DepartUser, 0)
 	for _, id := range newUsers {

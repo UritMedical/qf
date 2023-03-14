@@ -2,7 +2,7 @@ package dal
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/model"
+	"github.com/UritMedical/qf/user/model"
 )
 
 // DepartmentDal
@@ -36,11 +36,11 @@ type PermissionDal struct {
 // GetPermissionsByIds
 //  @Description: 获取权限组列表
 //  @param ids
-//  @return []model.PermissionGroup
+//  @return []model.Permission
 //  @return error
 //
-func (p PermissionDal) GetPermissionsByIds(ids []uint64) ([]model.PermissionGroup, error) {
-	list := make([]model.PermissionGroup, 0)
+func (p PermissionDal) GetPermissionsByIds(ids []uint64) ([]model.Permission, error) {
+	list := make([]model.Permission, 0)
 	err := p.DB().Where("Id IN (?)", ids).Find(&list).Error
 	return list, err
 }

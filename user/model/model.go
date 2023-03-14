@@ -37,10 +37,10 @@ type RolePermission struct {
 	PermissionId uint64 `gorm:"index"`
 }
 
-// PermissionGroup
+// Permission
 // @Description: 权限组
 //
-type PermissionGroup struct {
+type Permission struct {
 	qf.BaseModel
 	Name string `gorm:"unique"` //权限组名称
 }
