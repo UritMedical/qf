@@ -27,8 +27,7 @@ func (b *Bll) savePermission(ctx *qf.Context) (interface{}, error) {
 
 func (b *Bll) deletePermission(ctx *qf.Context) (interface{}, error) {
 	uId := ctx.GetId()
-	ret, err := b.permissionDal.Delete(uId)
-	return ret, err
+	return nil, b.permissionDal.Delete(uId)
 }
 
 func (b *Bll) getPermissions(ctx *qf.Context) (interface{}, error) {

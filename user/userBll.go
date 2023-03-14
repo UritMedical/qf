@@ -46,10 +46,28 @@ func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 	params.LoginId = strings.Replace(params.LoginId, " ", "", -1)
 	if user, ok := b.userDal.CheckLogin(params.LoginId, params.Password); ok {
 		role, _ := b.userRoleDal.GetUsersByRoleId(user.Id)
-		return helper.GenerateToken(user.Id, role)
+		token, _ := helper.GenerateToken(user.Id, role)
+
+		//获取用户所在部门
+		dptIds, _ := b.dptUserDal.GetDptsByUserId(user.Id)
+		departs, _ := b.dptDal.GetDptsByIds(dptIds)
+
+		//获取用户所拥有的角色
+		ids, _ := b.userRoleDal.GetRolesByUserId(user.Id)
+		roles, _ := b.roleDal.GetRolesByIds(ids)
+		return map[string]interface{}{
+			"Token":    token,
+			"Departs":  util.ToMaps(departs),
+			"Roles":    util.ToMaps(roles),
+			"UserInfo": util.ToMap(user),
+		}, nil
 	} else if params.LoginId == devUser.LoginId && params.Password == devUser.Password {
 		//开发者账号
-		return helper.GenerateToken(devUser.Id, []uint64{})
+		token, _ := helper.GenerateToken(devUser.Id, []uint64{})
+		return map[string]interface{}{
+			"Token":    token,
+			"UserInfo": util.ToMap(devUser),
+		}, nil
 	} else {
 		return nil, errors.New("loginId not exist or password error")
 	}
@@ -69,8 +87,7 @@ func (b *Bll) saveUser(ctx *qf.Context) (interface{}, error) {
 
 func (b *Bll) deleteUser(ctx *qf.Context) (interface{}, error) {
 	uId := ctx.GetId()
-	ret, err := b.userDal.Delete(uId)
-	return ret, err
+	return nil, b.userDal.Delete(uId)
 }
 
 func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {

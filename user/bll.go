@@ -8,9 +8,9 @@ import (
 	"github.com/UritMedical/qf/util"
 )
 
-//TODO 开发者密码可以配置
-const DeveloperId = 202303 //开发者内存Id
-var devUser = model.User{BaseModel: qf.BaseModel{Id: DeveloperId}, LoginId: "developer", Password: util.ConvertToMD5([]byte("lisurit"))}
+//TODO 开发者密码要可以配置
+var devUser = model.User{BaseModel: qf.BaseModel{Id: 202303, FullInfo: "{\"Name\":\"Developer\"}"},
+	LoginId: "developer", Password: util.ConvertToMD5([]byte("lisurit"))}
 
 type Bll struct {
 	qf.BaseBll
@@ -30,8 +30,8 @@ func (b *Bll) RegApi(api qf.ApiMap) {
 	b.regPermissionApi(api) //注册权限组API
 	b.regDptApi(api)        //注册部门组织API
 
-	api.Reg(qf.EApiKindSave, "jwt/reset", b.resetJwtSecret)  //刷新jwt密钥
-	api.Reg(qf.EApiKindSave, "parseToken", b.testParseToken) //测试token
+	api.Reg(qf.EApiKindSave, "user/jwt/reset", b.resetJwtSecret)  //刷新jwt密钥
+	api.Reg(qf.EApiKindSave, "user/parseToken", b.testParseToken) //测试token
 }
 
 func (b *Bll) RegDal(regDal qf.DalMap) {
@@ -91,7 +91,7 @@ func (b *Bll) initDefUser() {
 	const adminId = 1
 	if len(list) == 0 {
 		_ = b.userDal.Save(&model.User{
-			BaseModel: qf.BaseModel{Id: adminId, FullInfo: "{\"LoginId\":\"admin\",\"Name\":\"Admin\"}"},
+			BaseModel: qf.BaseModel{Id: adminId, FullInfo: "{\"Name\":\"Admin\"}"},
 			LoginId:   "admin",
 			Password:  util.ConvertToMD5([]byte("admin123"))})
 
