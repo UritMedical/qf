@@ -23,10 +23,10 @@ type Patient struct {
 }
 
 //
-// Case
+// PatientCase
 //  @Description: 患者病历信息
 //
-type Case struct {
+type PatientCase struct {
 	qf.BaseModel
 
 	//

@@ -1,6 +1,8 @@
 package qf
 
-import "github.com/UritMedical/qf/util/launcher"
+import (
+	"github.com/UritMedical/qf/util/launcher"
+)
 
 var (
 	serv       *Service
@@ -23,7 +25,7 @@ func Run(regBll func(s *Service), stop func()) {
 func doStart() {
 	// 创建服务
 	serv = newService()
-	// 注册业务
+	// 注册外部业务
 	regBllFunc(serv)
 	// 启动服务
 	serv.run()

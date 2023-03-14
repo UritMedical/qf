@@ -1,10 +1,10 @@
 package qf
 
 import (
-	"encoding/json"
 	"fmt"
 	"gorm.io/gorm"
 	"reflect"
+	"strings"
 )
 
 //
@@ -12,20 +12,22 @@ import (
 //  @Description: 通用业务接口方法
 //
 type IBll interface {
-	RegApi(api ApiMap)     // 注册需要暴露的API方法
-	RegDal(dal DalMap)     // 注册需要框架初始化的数据访问层对象
-	RegMsg(msg MessageMap) // 注册需要接收处理的消息
-	RegRef(ref RefMap)     // 注册引用
-	Init() error           // 业务自己的初始化方法
-	Stop()                 // 业务自己的资源释放方法
+	RegApi(a ApiMap)     // 注册需要暴露的API方法
+	RegDal(d DalMap)     // 注册需要框架初始化的数据访问层对象
+	RegMsg(m MessageMap) // 注册需要接收处理的消息
+	RegRef(r RefMap)     // 注册引用
+	Init() error         // 业务自己的初始化方法
+	Stop()               // 业务自己的资源释放方法
 	// 框架内部实现的方法
-	setPkg(pkg string)                       // 1
-	setName(name string)                     // 1
-	setGroup(group string)                   // 1
-	getKey() string                          // 1
-	Debug(content string)                    // 1
-	GetConfig() map[string]interface{}       // 1
-	SetConfig(config map[string]interface{}) // 1
+	set(sub IBll, qfGroup, subGroup string, config iConfig) // 将主服务的部分对象设置被基础业务
+	key() string                                            // 获取业务唯一编号
+	regApi(bind func(key string, handler ApiHandler))       // 框架注册方法
+	regMsg(bind func(key string, handler MessageHandler))   // 框架注册方法
+	regDal(db *gorm.DB)                                     // 框架注册方法
+	regRef(getApi func(key string) ApiHandler)              // 框架注册方法
+	Debug(content string)                                   // 调试日志
+	GetConfig() map[string]interface{}                      // 获取配置
+	SetConfig(value map[string]interface{}) (bool, error)   // 写入配置
 }
 
 //
@@ -33,25 +35,72 @@ type IBll interface {
 //  @Description: 提供业务基础通用方法
 //
 type BaseBll struct {
-	pkg   string
-	name  string
-	group string
+	pkg      string  // 业务所在的包名
+	name     string  // 业务名称
+	qfGroup  string  // 框架路径组
+	subGroup string  // 自定义路径组
+	config   iConfig // 配置接口
+	sub      IBll    // 子接口
 }
 
-func (bll *BaseBll) setPkg(pkg string) {
-	bll.pkg = pkg
+func (bll *BaseBll) set(sub IBll, qfGroup, subGroup string, config iConfig) {
+	// 反射子类
+	t := reflect.TypeOf(sub).Elem()
+	// 初始化
+	bll.sub = sub
+	bll.pkg = strings.ToLower(t.PkgPath())
+	bll.name = strings.ToLower(t.Name())
+	bll.qfGroup = strings.ToLower(qfGroup)
+	bll.subGroup = strings.ToLower(subGroup)
+	bll.config = config
 }
 
-func (bll *BaseBll) setName(name string) {
-	bll.name = name
+func (bll *BaseBll) key() string {
+	return fmt.Sprintf("%s.%s", bll.pkg, bll.name)
 }
 
-func (bll *BaseBll) setGroup(group string) {
-	bll.group = group
+func (bll *BaseBll) regApi(bind func(key string, handler ApiHandler)) {
+	api := ApiMap{}
+	bll.sub.RegApi(api)
+	for kind, routers := range api {
+		for relative, handler := range routers {
+			bind(bll.buildPathKey(kind, relative), handler)
+		}
+	}
 }
 
-func (bll *BaseBll) getKey() string {
-	return fmt.Sprintf("%s/%s.%s", bll.group, bll.pkg, bll.name)
+func (bll *BaseBll) regMsg(bind func(key string, handler MessageHandler)) {
+	msg := MessageMap{}
+	bll.sub.RegMsg(msg)
+	for kind, routers := range msg {
+		for relative, handler := range routers {
+			bind(bll.buildPathKey(kind, relative), handler)
+		}
+	}
+}
+
+func (bll *BaseBll) regDal(db *gorm.DB) {
+	dal := DalMap{}
+	bll.sub.RegDal(dal)
+	for d, model := range dal {
+		d.init(db, model)
+	}
+}
+
+func (bll *BaseBll) regRef(getApi func(key string) ApiHandler) {
+	ref := RefMap{
+		getApi: func(kind EApiKind, relative string) ApiHandler {
+			return getApi(bll.buildPathKey(kind, relative))
+		},
+	}
+	bll.sub.RegRef(ref)
+}
+
+func (bll *BaseBll) buildPathKey(kind EApiKind, relative string) string {
+	path := fmt.Sprintf("%s/%s/%s", bll.qfGroup, bll.subGroup, relative)
+	path = strings.Replace(path, "//", "/", -1)
+	path = strings.TrimRight(path, "/")
+	return fmt.Sprintf("%s:/%s", kind.HttpMethod(), path)
 }
 
 //
@@ -65,86 +114,22 @@ func (bll *BaseBll) Debug(info string) {
 
 //
 // GetConfig
-//  @Description: 获取配置
+//  @Description:
 //  @return map[string]interface{}
 //
 func (bll *BaseBll) GetConfig() map[string]interface{} {
-	return nil
+	return bll.config.GetConfig(fmt.Sprintf("%s.%s", bll.pkg, bll.name))
 }
 
 //
 // SetConfig
-//  @Description: 保存配置
-//  @param config
+//  @Description:
+//  @param value
+//  @return bool
+//  @return error
 //
-func (bll *BaseBll) SetConfig(config map[string]interface{}) {
-
-}
-
-//
-// Map
-//  @Description: 将包含内容的结构体转为字典结构
-//  @param model 内容结构
-//  @return map[string]interface{} 字典
-//
-func (bll *BaseBll) Map(model interface{}) map[string]interface{} {
-	// 先转一次json
-	tj, _ := json.Marshal(model)
-	// 然后在反转到内容对象
-	cnt := BaseModel{}
-	_ = json.Unmarshal(tj, &cnt)
-
-	// 生成字典
-	final := bll.join(cnt.FullInfo, model)
-	// 补齐字段的值
-	final["Id"] = cnt.Id
-
-	return final
-}
-
-//
-// Maps
-//  @Description: 将内容列表转为字典列表
-//  @param list 内容结构列表
-//  @return []map[string]interface{} 字典列表
-//
-func (bll *BaseBll) Maps(list interface{}) []map[string]interface{} {
-	values := reflect.ValueOf(list)
-	if values.Kind() != reflect.Slice {
-		panic(fmt.Errorf("list must be slice"))
-	}
-	finals := make([]map[string]interface{}, values.Len())
-	for i := 0; i < values.Len(); i++ {
-		finals[i] = bll.Map(values.Index(i).Interface())
-	}
-	return finals
-}
-
-// 将完整内容Json和对应的实体，合并为一个字典对象
-func (bll *BaseBll) join(info string, model interface{}) map[string]interface{} {
-	data := map[string]interface{}{}
-
-	// 将内容的信息写入到字典中
-	_ = json.Unmarshal([]byte(info), &data)
-
-	// 反射对象，并将其他字段附加到字典
-	value := reflect.ValueOf(model)
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
-	}
-	for i := 0; i < value.NumField(); i++ {
-		field := value.Field(i)
-		// 通过原始内容
-		if field.Kind() == reflect.Struct && field.Type().Name() == "BaseModel" {
-			continue
-		}
-		tag := value.Type().Field(i).Tag.Get("json")
-		if tag != "-" {
-			data[value.Type().Field(i).Name] = field.Interface()
-		}
-	}
-
-	return data
+func (bll *BaseBll) SetConfig(value map[string]interface{}) (bool, error) {
+	return bll.config.SetConfig(fmt.Sprintf("%s.%s", bll.pkg, bll.name), value)
 }
 
 //
@@ -160,8 +145,7 @@ type IDal interface {
 	GetCount(query interface{}, args ...interface{}) int64         // 根据条件获取数量
 	CheckExists(id uint64) bool                                    // 检测Id是否存在
 	// 框架内部实现的方法
-	initDB(db *gorm.DB, model interface{})
-	setChild(dal IDal)
+	init(db *gorm.DB, model interface{})
 }
 
 //
@@ -170,7 +154,6 @@ type IDal interface {
 //
 type BaseDal struct {
 	db        *gorm.DB
-	dal       IDal
 	tableName string
 }
 
@@ -182,22 +165,15 @@ type BaseDal struct {
 //  @param pkgName
 //  @param model
 //
-func (b *BaseDal) initDB(db *gorm.DB, model interface{}) {
+func (b *BaseDal) init(db *gorm.DB, model interface{}) {
 	b.db = db
 	// 根据实体名称，生成数据库
 	b.tableName = buildTableName(model)
 	// 自动生成表
-	_ = db.Table(b.tableName).AutoMigrate(model)
-}
-
-//
-// setChild
-//  @Description: 设置子集，用于后期反射
-//  @receiver b
-//  @param dal
-//
-func (b *BaseDal) setChild(dal IDal) {
-	b.dal = dal
+	err := db.Table(b.tableName).AutoMigrate(model)
+	if err != nil {
+		panic(fmt.Sprintf("【Gorm】 AutoMigrate %s failed: %s", b.tableName, err.Error()))
+	}
 }
 
 //
@@ -319,6 +295,15 @@ type iIdAllocator interface {
 	Next(name string) uint64
 }
 
+//
+// iConfig
+//  @Description: 业务配置文件接口
+//
+type iConfig interface {
+	GetConfig(name string) map[string]interface{}
+	SetConfig(name string, value map[string]interface{}) (bool, error)
+}
+
 // ApiHandler API指针
 type ApiHandler func(ctx *Context) (interface{}, error)
 
@@ -341,34 +326,41 @@ func (api ApiMap) Reg(kind EApiKind, router string, handler ApiHandler) {
 
 type DalMap map[IDal]interface{}
 
-func (d DalMap) Reg(dal IDal, model interface{}) {
-	if _, ok := d[dal]; ok == false {
-		d[dal] = model
+func (d DalMap) Reg(iDal IDal, model interface{}) {
+	t := reflect.TypeOf(iDal)
+	if t.Kind() != reflect.Ptr {
+		panic(fmt.Sprintf("【RegDal】: %s/%s this model must be of type pointer", t.PkgPath(), t.Name()))
+	}
+	t = t.Elem()
+	v := reflect.ValueOf(iDal)
+	if v.IsNil() {
+		panic(fmt.Sprintf("【RegDal】: %s/%s has not been initialized", t.PkgPath(), t.Name()))
+	}
+	if _, ok := d[iDal]; ok == false {
+		d[iDal] = model
 	} else {
-		t := reflect.TypeOf(dal)
-		if t.Kind() == reflect.Ptr {
-			t = t.Elem()
-		}
-		panic(fmt.Sprintf("dal.reg: %s/%s already exists", t.PkgPath(), t.Name()))
+
+		panic(fmt.Sprintf("【RegDal】: %s/%s already exists", t.PkgPath(), t.Name()))
 	}
 }
 
 type MessageMap map[EApiKind]map[string]MessageHandler
 
-func (msg MessageMap) Reg(pkgName string, kind EApiKind, router string, function MessageHandler) {
+func (msg MessageMap) Reg(kind EApiKind, router string, handler MessageHandler) {
 	if msg[kind] == nil {
 		msg[kind] = make(map[string]MessageHandler)
 	}
-	key := fmt.Sprintf("%s,%s", pkgName, router)
-	if _, ok := msg[kind][key]; ok == false {
-		msg[kind][key] = function
+	if _, ok := msg[kind][router]; ok == false {
+		msg[kind][router] = handler
 	} else {
-		panic(fmt.Sprintf("msg.api: %s:%s already exists", kind, key))
+		panic(fmt.Sprintf("【RegMsg】: %s:%s already exists", kind, router))
 	}
 }
 
-type RefMap map[EApiKind]map[string]ApiHandler
+type RefMap struct {
+	getApi func(kind EApiKind, router string) ApiHandler
+}
 
-func (r *RefMap) Reg(pkgName string, kind EApiKind, router string, handler ApiHandler) {
-
+func (ref RefMap) Load(kind EApiKind, router string) ApiHandler {
+	return ref.getApi(kind, router)
 }

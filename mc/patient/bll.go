@@ -2,38 +2,37 @@ package patient
 
 import (
 	"github.com/UritMedical/qf"
+	"github.com/UritMedical/qf/util"
 )
 
 type Bll struct {
 	qf.BaseBll
 	infoDal *InfoDal
 	caseDal *CaseDal
-
-	getUser qf.ApiHandler
 }
 
-func (b *Bll) RegApi(api qf.ApiMap) {
-	api.Reg(qf.EApiKindSave, "", b.SavePatient)      // 保存患者基本信息
-	api.Reg(qf.EApiKindDelete, "", b.DeletePatient)  // 删除患者，包含基本信息和全部病历
-	api.Reg(qf.EApiKindSave, "case", b.SaveCase)     // 保存患者病历信息
-	api.Reg(qf.EApiKindDelete, "case", b.DeleteCase) // 删除单个病历
-	api.Reg(qf.EApiKindGetModel, "", b.GetFull)      // 按唯一号或HIS唯一号获取完整信息（基本信息+病历列表）
-	api.Reg(qf.EApiKindGetList, "", b.GetFullList)   // 按条件获取完整列表
+func (b *Bll) RegApi(a qf.ApiMap) {
+	a.Reg(qf.EApiKindSave, "patient", b.SavePatient)       // 保存患者基本信息
+	a.Reg(qf.EApiKindDelete, "patient", b.DeletePatient)   // 删除患者，包含基本信息和全部病历
+	a.Reg(qf.EApiKindSave, "patient/case", b.SaveCase)     // 保存患者病历信息
+	a.Reg(qf.EApiKindDelete, "patient/case", b.DeleteCase) // 删除单个病历
+	a.Reg(qf.EApiKindGetModel, "patient", b.GetFull)       // 按唯一号或HIS唯一号获取完整信息（基本信息+病历列表）
+	a.Reg(qf.EApiKindGetList, "patients", b.GetFullList)   // 按条件获取完整列表
 }
 
-func (b *Bll) RegDal(dal qf.DalMap) {
+func (b *Bll) RegDal(d qf.DalMap) {
 	b.infoDal = &InfoDal{}
 	b.caseDal = &CaseDal{}
-	dal.Reg(b.infoDal, Patient{})
-	dal.Reg(b.caseDal, Case{})
+	d.Reg(b.infoDal, Patient{})
+	d.Reg(b.caseDal, PatientCase{})
 }
 
-func (b *Bll) RegMsg(msg qf.MessageMap) {
+func (b *Bll) RegMsg(_ qf.MessageMap) {
 
 }
 
-func (b *Bll) RegRef(ref qf.RefMap) {
-	ref.Reg("user", qf.EApiKindGetModel, "", b.getUser)
+func (b *Bll) RegRef(_ qf.RefMap) {
+
 }
 
 func (b *Bll) Init() error {
@@ -68,8 +67,6 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 	if *model.HisId == "" {
 		model.HisId = nil
 	}
-
-	//fmt.Println(b.getUser(qf.BuildContext(ctx)))
 
 	// 提交，如果HisId重复，则返回失败
 	err := b.infoDal.Save(model)
@@ -114,7 +111,7 @@ func (b *Bll) DeletePatient(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (b *Bll) SaveCase(ctx *qf.Context) (interface{}, error) {
-	model := &Case{}
+	model := &PatientCase{}
 	if err := ctx.Bind(model); err != nil {
 		return nil, err
 	}
@@ -158,7 +155,7 @@ func (b *Bll) GetFull(ctx *qf.Context) (interface{}, error) {
 		return nil, err
 	}
 	// 通过患者Id获取所有病历
-	caseList := make([]Case, 0)
+	caseList := make([]PatientCase, 0)
 	err = b.caseDal.GetListByPatientId(patInfo.Id, &caseList)
 	if err != nil {
 		return nil, err
@@ -169,8 +166,8 @@ func (b *Bll) GetFull(ctx *qf.Context) (interface{}, error) {
 		Patient interface{}
 		Cases   interface{}
 	}{
-		Patient: b.Map(patInfo),
-		Cases:   b.Maps(caseList),
+		Patient: util.ToMap(patInfo),
+		Cases:   util.ToMaps(caseList),
 	}
 	return rt, nil
 }
@@ -200,7 +197,7 @@ func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, error) {
 	}
 	if len(pats) == 0 {
 		// 基本信息未查询到数据，尝试查询病历表
-		caseList := make([]Case, 0)
+		caseList := make([]PatientCase, 0)
 		err = b.caseDal.GetListByCaseId(key, &caseList)
 		if err != nil {
 			return nil, err
@@ -216,14 +213,14 @@ func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, error) {
 				Patient interface{}
 				Cases   interface{}
 			}{
-				Patient: b.Map(p),
-				Cases:   b.Maps(caseList),
+				Patient: util.ToMap(p),
+				Cases:   util.ToMaps(caseList),
 			})
 		}
 	} else {
 		// 遍历查询
 		for _, p := range pats {
-			caseList := make([]Case, 0)
+			caseList := make([]PatientCase, 0)
 			err = b.caseDal.GetListByPatientId(p.Id, &caseList)
 			if err != nil {
 				return nil, err
@@ -232,8 +229,8 @@ func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, error) {
 				Patient interface{}
 				Cases   interface{}
 			}{
-				Patient: b.Map(p),
-				Cases:   b.Maps(caseList),
+				Patient: util.ToMap(p),
+				Cases:   util.ToMaps(caseList),
 			})
 		}
 	}

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"github.com/UritMedical/qf"
 	"github.com/UritMedical/qf/helper"
-	"github.com/UritMedical/qf/mc/user/uModel"
-	uUtils "github.com/UritMedical/qf/mc/user/utils"
+	"github.com/UritMedical/qf/user/model"
+	"github.com/UritMedical/qf/util"
 	"strings"
 )
 
@@ -17,14 +17,14 @@ func (b *Bll) regUserApi(api qf.ApiMap) {
 	api.Reg(qf.EApiKindSave, "login", b.login)
 
 	//用户增删改查
-	api.Reg(qf.EApiKindSave, "", b.saveUser)
-	api.Reg(qf.EApiKindDelete, "", b.deleteUser)
-	api.Reg(qf.EApiKindGetModel, "", b.getUserModel)
-	api.Reg(qf.EApiKindGetList, "", b.getAllUsers)
+	api.Reg(qf.EApiKindSave, "user", b.saveUser)
+	api.Reg(qf.EApiKindDelete, "user", b.deleteUser)
+	api.Reg(qf.EApiKindGetModel, "user", b.getUserModel)
+	api.Reg(qf.EApiKindGetList, "users", b.getAllUsers)
 
 	//密码重置、修改
-	api.Reg(qf.EApiKindSave, "pwd/reset", b.resetPassword)
-	api.Reg(qf.EApiKindSave, "pwd", b.changePassword)
+	api.Reg(qf.EApiKindSave, "user/pwd/reset", b.resetPassword)
+	api.Reg(qf.EApiKindSave, "user/pwd", b.changePassword)
 }
 
 //
@@ -37,14 +37,13 @@ func (b *Bll) regUserApi(api qf.ApiMap) {
 func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 	var params = struct {
 		LoginId  string
-		Password string
+		Password string //md5
 	}{}
 
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
 	params.LoginId = strings.Replace(params.LoginId, " ", "", -1)
-	params.Password = uUtils.ConvertToMD5([]byte(params.Password))
 	if user, ok := b.userDal.CheckLogin(params.LoginId, params.Password); ok {
 		role, _ := b.userRoleDal.GetUsersByRoleId(user.Id)
 		return helper.GenerateToken(user.Id, role)
@@ -57,12 +56,12 @@ func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 }
 
 func (b *Bll) saveUser(ctx *qf.Context) (interface{}, error) {
-	user := &uModel.User{}
+	user := &model.User{}
 	if err := ctx.Bind(user); err != nil {
 		return nil, err
 	}
 	if !b.userDal.CheckExists(user.Id) {
-		user.Password = uUtils.ConvertToMD5([]byte(defPassword))
+		user.Password = util.ConvertToMD5([]byte(defPassword))
 	}
 	//创建用户
 	return nil, b.userDal.Save(user)
@@ -75,9 +74,9 @@ func (b *Bll) deleteUser(ctx *qf.Context) (interface{}, error) {
 }
 
 func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
-	var user uModel.User
+	var user model.User
 	//获取用户角色
-	roleIds, err := b.userRoleDal.GetRolesByUserId(uint64(ctx.UserId))
+	roleIds, err := b.userRoleDal.GetRolesByUserId(ctx.LoginUser().UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -85,10 +84,10 @@ func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = b.userDal.GetModel(uint64(ctx.UserId), &user)
+	err = b.userDal.GetModel(ctx.LoginUser().UserId, &user)
 	ret := map[string]interface{}{
-		"info":  b.Map(user),
-		"roles": b.Maps(roles),
+		"info":  util.ToMaps(user),
+		"roles": util.ToMaps(roles),
 	}
 
 	return ret, err
@@ -103,7 +102,7 @@ func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
 //
 func (b *Bll) getAllUsers(ctx *qf.Context) (interface{}, error) {
 	list, err := b.userDal.GetAllUsers()
-	return b.Maps(list), err
+	return util.ToMaps(list), err
 }
 
 //
@@ -115,7 +114,7 @@ func (b *Bll) getAllUsers(ctx *qf.Context) (interface{}, error) {
 //
 func (b *Bll) resetPassword(ctx *qf.Context) (interface{}, error) {
 	uId := ctx.GetId()
-	return nil, b.userDal.SetPassword(uId, uUtils.ConvertToMD5([]byte(defPassword)))
+	return nil, b.userDal.SetPassword(uId, util.ConvertToMD5([]byte(defPassword)))
 }
 
 //
@@ -133,8 +132,8 @@ func (b *Bll) changePassword(ctx *qf.Context) (interface{}, error) {
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
-	if !b.userDal.CheckOldPassword(uint64(ctx.UserId), params.OldPassword) {
+	if !b.userDal.CheckOldPassword(ctx.LoginUser().UserId, params.OldPassword) {
 		return nil, errors.New("old password is incorrect")
 	}
-	return nil, b.userDal.SetPassword(uint64(ctx.UserId), uUtils.ConvertToMD5([]byte(params.NewPassword)))
+	return nil, b.userDal.SetPassword(ctx.LoginUser().UserId, params.NewPassword)
 }

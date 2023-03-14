@@ -9,6 +9,7 @@ import (
 )
 
 type ByDB struct {
+	name  string
 	db    *gorm.DB
 	per   uint
 	start uint
@@ -29,8 +30,10 @@ type idAllocator struct {
 //  @return *ByDB
 //
 func NewIdAllocatorByDB(per uint, start uint, db *gorm.DB) *ByDB {
-	_ = db.Table("id_allocator").AutoMigrate(idAllocator{})
+	name := "QfId"
+	_ = db.Table(name).AutoMigrate(idAllocator{})
 	return &ByDB{
+		name:  name,
 		db:    db,
 		per:   per,
 		start: start,
@@ -53,7 +56,7 @@ func (b *ByDB) Next(name string) uint64 {
 	val := idAllocator{
 		Name: name,
 	}
-	rs := b.db.Table("id_allocator").First(&val)
+	rs := b.db.Table(b.name).First(&val)
 	if rs.RowsAffected == 0 {
 		val.Value = uint64(b.start)
 	} else {
@@ -62,7 +65,7 @@ func (b *ByDB) Next(name string) uint64 {
 	// 再保存
 	val.Name = name
 	val.LastTime = time.Now().Local()
-	rs = b.db.Table("id_allocator").Save(&val)
+	rs = b.db.Table(b.name).Save(&val)
 	if rs.RowsAffected > 0 {
 		if b.per == 0 {
 			return val.Value

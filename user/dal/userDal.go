@@ -1,8 +1,8 @@
-package uDal
+package dal
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/uModel"
+	"github.com/UritMedical/qf/user/model"
 )
 
 type UserDal struct {
@@ -27,8 +27,8 @@ func (u *UserDal) SetPassword(id uint64, newPwd string) error {
 //  @param password
 //  @return bool
 //
-func (u *UserDal) CheckLogin(loginId, password string) (uModel.User, bool) {
-	var user uModel.User
+func (u *UserDal) CheckLogin(loginId, password string) (model.User, bool) {
+	var user model.User
 	u.DB().Where("LoginId = ? AND Password = ?", loginId, password).Find(&user)
 	return user, user.Id > 0
 }
@@ -52,8 +52,8 @@ func (u *UserDal) CheckOldPassword(id uint64, password string) bool {
 //  @return []uModel.User
 //  @return error
 //
-func (u *UserDal) GetAllUsers() ([]uModel.User, error) {
-	list := make([]uModel.User, 0)
+func (u *UserDal) GetAllUsers() ([]model.User, error) {
+	list := make([]model.User, 0)
 	err := u.DB().Where("Id > 0").Find(&list).Error
 	return list, err
 }
@@ -65,8 +65,8 @@ func (u *UserDal) GetAllUsers() ([]uModel.User, error) {
 //  @return []uModel.User
 //  @return error
 //
-func (u *UserDal) GetUsersByIds(userIds []uint64) ([]uModel.User, error) {
-	list := make([]uModel.User, 0)
+func (u *UserDal) GetUsersByIds(userIds []uint64) ([]model.User, error) {
+	list := make([]model.User, 0)
 	err := u.DB().Where("Id IN (?)", userIds).Find(&list).Error
 	return list, err
 }

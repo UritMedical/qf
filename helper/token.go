@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	uUtils "github.com/UritMedical/qf/mc/user/utils"
+	"github.com/UritMedical/qf/util"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
 	"os"
@@ -14,7 +14,7 @@ import (
 //AESKey 注意：此密钥长度必须为16、32、64，否则生成加密模块时会报错
 const AESKey = "wwuritcomlisurit"
 const IV = "wwwuritcom123456"
-const JwtSecretFile = "jwtSecret" //密钥存储的文件名称
+const JwtSecretFile = "./config/jwtSecret" //密钥存储的文件名称
 
 //token有效期
 const tokenExpireDuration = time.Hour * 24 * 3
@@ -58,7 +58,7 @@ func InitJwtSecret() {
 	//初始化token密钥
 	jwt, err := DecodeJwtFromFile(JwtSecretFile, []byte(AESKey), []byte(IV))
 	if err != nil || jwt == "" {
-		jwtStr := uUtils.RandomString(32)
+		jwtStr := util.RandomString(32)
 		JwtSecret = []byte(jwtStr)
 		//将密钥进行AES加密后存入文件
 		_ = EncryptAndWriteToFile(jwtStr, JwtSecretFile, []byte(AESKey), []byte(IV))

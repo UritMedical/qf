@@ -1,4 +1,4 @@
-package uModel
+package model
 
 import "github.com/UritMedical/qf"
 
@@ -28,30 +28,30 @@ type Role struct {
 	Name string `gorm:"unique"` // 角色名称
 }
 
-// RoleRights
+// RolePermission
 // @Description: 角色权限组关系
 //
-type RoleRights struct {
+type RolePermission struct {
 	qf.BaseModel
-	RoleId   uint64 `gorm:"index"`
-	RightsId uint64 `gorm:"index"`
+	RoleId       uint64 `gorm:"index"`
+	PermissionId uint64 `gorm:"index"`
 }
 
-// RightsGroup
+// Permission
 // @Description: 权限组
 //
-type RightsGroup struct {
+type Permission struct {
 	qf.BaseModel
 	Name string `gorm:"unique"` //权限组名称
 }
 
-// RightsApi
+// PermissionApi
 // @Description: 权限组与API的关系
 //
-type RightsApi struct {
+type PermissionApi struct {
 	qf.BaseModel
-	RightsId uint64 `gorm:"index"`
-	ApiId    string //API key
+	PermissionId uint64 `gorm:"index"`
+	ApiId        string //API key
 }
 
 // Department

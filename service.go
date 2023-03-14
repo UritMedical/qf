@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/UritMedical/qf/helper/config"
 	"github.com/UritMedical/qf/helper/id"
 	"github.com/UritMedical/qf/util/io"
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,6 @@ import (
 	"gorm.io/gorm/schema"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -28,6 +28,7 @@ type Service struct {
 	msgHandler  map[string]MessageHandler // 所有消息执行的函数指针
 	setting     setting                   // 框架配置
 	idAllocator iIdAllocator              // id分配器
+	config      iConfig                   // 配置文件接口
 }
 
 //
@@ -45,7 +46,7 @@ func newService() *Service {
 	// 默认文件夹路径
 	s.folder = "."
 	// 加载配置
-	s.setting.Load(fmt.Sprintf("%s/config.toml", s.folder))
+	s.setting.Load(fmt.Sprintf("%s/config/config.toml", s.folder))
 	// 创建数据库
 	dbDir := io.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
 	gc := gorm.Config{
@@ -64,6 +65,7 @@ func newService() *Service {
 	s.db = db
 	// 初始化Id分配器
 	s.idAllocator = id.NewIdAllocatorByDB(s.setting.Id, 1000, db)
+	s.config = config.NewConfigByDB(db)
 	// 创建Gin服务
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
@@ -86,6 +88,9 @@ func newService() *Service {
 //  @Description: 运行服务
 //
 func (s *Service) run() {
+	// 注册
+	s.reg()
+
 	// 初始化
 	err := s.init()
 	if err != nil {
@@ -118,59 +123,33 @@ func (s *Service) stop() {
 // RegBll
 //  @Description: 注册业务对象
 //  @param bll 业务对象
-//  @param group 所在组，如果为空则默认为api
+//  @param group 子组路径名
 //
 func (s *Service) RegBll(bll IBll, group string) {
-	// 初始化
-	pkg, name := s.getBllName(bll)
-	bll.setPkg(pkg)
-	bll.setName(name)
-	bll.setGroup(group)
-
-	// 注册API和路由
-	api := ApiMap{}
-	bll.RegApi(api)
-	router := s.engine.Group(group)
-	for kind, routers := range api {
-		for relative, handler := range routers {
-			path := pkg + "/" + relative
-			if kind == EApiKindGetList {
-				path = pkg + "s" + "/" + relative
-			}
-			path = strings.Trim(path, "/")
-			router.Handle(kind.HttpMethod(), path, s.context)
-			s.apiHandler[fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), group, path)] = handler
-		}
-	}
-
-	msg := MessageMap{}
-	bll.RegMsg(msg)
-	for kind, routers := range msg {
-		for relative, handler := range routers {
-			sp := strings.Split(relative, ",")
-			path := sp[0] + "/" + sp[1]
-			if kind == EApiKindGetList {
-				path = sp[0] + "s" + "/" + sp[1]
-			}
-			path = strings.Trim(path, "/")
-			s.msgHandler[fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), group, path)] = handler
-		}
-	}
-
-	// 注册数据访问层并初始化
-	dal := DalMap{}
-	bll.RegDal(dal)
-	for d, model := range dal {
-		// 配置数据库给数据层，并初始化表结构
-		d.initDB(s.db, model)
-		d.setChild(d)
-	}
-
+	// 初始化业务对象
+	bll.set(bll, s.setting.UrlGroup, group, s.config)
 	// 加入到业务列表
-	if _, ok := s.bllList[bll.getKey()]; ok == false {
-		s.bllList[bll.getKey()] = bll
+	if _, ok := s.bllList[bll.key()]; ok == false {
+		s.bllList[bll.key()] = bll
 	} else {
-		panic(fmt.Sprintf("%s already exists", bll.getKey()))
+		panic(fmt.Sprintf("%s already exists", bll.key()))
+	}
+}
+
+func (s *Service) reg() {
+	for _, bll := range s.bllList {
+		// 注册API和路由
+		bll.regApi(func(key string, handler ApiHandler) {
+			sp := strings.Split(key, ":")
+			s.engine.Handle(sp[0], sp[1], s.context)
+			s.apiHandler[key] = handler
+		})
+		// 注册数据访问层
+		bll.regDal(s.db)
+		// 注册消息
+		bll.regMsg(func(key string, handler MessageHandler) {
+			s.msgHandler[key] = handler
+		})
 	}
 }
 
@@ -180,17 +159,21 @@ func (s *Service) RegBll(bll IBll, group string) {
 //  @return error
 //
 func (s *Service) init() error {
-	//// 给所有引用的第三方业务赋值
-	//for _, bll := range s.bllList {
-	//	refs := bll.RefBll()
-	//	for i := 0; i < len(refs); i++ {
-	//		if b, ok := s.bllList[refs[i].getKey()]; ok {
-	//			refs[i] = b
-	//		} else {
-	//			panic("not found")
-	//		}
-	//	}
-	//}
+	// 检测注册的消息是否都操作
+	for key := range s.msgHandler {
+		if _, ok := s.apiHandler[key]; ok == false {
+			panic(fmt.Sprintf("【RegMsg】：%s does not exist", key))
+		}
+	}
+	// 绑定包外引用
+	for _, bll := range s.bllList {
+		bll.regRef(func(key string) ApiHandler {
+			if _, ok := s.apiHandler[key]; ok == false {
+				panic(fmt.Sprintf("【RegRef】：%s does not exist", key))
+			}
+			return s.apiHandler[key]
+		})
+	}
 	// 执行业务初始化
 	for _, bll := range s.bllList {
 		err := bll.Init()
@@ -198,23 +181,15 @@ func (s *Service) init() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
-func (s *Service) getBllName(bll IBll) (string, string) {
-	t := reflect.TypeOf(bll).Elem()
-	sp := strings.Split(t.PkgPath(), "/")
-	return sp[len(sp)-1], t.Name()
-}
-
 func (s *Service) context(ctx *gin.Context) {
-	url := fmt.Sprintf("%s:%s", ctx.Request.Method, strings.TrimLeft(ctx.FullPath(), "/"))
+	url := fmt.Sprintf("%s:%s", ctx.Request.Method, ctx.FullPath())
 	if handler, ok := s.apiHandler[url]; ok {
 		qfCtx := &Context{
-			Time:        time.Now().Local(),
-			UserId:      1,
-			UserName:    "暂时写死测试用",
+			time:        time.Now().Local(),
+			loginUser:   LoginUser{}, // TODO
 			inputValue:  make([]map[string]interface{}, 0),
 			inputSource: "",
 			idAllocator: s.idAllocator,
@@ -313,18 +288,32 @@ func (s *Service) getCors() gin.HandlerFunc {
 	}
 }
 
-func BuildContext(ctx Context, input interface{}) Context {
-	nctx := Context{
-		Time:        ctx.Time,
-		UserId:      ctx.UserId,
-		UserName:    ctx.UserName,
+func BuildContext(ctx *Context, input interface{}) *Context {
+	context := &Context{
+		time:        ctx.time,
+		loginUser:   ctx.loginUser,
 		inputValue:  nil,
 		inputSource: "",
 		idPer:       ctx.idPer,
 		idAllocator: ctx.idAllocator,
 	}
-
-	return nctx
+	body, _ := json.Marshal(input)
+	context.inputSource = string(body)
+	if json.Valid(body) {
+		// 如果是json列表
+		if strings.HasPrefix(context.inputSource, "[") &&
+			strings.HasSuffix(context.inputSource, "]") {
+			_ = json.Unmarshal(body, &context.inputValue)
+		}
+		// 如果是json结构
+		if strings.HasPrefix(context.inputSource, "{") &&
+			strings.HasSuffix(context.inputSource, "}") {
+			iv := map[string]interface{}{}
+			_ = json.Unmarshal(body, &iv)
+			context.inputValue = append(context.inputValue, iv)
+		}
+	}
+	return context
 }
 
 //
@@ -338,11 +327,11 @@ func buildTableName(model interface{}) string {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	pName := strings.ToLower(filepath.Base(t.PkgPath()))
-	bName := strings.ToLower(t.Name())
-	tName := fmt.Sprintf("%s_%s", pName, bName)
-	if pName == bName {
-		tName = pName
+	per := ""
+	// 如果是框架内部业务，则直接增加Qf前缀
+	// 反之直接使用实体名称
+	if strings.HasPrefix(t.PkgPath(), "github.com/UritMedical/qf") {
+		per = "Qf"
 	}
-	return tName
+	return fmt.Sprintf("%s%s", per, t.Name())
 }

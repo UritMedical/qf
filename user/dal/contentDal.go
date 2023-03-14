@@ -1,8 +1,8 @@
-package uDal
+package dal
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/mc/user/uModel"
+	"github.com/UritMedical/qf/user/model"
 )
 
 // DepartmentDal
@@ -19,29 +19,29 @@ type DepartmentDal struct {
 //  @return []uModel.Department
 //  @return error
 //
-func (d DepartmentDal) GetDptsByIds(dptIds []uint64) ([]uModel.Department, error) {
-	list := make([]uModel.Department, 0)
+func (d DepartmentDal) GetDptsByIds(dptIds []uint64) ([]model.Department, error) {
+	list := make([]model.Department, 0)
 	err := d.DB().Where("Id IN (?)", dptIds).Find(&list).Error
 	return list, err
 }
 
-// RightsGroupDal
+// PermissionDal
 // @Description: 权限组
 //
-type RightsGroupDal struct {
+type PermissionDal struct {
 	qf.BaseDal
 }
 
 //
-// GetRightsGroupByIds
+// GetPermissionsByIds
 //  @Description: 获取权限组列表
 //  @param ids
-//  @return []uModel.RightsGroup
+//  @return []model.Permission
 //  @return error
 //
-func (r RightsGroupDal) GetRightsGroupByIds(ids []uint64) ([]uModel.RightsGroup, error) {
-	list := make([]uModel.RightsGroup, 0)
-	err := r.DB().Where("Id IN (?)", ids).Find(&list).Error
+func (p PermissionDal) GetPermissionsByIds(ids []uint64) ([]model.Permission, error) {
+	list := make([]model.Permission, 0)
+	err := p.DB().Where("Id IN (?)", ids).Find(&list).Error
 	return list, err
 }
 
@@ -59,8 +59,8 @@ type RoleDal struct {
 //  @return []uModel.Role
 //  @return error
 //
-func (role RoleDal) GetRolesByIds(ids []uint64) ([]uModel.Role, error) {
-	list := make([]uModel.Role, 0)
+func (role RoleDal) GetRolesByIds(ids []uint64) ([]model.Role, error) {
+	list := make([]model.Role, 0)
 	err := role.DB().Where("Id IN (?)", ids).Find(&list).Error
 	return list, err
 }
