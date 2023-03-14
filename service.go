@@ -88,6 +88,9 @@ func newService() *Service {
 //  @Description: 运行服务
 //
 func (s *Service) run() {
+	// 注册
+	s.reg()
+
 	// 初始化
 	err := s.init()
 	if err != nil {
@@ -120,76 +123,33 @@ func (s *Service) stop() {
 // RegBll
 //  @Description: 注册业务对象
 //  @param bll 业务对象
-//  @param group 所在组，如果为空则默认为api
+//  @param group 子组路径名
 //
 func (s *Service) RegBll(bll IBll, group string) {
-	// 初始化
-	pkg, name := s.getBllName(bll)
-	bll.setPkg(pkg)
-	bll.setName(name)
-	bll.setGroup(group)
-	bll.setIConfig(s.config)
-
-	// 注册API和路由
-	api := ApiMap{}
-	bll.RegApi(api)
-	router := s.engine.Group(group)
-	for kind, routers := range api {
-		for relative, handler := range routers {
-			path := pkg + "/" + relative
-			if kind == EApiKindGetList {
-				path = pkg + "s" + "/" + relative
-			}
-			path = strings.Trim(path, "/")
-			router.Handle(kind.HttpMethod(), path, s.context)
-			s.apiHandler[fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), group, path)] = handler
-		}
-	}
-
-	// 注册数据访问层并初始化
-	dal := DalMap{}
-	bll.RegDal(dal)
-	for d, model := range dal {
-		// 配置数据库给数据层，并初始化表结构
-		d.initDB(s.db, model)
-		d.setChild(d)
-	}
-
-	// 注册消息
-	msg := MessageMap{}
-	bll.RegMsg(msg)
-	for kind, routers := range msg {
-		for relative, handler := range routers {
-			sp := strings.Split(relative, ",")
-			path := sp[0] + "/" + sp[1]
-			if kind == EApiKindGetList {
-				path = sp[0] + "s" + "/" + sp[1]
-			}
-			path = strings.Trim(path, "/")
-			s.msgHandler[fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), group, path)] = handler
-		}
-	}
-
-	//// 注册其他包引用
-	//ref := RefMap{}
-	//bll.RegRef(ref)
-	//for kind, routers := range ref {
-	//	for relative, handler := range routers {
-	//		sp := strings.Split(relative, ",")
-	//		path := sp[0] + "/" + sp[1]
-	//		if kind == EApiKindGetList {
-	//			path = sp[0] + "s" + "/" + sp[1]
-	//		}
-	//		path = strings.Trim(path, "/")
-	//		s.refHandler[fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), group, path)] = handler
-	//	}
-	//}
-
+	// 初始化业务对象
+	bll.set(bll, s.setting.UrlGroup, group, s.config)
 	// 加入到业务列表
-	if _, ok := s.bllList[bll.getKey()]; ok == false {
-		s.bllList[bll.getKey()] = bll
+	if _, ok := s.bllList[bll.key()]; ok == false {
+		s.bllList[bll.key()] = bll
 	} else {
-		panic(fmt.Sprintf("%s already exists", bll.getKey()))
+		panic(fmt.Sprintf("%s already exists", bll.key()))
+	}
+}
+
+func (s *Service) reg() {
+	for _, bll := range s.bllList {
+		// 注册API和路由
+		bll.regApi(func(key string, handler ApiHandler) {
+			sp := strings.Split(key, ":")
+			s.engine.Handle(sp[0], sp[1], s.context)
+			s.apiHandler[key] = handler
+		})
+		// 注册数据访问层
+		bll.regDal(s.db)
+		// 注册消息
+		bll.regMsg(func(key string, handler MessageHandler) {
+			s.msgHandler[key] = handler
+		})
 	}
 }
 
@@ -199,15 +159,21 @@ func (s *Service) RegBll(bll IBll, group string) {
 //  @return error
 //
 func (s *Service) init() error {
-	// 绑定外包引用到业务API
-	for _, bll := range s.bllList {
-		// 注册其他包引用
-		ref := RefMap{}
-		ref.bllGroup = bll.getGroup()
-		ref.allApis = s.apiHandler
-		bll.RegRef(ref)
+	// 检测注册的消息是否都操作
+	for key := range s.msgHandler {
+		if _, ok := s.apiHandler[key]; ok == false {
+			panic(fmt.Sprintf("【RegMsg】：%s does not exist", key))
+		}
 	}
-
+	// 绑定包外引用
+	for _, bll := range s.bllList {
+		bll.regRef(func(key string) ApiHandler {
+			if _, ok := s.apiHandler[key]; ok == false {
+				panic(fmt.Sprintf("【RegRef】：%s does not exist", key))
+			}
+			return s.apiHandler[key]
+		})
+	}
 	// 执行业务初始化
 	for _, bll := range s.bllList {
 		err := bll.Init()
@@ -215,18 +181,11 @@ func (s *Service) init() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
-func (s *Service) getBllName(bll IBll) (string, string) {
-	t := reflect.TypeOf(bll).Elem()
-	sp := strings.Split(t.PkgPath(), "/")
-	return sp[len(sp)-1], t.Name()
-}
-
 func (s *Service) context(ctx *gin.Context) {
-	url := fmt.Sprintf("%s:%s", ctx.Request.Method, strings.TrimLeft(ctx.FullPath(), "/"))
+	url := fmt.Sprintf("%s:%s", ctx.Request.Method, ctx.FullPath())
 	if handler, ok := s.apiHandler[url]; ok {
 		qfCtx := &Context{
 			time:        time.Now().Local(),

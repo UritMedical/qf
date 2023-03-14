@@ -2,7 +2,9 @@ package util
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/UritMedical/qf/util/reflectex"
 	"reflect"
 	"time"
 )
@@ -50,8 +52,40 @@ func ToMaps(list interface{}) []map[string]interface{} {
 	return finals
 }
 
-func SetModel(model interface{}, value map[string]interface{}) {
-
+//
+// SetModel
+//  @Description: 修改结构体内的方法
+//  @param objectPtr
+//  @param value
+//
+func SetModel(objectPtr interface{}, value map[string]interface{}) error {
+	if objectPtr == nil {
+		return errors.New("the object cannot be empty")
+	}
+	// 必须为指针
+	if reflectex.IsPtr(objectPtr) == false {
+		return errors.New("the object must be pointer")
+	}
+	mp := reflectex.StructToMap(objectPtr)
+	for k, v := range value {
+		if _, ok := mp[k]; ok {
+			mp[k] = v
+		}
+	}
+	if info, ok := mp["FullInfo"]; ok {
+		imap := map[string]interface{}{}
+		err := json.Unmarshal([]byte(info.(string)), &imap)
+		if err == nil {
+			for k, v := range value {
+				if _, ok := mp[k]; ok == false {
+					imap[k] = v
+				}
+			}
+			mj, _ := json.Marshal(imap)
+			mp["FullInfo"] = string(mj)
+		}
+	}
+	return nil
 }
 
 // 将完整内容Json和对应的实体，合并为一个字典对象

@@ -108,7 +108,7 @@ func (ctx *Context) LoginUser() LoginUser {
 //  @return error
 //
 func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) error {
-	return ctx.bind(objectPtr, true, attachValues)
+	return ctx.bind(objectPtr, true, attachValues...)
 }
 
 //
@@ -119,7 +119,7 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) err
 //  @return error
 //
 func (ctx *Context) BindWithoutAutoId(objectPtr interface{}, attachValues ...interface{}) error {
-	return ctx.bind(objectPtr, false, attachValues)
+	return ctx.bind(objectPtr, false, attachValues...)
 }
 
 func (ctx *Context) bind(objectPtr interface{}, autoId bool, attachValues ...interface{}) error {
@@ -131,6 +131,14 @@ func (ctx *Context) bind(objectPtr interface{}, autoId bool, attachValues ...int
 		return errors.New("the object must be pointer")
 	}
 
+	// 追加附加内容到字典
+	for _, value := range attachValues {
+		for k, v := range reflectex.StructToMap(value) {
+			for _, vv := range ctx.inputValue {
+				vv[k] = v
+			}
+		}
+	}
 	// 然后根据类型，将字典写入到对象或列表中
 	table := buildTableName(objectPtr)
 	cnt := make([]BaseModel, 0)

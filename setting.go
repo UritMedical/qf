@@ -10,6 +10,7 @@ type setting struct {
 	Id         uint        `comment:"框架Id，主服务为0"`
 	Name       string      `comment:"框架名称，用于网络发现，单体服务可为空"`
 	Port       string      `comment:"服务端口"`
+	UrlGroup   string      `comment:"路由的默认所在组"`
 	WebConfig  *webConfig  `comment:"web配置"`
 	GormConfig *gormConfig `comment:"gorm配置"`
 }
@@ -31,6 +32,10 @@ func (s *setting) Load(path string) {
 	changed := false
 	if s.Port == "" {
 		s.Port = "80"
+		changed = true
+	}
+	if s.UrlGroup == "" {
+		s.UrlGroup = "api"
 		changed = true
 	}
 	if s.WebConfig == nil {

@@ -12,22 +12,22 @@ import (
 //  @Description: 通用业务接口方法
 //
 type IBll interface {
-	RegApi(regApi ApiMap)     // 注册需要暴露的API方法
-	RegDal(regDal DalMap)     // 注册需要框架初始化的数据访问层对象
-	RegMsg(regMsg MessageMap) // 注册需要接收处理的消息
-	RegRef(regRef RefMap)     // 注册引用
-	Init() error              // 业务自己的初始化方法
-	Stop()                    // 业务自己的资源释放方法
+	RegApi(a ApiMap)     // 注册需要暴露的API方法
+	RegDal(d DalMap)     // 注册需要框架初始化的数据访问层对象
+	RegMsg(m MessageMap) // 注册需要接收处理的消息
+	RegRef(r RefMap)     // 注册引用
+	Init() error         // 业务自己的初始化方法
+	Stop()               // 业务自己的资源释放方法
 	// 框架内部实现的方法
-	setPkg(pkg string)                                    // 1
-	setName(name string)                                  // 1
-	setGroup(group string)                                // 1
-	setIConfig(config iConfig)                            // 1
-	getKey() string                                       // 1
-	getGroup() string                                     // 1
-	Debug(content string)                                 // 1
-	GetConfig() map[string]interface{}                    // 1
-	SetConfig(value map[string]interface{}) (bool, error) // 1
+	set(sub IBll, qfGroup, subGroup string, config iConfig) // 将主服务的部分对象设置被基础业务
+	key() string                                            // 获取业务唯一编号
+	regApi(bind func(key string, handler ApiHandler))       // 框架注册方法
+	regMsg(bind func(key string, handler MessageHandler))   // 框架注册方法
+	regDal(db *gorm.DB)                                     // 框架注册方法
+	regRef(getApi func(key string) ApiHandler)              // 框架注册方法
+	Debug(content string)                                   // 调试日志
+	GetConfig() map[string]interface{}                      // 获取配置
+	SetConfig(value map[string]interface{}) (bool, error)   // 写入配置
 }
 
 //
@@ -35,34 +35,72 @@ type IBll interface {
 //  @Description: 提供业务基础通用方法
 //
 type BaseBll struct {
-	pkg    string
-	name   string
-	group  string
-	config iConfig
+	pkg      string  // 业务所在的包名
+	name     string  // 业务名称
+	qfGroup  string  // 框架路径组
+	subGroup string  // 自定义路径组
+	config   iConfig // 配置接口
+	sub      IBll    // 子接口
 }
 
-func (bll *BaseBll) setPkg(pkg string) {
-	bll.pkg = pkg
-}
-
-func (bll *BaseBll) setName(name string) {
-	bll.name = name
-}
-
-func (bll *BaseBll) setGroup(group string) {
-	bll.group = group
-}
-
-func (bll *BaseBll) setIConfig(config iConfig) {
+func (bll *BaseBll) set(sub IBll, qfGroup, subGroup string, config iConfig) {
+	// 反射子类
+	t := reflect.TypeOf(sub).Elem()
+	// 初始化
+	bll.sub = sub
+	bll.pkg = strings.ToLower(t.PkgPath())
+	bll.name = strings.ToLower(t.Name())
+	bll.qfGroup = strings.ToLower(qfGroup)
+	bll.subGroup = strings.ToLower(subGroup)
 	bll.config = config
 }
 
-func (bll *BaseBll) getKey() string {
-	return fmt.Sprintf("%s/%s.%s", bll.group, bll.pkg, bll.name)
+func (bll *BaseBll) key() string {
+	return fmt.Sprintf("%s.%s", bll.pkg, bll.name)
 }
 
-func (bll *BaseBll) getGroup() string {
-	return bll.group
+func (bll *BaseBll) regApi(bind func(key string, handler ApiHandler)) {
+	api := ApiMap{}
+	bll.sub.RegApi(api)
+	for kind, routers := range api {
+		for relative, handler := range routers {
+			bind(bll.buildPathKey(kind, relative), handler)
+		}
+	}
+}
+
+func (bll *BaseBll) regMsg(bind func(key string, handler MessageHandler)) {
+	msg := MessageMap{}
+	bll.sub.RegMsg(msg)
+	for kind, routers := range msg {
+		for relative, handler := range routers {
+			bind(bll.buildPathKey(kind, relative), handler)
+		}
+	}
+}
+
+func (bll *BaseBll) regDal(db *gorm.DB) {
+	dal := DalMap{}
+	bll.sub.RegDal(dal)
+	for d, model := range dal {
+		d.init(db, model)
+	}
+}
+
+func (bll *BaseBll) regRef(getApi func(key string) ApiHandler) {
+	ref := RefMap{
+		getApi: func(kind EApiKind, relative string) ApiHandler {
+			return getApi(bll.buildPathKey(kind, relative))
+		},
+	}
+	bll.sub.RegRef(ref)
+}
+
+func (bll *BaseBll) buildPathKey(kind EApiKind, relative string) string {
+	path := fmt.Sprintf("%s/%s/%s", bll.qfGroup, bll.subGroup, relative)
+	path = strings.Replace(path, "//", "/", -1)
+	path = strings.TrimRight(path, "/")
+	return fmt.Sprintf("%s:/%s", kind.HttpMethod(), path)
 }
 
 //
@@ -80,7 +118,7 @@ func (bll *BaseBll) Debug(info string) {
 //  @return map[string]interface{}
 //
 func (bll *BaseBll) GetConfig() map[string]interface{} {
-	return bll.config.GetConfig(bll.getKey())
+	return bll.config.GetConfig(fmt.Sprintf("%s.%s", bll.pkg, bll.name))
 }
 
 //
@@ -91,7 +129,7 @@ func (bll *BaseBll) GetConfig() map[string]interface{} {
 //  @return error
 //
 func (bll *BaseBll) SetConfig(value map[string]interface{}) (bool, error) {
-	return bll.config.SetConfig(bll.getKey(), value)
+	return bll.config.SetConfig(fmt.Sprintf("%s.%s", bll.pkg, bll.name), value)
 }
 
 //
@@ -107,8 +145,7 @@ type IDal interface {
 	GetCount(query interface{}, args ...interface{}) int64         // 根据条件获取数量
 	CheckExists(id uint64) bool                                    // 检测Id是否存在
 	// 框架内部实现的方法
-	initDB(db *gorm.DB, model interface{})
-	setChild(dal IDal)
+	init(db *gorm.DB, model interface{})
 }
 
 //
@@ -117,7 +154,6 @@ type IDal interface {
 //
 type BaseDal struct {
 	db        *gorm.DB
-	dal       IDal
 	tableName string
 }
 
@@ -129,22 +165,12 @@ type BaseDal struct {
 //  @param pkgName
 //  @param model
 //
-func (b *BaseDal) initDB(db *gorm.DB, model interface{}) {
+func (b *BaseDal) init(db *gorm.DB, model interface{}) {
 	b.db = db
 	// 根据实体名称，生成数据库
 	b.tableName = buildTableName(model)
 	// 自动生成表
 	_ = db.Table(b.tableName).AutoMigrate(model)
-}
-
-//
-// setChild
-//  @Description: 设置子集，用于后期反射
-//  @receiver b
-//  @param dal
-//
-func (b *BaseDal) setChild(dal IDal) {
-	b.dal = dal
 }
 
 //
@@ -317,32 +343,21 @@ func (d DalMap) Reg(iDal IDal, model interface{}) {
 
 type MessageMap map[EApiKind]map[string]MessageHandler
 
-func (msg MessageMap) Reg(pkgName string, kind EApiKind, router string, handler MessageHandler) {
+func (msg MessageMap) Reg(kind EApiKind, router string, handler MessageHandler) {
 	if msg[kind] == nil {
 		msg[kind] = make(map[string]MessageHandler)
 	}
-	key := fmt.Sprintf("%s,%s", pkgName, router)
-	if _, ok := msg[kind][key]; ok == false {
-		msg[kind][key] = handler
+	if _, ok := msg[kind][router]; ok == false {
+		msg[kind][router] = handler
 	} else {
-		panic(fmt.Sprintf("【RegMsg】: %s:%s already exists", kind, key))
+		panic(fmt.Sprintf("【RegMsg】: %s:%s already exists", kind, router))
 	}
 }
 
 type RefMap struct {
-	bllGroup string
-	allApis  map[string]ApiHandler
+	getApi func(kind EApiKind, router string) ApiHandler
 }
 
-func (ref RefMap) Load(pkgName string, kind EApiKind, router string) ApiHandler {
-	path := pkgName + "/" + router
-	if kind == EApiKindGetList {
-		path = pkgName + "s" + "/" + router
-	}
-	path = strings.Trim(path, "/")
-	key := fmt.Sprintf("%s:%s/%s", kind.HttpMethod(), ref.bllGroup, path)
-	if api, ok := ref.allApis[key]; ok {
-		return api
-	}
-	return nil
+func (ref RefMap) Load(kind EApiKind, router string) ApiHandler {
+	return ref.getApi(kind, router)
 }

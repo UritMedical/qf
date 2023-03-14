@@ -9,32 +9,30 @@ type Bll struct {
 	qf.BaseBll
 	infoDal *InfoDal
 	caseDal *CaseDal
-
-	getUser qf.ApiHandler
 }
 
-func (b *Bll) RegApi(regApi qf.ApiMap) {
-	regApi.Reg(qf.EApiKindSave, "", b.SavePatient)      // 保存患者基本信息
-	regApi.Reg(qf.EApiKindDelete, "", b.DeletePatient)  // 删除患者，包含基本信息和全部病历
-	regApi.Reg(qf.EApiKindSave, "case", b.SaveCase)     // 保存患者病历信息
-	regApi.Reg(qf.EApiKindDelete, "case", b.DeleteCase) // 删除单个病历
-	regApi.Reg(qf.EApiKindGetModel, "", b.GetFull)      // 按唯一号或HIS唯一号获取完整信息（基本信息+病历列表）
-	regApi.Reg(qf.EApiKindGetList, "", b.GetFullList)   // 按条件获取完整列表
+func (b *Bll) RegApi(a qf.ApiMap) {
+	a.Reg(qf.EApiKindSave, "patient", b.SavePatient)       // 保存患者基本信息
+	a.Reg(qf.EApiKindDelete, "patient", b.DeletePatient)   // 删除患者，包含基本信息和全部病历
+	a.Reg(qf.EApiKindSave, "patient/case", b.SaveCase)     // 保存患者病历信息
+	a.Reg(qf.EApiKindDelete, "patient/case", b.DeleteCase) // 删除单个病历
+	a.Reg(qf.EApiKindGetModel, "patient", b.GetFull)       // 按唯一号或HIS唯一号获取完整信息（基本信息+病历列表）
+	a.Reg(qf.EApiKindGetList, "patients", b.GetFullList)   // 按条件获取完整列表
 }
 
-func (b *Bll) RegDal(regDal qf.DalMap) {
+func (b *Bll) RegDal(d qf.DalMap) {
 	b.infoDal = &InfoDal{}
 	b.caseDal = &CaseDal{}
-	regDal.Reg(b.infoDal, Patient{})
-	regDal.Reg(b.caseDal, Case{})
+	d.Reg(b.infoDal, Patient{})
+	d.Reg(b.caseDal, Case{})
 }
 
 func (b *Bll) RegMsg(_ qf.MessageMap) {
 
 }
 
-func (b *Bll) RegRef(regRef qf.RefMap) {
-	b.getUser = regRef.Load("user", qf.EApiKindGetModel, "")
+func (b *Bll) RegRef(_ qf.RefMap) {
+
 }
 
 func (b *Bll) Init() error {
