@@ -15,7 +15,6 @@ func regBll(s *qf.Service) {
 	// 通用业务位于mc文件夹内
 	s.RegBll(&user.Bll{}, "")    // 用户业务
 	s.RegBll(&patient.Bll{}, "") // 患者信息业务
-
 	// 注册自定义业务
 	// ...
 }

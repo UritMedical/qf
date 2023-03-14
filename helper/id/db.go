@@ -30,7 +30,7 @@ type idAllocator struct {
 //  @return *ByDB
 //
 func NewIdAllocatorByDB(per uint, start uint, db *gorm.DB) *ByDB {
-	name := "qf_id"
+	name := "QfId"
 	_ = db.Table(name).AutoMigrate(idAllocator{})
 	return &ByDB{
 		name:  name,

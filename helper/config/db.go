@@ -16,7 +16,7 @@ type config struct {
 }
 
 func NewConfigByDB(db *gorm.DB) *ByDB {
-	name := "qf_bllConfig"
+	name := "QfBllConfig"
 	_ = db.Table(name).AutoMigrate(config{})
 	return &ByDB{
 		name: name,

@@ -327,15 +327,11 @@ func buildTableName(model interface{}) string {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	sp := strings.Split(t.PkgPath(), "/")
-	pName := strings.ToLower(sp[len(sp)-1])
-	if pName == "model" && len(sp) > 2 {
-		pName = strings.ToLower(sp[len(sp)-2])
+	per := ""
+	// 如果是框架内部业务，则直接增加Qf前缀
+	// 反之直接使用实体名称
+	if strings.HasPrefix(t.PkgPath(), "github.com/UritMedical/qf") {
+		per = "Qf"
 	}
-	bName := strings.ToLower(t.Name())
-	tName := fmt.Sprintf("%s_%s", pName, bName)
-	if pName == bName {
-		tName = pName
-	}
-	return tName
+	return fmt.Sprintf("%s%s", per, t.Name())
 }

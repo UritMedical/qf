@@ -24,7 +24,7 @@ func (b *Bll) RegDal(d qf.DalMap) {
 	b.infoDal = &InfoDal{}
 	b.caseDal = &CaseDal{}
 	d.Reg(b.infoDal, Patient{})
-	d.Reg(b.caseDal, Case{})
+	d.Reg(b.caseDal, PatientCase{})
 }
 
 func (b *Bll) RegMsg(_ qf.MessageMap) {
@@ -111,7 +111,7 @@ func (b *Bll) DeletePatient(ctx *qf.Context) (interface{}, error) {
 //  @return error
 //
 func (b *Bll) SaveCase(ctx *qf.Context) (interface{}, error) {
-	model := &Case{}
+	model := &PatientCase{}
 	if err := ctx.Bind(model); err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (b *Bll) GetFull(ctx *qf.Context) (interface{}, error) {
 		return nil, err
 	}
 	// 通过患者Id获取所有病历
-	caseList := make([]Case, 0)
+	caseList := make([]PatientCase, 0)
 	err = b.caseDal.GetListByPatientId(patInfo.Id, &caseList)
 	if err != nil {
 		return nil, err
@@ -197,7 +197,7 @@ func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, error) {
 	}
 	if len(pats) == 0 {
 		// 基本信息未查询到数据，尝试查询病历表
-		caseList := make([]Case, 0)
+		caseList := make([]PatientCase, 0)
 		err = b.caseDal.GetListByCaseId(key, &caseList)
 		if err != nil {
 			return nil, err
@@ -220,7 +220,7 @@ func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, error) {
 	} else {
 		// 遍历查询
 		for _, p := range pats {
-			caseList := make([]Case, 0)
+			caseList := make([]PatientCase, 0)
 			err = b.caseDal.GetListByPatientId(p.Id, &caseList)
 			if err != nil {
 				return nil, err
