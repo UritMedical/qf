@@ -18,14 +18,14 @@ func (b *Bll) regUserApi(api qf.ApiMap) {
 	api.Reg(qf.EApiKindSave, "login", b.login)
 
 	//用户增删改查
-	api.Reg(qf.EApiKindSave, "", b.saveUser)
-	api.Reg(qf.EApiKindDelete, "", b.deleteUser)
-	api.Reg(qf.EApiKindGetModel, "", b.getUserModel)
-	api.Reg(qf.EApiKindGetList, "", b.getAllUsers)
+	api.Reg(qf.EApiKindSave, "user", b.saveUser)
+	api.Reg(qf.EApiKindDelete, "user", b.deleteUser)
+	api.Reg(qf.EApiKindGetModel, "user", b.getUserModel)
+	api.Reg(qf.EApiKindGetList, "users", b.getAllUsers)
 
 	//密码重置、修改
-	api.Reg(qf.EApiKindSave, "pwd/reset", b.resetPassword)
-	api.Reg(qf.EApiKindSave, "pwd", b.changePassword)
+	api.Reg(qf.EApiKindSave, "user/pwd/reset", b.resetPassword)
+	api.Reg(qf.EApiKindSave, "user/pwd", b.changePassword)
 }
 
 //
@@ -38,14 +38,13 @@ func (b *Bll) regUserApi(api qf.ApiMap) {
 func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 	var params = struct {
 		LoginId  string
-		Password string
+		Password string //md5
 	}{}
 
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
 	params.LoginId = strings.Replace(params.LoginId, " ", "", -1)
-	params.Password = uUtils.ConvertToMD5([]byte(params.Password))
 	if user, ok := b.userDal.CheckLogin(params.LoginId, params.Password); ok {
 		role, _ := b.userRoleDal.GetUsersByRoleId(user.Id)
 		return helper.GenerateToken(user.Id, role)
@@ -137,5 +136,5 @@ func (b *Bll) changePassword(ctx *qf.Context) (interface{}, error) {
 	if !b.userDal.CheckOldPassword(ctx.LoginUser().UserId, params.OldPassword) {
 		return nil, errors.New("old password is incorrect")
 	}
-	return nil, b.userDal.SetPassword(ctx.LoginUser().UserId, uUtils.ConvertToMD5([]byte(params.NewPassword)))
+	return nil, b.userDal.SetPassword(ctx.LoginUser().UserId, params.NewPassword)
 }

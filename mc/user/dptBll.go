@@ -26,7 +26,7 @@ func (b *Bll) regDptApi(api qf.ApiMap) {
 	//部门
 	api.Reg(qf.EApiKindSave, "dpt", b.saveDpt)        //添加部门
 	api.Reg(qf.EApiKindDelete, "dpt", b.deleteDpt)    //删除部门
-	api.Reg(qf.EApiKindGetList, "dpt", b.getDpts)     //获取所有部门
+	api.Reg(qf.EApiKindGetList, "dpts", b.getDpts)    //获取所有部门
 	api.Reg(qf.EApiKindGetModel, "dpt", b.getDptTree) //获取部门组织树
 
 	//部门-用户
