@@ -106,7 +106,7 @@ func newService() *Service {
 	}
 	s.db = db
 	// 初始化Id分配器
-	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1000, db)
+	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1001, db)
 	s.config = qconfig.NewConfigByDB(db)
 	// 创建Gin服务
 	s.engine = gin.Default()
@@ -237,28 +237,52 @@ func (s *Service) context(ctx *gin.Context) {
 			inputSource: "",
 			idAllocator: s.idAllocator,
 		}
-		// 获取body内容
-		if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil {
-			qfCtx.inputSource = string(body)
-			if json.Valid(body) {
-				// 如果是json列表
-				if strings.HasPrefix(qfCtx.inputSource, "[") &&
-					strings.HasSuffix(qfCtx.inputSource, "]") {
-					_ = json.Unmarshal(body, &qfCtx.inputValue)
-				}
-				// 如果是json结构
-				if strings.HasPrefix(qfCtx.inputSource, "{") &&
-					strings.HasSuffix(qfCtx.inputSource, "}") {
-					iv := map[string]interface{}{}
-					_ = json.Unmarshal(body, &iv)
-					qfCtx.inputValue = append(qfCtx.inputValue, iv)
-				}
-			} else {
-				if qfCtx.inputSource != "" {
-					s.returnError(ctx, errors.New("invalid json format"))
-					return
+
+		contentType := ctx.Request.Header.Get("Content-Type")
+		if strings.HasPrefix(contentType, "application/json") {
+			// 处理 JSON 数据
+			if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil {
+				qfCtx.inputSource = string(body)
+				if json.Valid(body) {
+					// 如果是json列表
+					if strings.HasPrefix(qfCtx.inputSource, "[") &&
+						strings.HasSuffix(qfCtx.inputSource, "]") {
+						_ = json.Unmarshal(body, &qfCtx.inputValue)
+					}
+					// 如果是json结构
+					if strings.HasPrefix(qfCtx.inputSource, "{") &&
+						strings.HasSuffix(qfCtx.inputSource, "}") {
+						iv := map[string]interface{}{}
+						_ = json.Unmarshal(body, &iv)
+						qfCtx.inputValue = append(qfCtx.inputValue, iv)
+					}
+				} else {
+					if qfCtx.inputSource != "" {
+						s.returnError(ctx, errors.New("invalid json format"))
+						return
+					}
 				}
 			}
+		} else if strings.HasPrefix(contentType, "multipart/form-data") {
+			// 处理表单数据
+			form, err := ctx.MultipartForm()
+			if err != nil {
+				s.returnError(ctx, errors.New("invalid form-data"))
+				return
+			}
+			// 将非文件值加入到字典中
+			if form.Value != nil {
+				if len(qfCtx.inputValue) == 0 {
+					qfCtx.inputValue = append(qfCtx.inputValue, map[string]interface{}{})
+				}
+				for key, value := range form.Value {
+					if len(value) > 0 {
+						qfCtx.inputValue[0][key] = value[0]
+					}
+				}
+			}
+			// 获取文件类的值
+			qfCtx.inputFiles = form.File
 		}
 
 		// 获取全部的Query
@@ -266,10 +290,12 @@ func (s *Service) context(ctx *gin.Context) {
 			if len(qfCtx.inputValue) == 0 {
 				qfCtx.inputValue = append(qfCtx.inputValue, map[string]interface{}{})
 			}
+			value := ""
 			if len(v) > 0 {
-				qfCtx.inputValue[0][k] = v[0]
-			} else {
-				qfCtx.inputValue[0][k] = ""
+				value = v[0]
+			}
+			for i := 0; i < len(qfCtx.inputValue); i++ {
+				qfCtx.inputValue[i][k] = value
 			}
 		}
 

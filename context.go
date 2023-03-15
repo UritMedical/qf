@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/UritMedical/qf/util/qid"
 	"github.com/UritMedical/qf/util/qreflect"
+	"mime/multipart"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +22,7 @@ type Context struct {
 	// input的原始内容字典
 	inputValue  []map[string]interface{}
 	inputSource string
+	inputFiles  map[string][]*multipart.FileHeader
 	// id分配器
 	idPer       uint
 	idAllocator qid.IIdAllocator
@@ -144,6 +146,19 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) err
 	}
 	// 重新赋值
 	return ref.Set(ctx.inputValue, cnt)
+}
+
+//
+// GetFile
+//  @Description: 获取前端上传的文件列表
+//  @param key 属性名
+//  @return []*multipart.FileHeader
+//
+func (ctx *Context) GetFile(key string) []*multipart.FileHeader {
+	if ctx.inputFiles == nil {
+		return nil
+	}
+	return ctx.inputFiles[key]
 }
 
 func (ctx *Context) build(source map[string]interface{}, exclude map[string]interface{}) BaseModel {
