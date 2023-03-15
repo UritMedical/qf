@@ -181,3 +181,7 @@ type LoginUser struct {
 		Name string
 	} // 角色列表
 }
+
+type Date uint32
+
+type DateTime uint64

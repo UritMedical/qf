@@ -7,8 +7,8 @@ import (
 	"github.com/UritMedical/qf/util/qid"
 	"github.com/UritMedical/qf/util/qreflect"
 	"mime/multipart"
+	"reflect"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -24,7 +24,6 @@ type Context struct {
 	inputSource string
 	inputFiles  map[string][]*multipart.FileHeader
 	// id分配器
-	idPer       uint
 	idAllocator qid.IIdAllocator
 }
 
@@ -39,27 +38,13 @@ func (ctx *Context) NewContext(input interface{}) *Context {
 	context := &Context{
 		time:        ctx.time,
 		loginUser:   ctx.loginUser,
-		inputValue:  nil,
-		inputSource: "",
-		idPer:       ctx.idPer,
 		idAllocator: ctx.idAllocator,
 	}
+	// 将body转入到上下文入参
 	body, _ := json.Marshal(input)
-	context.inputSource = string(body)
-	if json.Valid(body) {
-		// 如果是json列表
-		if strings.HasPrefix(context.inputSource, "[") &&
-			strings.HasSuffix(context.inputSource, "]") {
-			_ = json.Unmarshal(body, &context.inputValue)
-		}
-		// 如果是json结构
-		if strings.HasPrefix(context.inputSource, "{") &&
-			strings.HasSuffix(context.inputSource, "}") {
-			iv := map[string]interface{}{}
-			_ = json.Unmarshal(body, &iv)
-			context.inputValue = append(context.inputValue, iv)
-		}
-	}
+	context.loadInput(body)
+	// 重新生成原始内容
+	context.resetSource()
 	return context
 }
 
@@ -161,6 +146,76 @@ func (ctx *Context) GetFile(key string) []*multipart.FileHeader {
 	return ctx.inputFiles[key]
 }
 
+func (ctx *Context) GetJsonValue(propName string) string {
+	if len(ctx.inputValue) == 0 {
+		return ""
+	}
+	nj, _ := json.Marshal(ctx.inputValue[0][propName])
+	return string(nj)
+}
+
+func (ctx *Context) GetStringValue(propName string) string {
+	if len(ctx.inputValue) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%v", ctx.inputValue[0][propName])
+}
+
+func (ctx *Context) GetUIntValue(propName string) uint64 {
+	num, _ := strconv.Atoi(ctx.GetStringValue(propName))
+	return uint64(num)
+}
+
+func (ctx *Context) GetId() uint64 {
+	return ctx.GetUIntValue("Id")
+}
+
+//-----------------------------------------------------------------------
+
+func (ctx *Context) loadInput(body []byte) {
+	var obj interface{}
+	if err := json.Unmarshal(body, &obj); err == nil {
+		maps := make([]map[string]interface{}, 0)
+		kind := reflect.TypeOf(obj).Kind()
+		if kind == reflect.Slice {
+			for _, o := range obj.([]interface{}) {
+				maps = append(maps, o.(map[string]interface{}))
+			}
+		} else if kind == reflect.Map || kind == reflect.Struct {
+			maps = append(maps, obj.(map[string]interface{}))
+		}
+		ctx.inputValue = maps
+	} else {
+		ctx.inputValue = make([]map[string]interface{}, 0)
+	}
+}
+
+func (ctx *Context) setInputValue(key string, value interface{}) {
+	if len(ctx.inputValue) == 0 {
+		ctx.inputValue = append(ctx.inputValue, map[string]interface{}{})
+	}
+	for i := 0; i < len(ctx.inputValue); i++ {
+		ctx.inputValue[i][key] = value
+	}
+}
+
+func (ctx *Context) resetSource() {
+	ctx.inputSource = ""
+	if ctx.inputValue != nil {
+		if len(ctx.inputValue) == 1 {
+			is, err := json.Marshal(ctx.inputValue[0])
+			if err == nil {
+				ctx.inputSource = string(is)
+			}
+		} else {
+			is, err := json.Marshal(ctx.inputValue)
+			if err == nil {
+				ctx.inputSource = string(is)
+			}
+		}
+	}
+}
+
 func (ctx *Context) build(source map[string]interface{}, exclude map[string]interface{}) BaseModel {
 	nid := uint64(0)
 	if id, ok := source["Id"]; ok {
@@ -186,28 +241,4 @@ func (ctx *Context) build(source map[string]interface{}, exclude map[string]inte
 		LastTime: ctx.time,
 		FullInfo: info,
 	}
-}
-
-func (ctx *Context) GetJsonValue(propName string) string {
-	if len(ctx.inputValue) == 0 {
-		return ""
-	}
-	nj, _ := json.Marshal(ctx.inputValue[0][propName])
-	return string(nj)
-}
-
-func (ctx *Context) GetStringValue(propName string) string {
-	if len(ctx.inputValue) == 0 {
-		return ""
-	}
-	return fmt.Sprintf("%v", ctx.inputValue[0][propName])
-}
-
-func (ctx *Context) GetUIntValue(propName string) uint64 {
-	num, _ := strconv.Atoi(ctx.GetStringValue(propName))
-	return uint64(num)
-}
-
-func (ctx *Context) GetId() uint64 {
-	return ctx.GetUIntValue("Id")
 }

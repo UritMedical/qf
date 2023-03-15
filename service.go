@@ -1,7 +1,6 @@
 package qf
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/UritMedical/qf/util/io"
@@ -233,8 +232,6 @@ func (s *Service) context(ctx *gin.Context) {
 		qfCtx := &Context{
 			time:        time.Now().Local(),
 			loginUser:   s.loginUser,
-			inputValue:  make([]map[string]interface{}, 0),
-			inputSource: "",
 			idAllocator: s.idAllocator,
 		}
 
@@ -242,26 +239,7 @@ func (s *Service) context(ctx *gin.Context) {
 		if strings.HasPrefix(contentType, "application/json") {
 			// 处理 JSON 数据
 			if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil {
-				qfCtx.inputSource = string(body)
-				if json.Valid(body) {
-					// 如果是json列表
-					if strings.HasPrefix(qfCtx.inputSource, "[") &&
-						strings.HasSuffix(qfCtx.inputSource, "]") {
-						_ = json.Unmarshal(body, &qfCtx.inputValue)
-					}
-					// 如果是json结构
-					if strings.HasPrefix(qfCtx.inputSource, "{") &&
-						strings.HasSuffix(qfCtx.inputSource, "}") {
-						iv := map[string]interface{}{}
-						_ = json.Unmarshal(body, &iv)
-						qfCtx.inputValue = append(qfCtx.inputValue, iv)
-					}
-				} else {
-					if qfCtx.inputSource != "" {
-						s.returnError(ctx, errors.New("invalid json format"))
-						return
-					}
-				}
+				qfCtx.loadInput(body)
 			}
 		} else if strings.HasPrefix(contentType, "multipart/form-data") {
 			// 处理表单数据
@@ -271,14 +249,9 @@ func (s *Service) context(ctx *gin.Context) {
 				return
 			}
 			// 将非文件值加入到字典中
-			if form.Value != nil {
-				if len(qfCtx.inputValue) == 0 {
-					qfCtx.inputValue = append(qfCtx.inputValue, map[string]interface{}{})
-				}
-				for key, value := range form.Value {
-					if len(value) > 0 {
-						qfCtx.inputValue[0][key] = value[0]
-					}
+			for key, value := range form.Value {
+				if len(value) > 0 {
+					qfCtx.setInputValue(key, value[0])
 				}
 			}
 			// 获取文件类的值
@@ -287,17 +260,13 @@ func (s *Service) context(ctx *gin.Context) {
 
 		// 获取全部的Query
 		for k, v := range ctx.Request.URL.Query() {
-			if len(qfCtx.inputValue) == 0 {
-				qfCtx.inputValue = append(qfCtx.inputValue, map[string]interface{}{})
-			}
-			value := ""
 			if len(v) > 0 {
-				value = v[0]
-			}
-			for i := 0; i < len(qfCtx.inputValue); i++ {
-				qfCtx.inputValue[i][k] = value
+				qfCtx.setInputValue(k, v[0])
 			}
 		}
+
+		// 重新生成原始内容
+		qfCtx.resetSource()
 
 		// 执行业务方法
 		result, err := handler(qfCtx)
@@ -311,7 +280,7 @@ func (s *Service) context(ctx *gin.Context) {
 				go func() {
 					e := mh(qfCtx)
 					if e != nil {
-
+						// TODO 日志
 					}
 				}()
 			}
