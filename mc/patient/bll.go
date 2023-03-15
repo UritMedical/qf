@@ -63,7 +63,7 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 	if err := ctx.Bind(model); err != nil {
 		return nil, err
 	}
-	// 给ID
+	// 获取ID
 	if model.Id == 0 {
 		model.Id = ctx.NewId(model)
 	}

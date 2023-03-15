@@ -160,8 +160,8 @@ func (ref RefMap) Load(kind EApiKind, router string) ApiHandler {
 //  @Description: 基础实体对象
 //
 type BaseModel struct {
-	Id       uint64    `gorm:"primaryKey;autoIncrement:false"` // 唯一号
-	LastTime time.Time `gorm:"index"`                          // 最后操作时间时间
+	Id       uint64    `gorm:"primaryKey"` // 唯一号
+	LastTime time.Time `gorm:"index"`      // 最后操作时间时间
 	FullInfo string    // 内容
 }
 

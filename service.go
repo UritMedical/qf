@@ -96,10 +96,13 @@ func newService() *Service {
 	if s.setting.GormConfig.OpenLog == 1 {
 		gc.Logger = logger.Default.LogMode(logger.Info)
 	}
-	//gc.SkipDefaultTransaction = s.setting.GormConfig.SkipDefaultTransaction == 1
+	gc.SkipDefaultTransaction = s.setting.GormConfig.SkipDefaultTransaction == 1
 	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/%s.db", dbDir, s.setting.GormConfig.DBName)), &gc)
 	if err != nil {
 		return nil
+	}
+	if s.setting.GormConfig.JournalMode != "" {
+		db.Exec(fmt.Sprintf("PRAGMA journal_mode = %s;", s.setting.GormConfig.JournalMode))
 	}
 	s.db = db
 	// 初始化Id分配器

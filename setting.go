@@ -26,6 +26,7 @@ type gormConfig struct {
 	DBName                 string `comment:"默认数据库名称"`
 	OpenLog                byte   `comment:"是否输出脚本日志 0否 1是"`
 	SkipDefaultTransaction byte   `comment:"跳过默认事务 0否 1是"`
+	JournalMode            string `comment:"跳过默认事务\n DELETE：在事务提交后，删除journal文件\n MEMORY：在内存中生成journal文件，不写入磁盘\n WAL：使用WAL（Write-Ahead Logging）模式，将journal记录写入WAL文件中\n OFF：完全关闭journal模式，不记录任何日志消息"`
 }
 
 func (s *setting) Load(path string) {
@@ -75,6 +76,10 @@ func (s *setting) Load(path string) {
 	}
 	if strings.Contains(content, "SkipDefaultTransaction") == false {
 		s.GormConfig.SkipDefaultTransaction = 1
+		changed = true
+	}
+	if strings.Contains(content, "JournalMode") == false {
+		s.GormConfig.JournalMode = "OFF"
 		changed = true
 	}
 	// 保存
