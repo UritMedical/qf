@@ -45,8 +45,7 @@ func (b *Bll) saveRole(ctx *qf.Context) (interface{}, error) {
 //
 func (b *Bll) deleteRole(ctx *qf.Context) (interface{}, error) {
 	uId := ctx.GetId()
-	ret, err := b.roleDal.Delete(uId)
-	return ret, err
+	return nil, b.roleDal.Delete(uId)
 }
 
 //

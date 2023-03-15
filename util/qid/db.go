@@ -1,4 +1,4 @@
-package id
+package qid
 
 import (
 	"fmt"
@@ -8,7 +8,26 @@ import (
 	"time"
 )
 
-type ByDB struct {
+//
+// NewIdAllocatorByDB
+//  @Description:
+//  @param per
+//  @param path
+//  @return *ByDB
+//
+func NewIdAllocatorByDB(per uint, start uint, db *gorm.DB) IIdAllocator {
+	name := "QfId"
+	_ = db.Table(name).AutoMigrate(idAllocator{})
+	return &byDB{
+		name:  name,
+		db:    db,
+		per:   per,
+		start: start,
+		lock:  &sync.RWMutex{},
+	}
+}
+
+type byDB struct {
 	name  string
 	db    *gorm.DB
 	per   uint
@@ -23,32 +42,12 @@ type idAllocator struct {
 }
 
 //
-// NewIdAllocatorByDB
-//  @Description:
-//  @param per
-//  @param path
-//  @return *ByDB
-//
-func NewIdAllocatorByDB(per uint, start uint, db *gorm.DB) *ByDB {
-	name := "QfId"
-	_ = db.Table(name).AutoMigrate(idAllocator{})
-	return &ByDB{
-		name:  name,
-		db:    db,
-		per:   per,
-		start: start,
-		lock:  &sync.RWMutex{},
-	}
-}
-
-//
 // Next
 //  @Description: 下一个Id
-//  @receiver b
-//  @param name
+//  @param name 名称
 //  @return uint64
 //
-func (b *ByDB) Next(name string) uint64 {
+func (b *byDB) Next(name string) uint64 {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
