@@ -2,7 +2,6 @@ package user
 
 import (
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/helper"
 	"github.com/UritMedical/qf/user/dal"
 	"github.com/UritMedical/qf/user/model"
 	"github.com/UritMedical/qf/util"
@@ -69,7 +68,7 @@ func (b *Bll) RegRef(ref qf.RefMap) {
 
 func (b *Bll) Init() error {
 	b.initDefUser()
-	helper.InitJwtSecret()
+	util.InitJwtSecret()
 	return nil
 }
 
@@ -114,13 +113,13 @@ func (b *Bll) initDefUser() {
 //
 func (b *Bll) resetJwtSecret(ctx *qf.Context) (interface{}, error) {
 	jwtStr := util.RandomString(32)
-	helper.JwtSecret = []byte(jwtStr)
+	util.JwtSecret = []byte(jwtStr)
 	//将密钥进行AES加密后存入文件
-	err := helper.EncryptAndWriteToFile(jwtStr, helper.JwtSecretFile, []byte(helper.AESKey), []byte(helper.IV))
+	err := util.EncryptAndWriteToFile(jwtStr, util.JwtSecretFile, []byte(util.AESKey), []byte(util.IV))
 	return jwtStr, err
 }
 
 func (b *Bll) testParseToken(ctx *qf.Context) (interface{}, error) {
 	token := ctx.GetStringValue("token")
-	return helper.ParseToken(token)
+	return util.ParseToken(token)
 }

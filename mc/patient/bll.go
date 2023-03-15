@@ -63,6 +63,7 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 	if err := ctx.Bind(model); err != nil {
 		return nil, err
 	}
+	// 给ID
 	if model.Id == 0 {
 		model.Id = ctx.NewId(model)
 	}
@@ -70,14 +71,12 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 	if model.HisId != nil && *model.HisId == "" {
 		model.HisId = nil
 	}
-
 	// 提交，如果HisId重复，则返回失败
 	err := b.infoDal.Save(model)
 	if err != nil {
 		return 0, err
 	}
-
-	return model.Id, err
+	return model.Id, nil
 }
 
 //

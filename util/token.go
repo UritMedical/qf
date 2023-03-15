@@ -1,10 +1,9 @@
-package helper
+package util
 
 import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"github.com/UritMedical/qf/util"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
 	"os"
@@ -58,7 +57,7 @@ func InitJwtSecret() {
 	//初始化token密钥
 	jwt, err := DecodeJwtFromFile(JwtSecretFile, []byte(AESKey), []byte(IV))
 	if err != nil || jwt == "" {
-		jwtStr := util.RandomString(32)
+		jwtStr := RandomString(32)
 		JwtSecret = []byte(jwtStr)
 		//将密钥进行AES加密后存入文件
 		_ = EncryptAndWriteToFile(jwtStr, JwtSecretFile, []byte(AESKey), []byte(IV))

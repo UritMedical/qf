@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/UritMedical/qf/util/io"
 	"github.com/pelletier/go-toml/v2"
+	"strings"
 )
 
 type setting struct {
@@ -22,12 +23,14 @@ type webConfig struct {
 }
 
 type gormConfig struct {
-	DBName  string `comment:"默认数据库名称"`
-	OpenLog byte   `comment:"是否输出脚本日志 0否 1是"`
+	DBName                 string `comment:"默认数据库名称"`
+	OpenLog                byte   `comment:"是否输出脚本日志 0否 1是"`
+	SkipDefaultTransaction byte   `comment:"跳过默认事务 0否 1是"`
 }
 
 func (s *setting) Load(path string) {
 	data, _ := io.ReadAllBytes(path)
+	content := string(data)
 	_ = toml.Unmarshal(data, s)
 
 	changed := false
@@ -37,9 +40,8 @@ func (s *setting) Load(path string) {
 	}
 	if s.WebConfig == nil {
 		s.WebConfig = &webConfig{}
-		changed = true
 	}
-	if s.WebConfig.DefGroup == "" {
+	if strings.Contains(content, "DefGroup") == false {
 		s.WebConfig.DefGroup = "api"
 		changed = true
 	}
@@ -66,10 +68,13 @@ func (s *setting) Load(path string) {
 	}
 	if s.GormConfig == nil {
 		s.GormConfig = &gormConfig{}
-		changed = true
 	}
 	if s.GormConfig.DBName == "" {
 		s.GormConfig.DBName = "data"
+		changed = true
+	}
+	if strings.Contains(content, "SkipDefaultTransaction") == false {
+		s.GormConfig.SkipDefaultTransaction = 1
 		changed = true
 	}
 	// 保存

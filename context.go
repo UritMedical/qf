@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/UritMedical/qf/util/reflectex"
+	"github.com/UritMedical/qf/util/qid"
+	"github.com/UritMedical/qf/util/qreflect"
 	"strconv"
 	"strings"
 	"time"
@@ -22,7 +23,7 @@ type Context struct {
 	inputSource string
 	// id分配器
 	idPer       uint
-	idAllocator iIdAllocator
+	idAllocator qid.IIdAllocator
 }
 
 //
@@ -120,44 +121,29 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) err
 	if objectPtr == nil {
 		return errors.New("the object cannot be empty")
 	}
+	// 创建反射
+	ref := qreflect.New(objectPtr)
 	// 必须为指针
-	if reflectex.IsPtr(objectPtr) == false {
+	if ref.IsPtr() == false {
 		return errors.New("the object must be pointer")
 	}
-
 	// 追加附加内容到字典
 	for _, value := range attachValues {
-		for k, v := range reflectex.StructToMap(value) {
-			for _, vv := range ctx.inputValue {
-				vv[k] = v
+		r := qreflect.New(value)
+		for k, v := range r.ToMap() {
+			for i := 0; i < len(ctx.inputValue); i++ {
+				ctx.inputValue[i][k] = v
 			}
 		}
 	}
 	// 然后根据类型，将字典写入到对象或列表中
 	cnt := make([]BaseModel, 0)
 	for i := 0; i < len(ctx.inputValue); i++ {
-		c := ctx.build(ctx.inputValue[i], reflectex.StructToMap(objectPtr))
+		c := ctx.build(ctx.inputValue[i], ref.ToMap())
 		cnt = append(cnt, c)
 	}
-	if reflectex.IsStruct(objectPtr) {
-		// 先将提交的input填充
-		if len(ctx.inputValue) > 0 {
-			nj, _ := json.Marshal(ctx.inputValue[0])
-			_ = json.Unmarshal(nj, objectPtr)
-		}
-		// 再将重新组织的内容填充
-		if len(cnt) > 0 {
-			nj, _ := json.Marshal(cnt[0])
-			_ = json.Unmarshal(nj, objectPtr)
-		}
-	} else if reflectex.IsSlice(objectPtr) {
-		// 同上
-		nj, _ := json.Marshal(ctx.inputValue)
-		_ = json.Unmarshal(nj, objectPtr)
-		nj, _ = json.Marshal(cnt)
-		_ = json.Unmarshal(nj, objectPtr)
-	}
-	return nil
+	// 重新赋值
+	return ref.Set(ctx.inputValue, cnt)
 }
 
 func (ctx *Context) build(source map[string]interface{}, exclude map[string]interface{}) BaseModel {

@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/UritMedical/qf/helper/config"
-	"github.com/UritMedical/qf/helper/id"
 	"github.com/UritMedical/qf/util/io"
+	"github.com/UritMedical/qf/util/launcher"
+	"github.com/UritMedical/qf/util/qconfig"
+	"github.com/UritMedical/qf/util/qid"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -19,6 +20,42 @@ import (
 	"time"
 )
 
+var (
+	serv       *Service
+	regBllFunc func(s *Service)
+	stopFunc   func()
+)
+
+//
+// Run
+//  @Description: 启动
+//  @param regBll 注册业务（必须）
+//  @param stop 自定义释放
+//
+func Run(regBll func(s *Service), stop func()) {
+	regBllFunc = regBll
+	stopFunc = stop
+	launcher.Run(doStart, doStop)
+}
+
+func doStart() {
+	// 创建服务
+	serv = newService()
+	// 注册外部业务
+	regBllFunc(serv)
+	// 启动服务
+	serv.run()
+}
+
+func doStop() {
+	// 执行外部释放
+	if stopFunc != nil {
+		stopFunc()
+	}
+	// 停止服务
+	serv.stop()
+}
+
 type Service struct {
 	folder      string                    // 框架的文件夹路径
 	db          *gorm.DB                  // 数据库
@@ -27,8 +64,8 @@ type Service struct {
 	apiHandler  map[string]ApiHandler     // 所有注册的业务API函数指针
 	msgHandler  map[string]MessageHandler // 所有消息执行的函数指针
 	setting     setting                   // 框架配置
-	idAllocator iIdAllocator              // id分配器
-	config      iConfig                   // 配置文件接口
+	idAllocator qid.IIdAllocator          // id分配器接口
+	config      qconfig.IConfig           // 配置文件接口
 	loginUser   LoginUser                 // 登陆用户信息
 }
 
@@ -59,14 +96,15 @@ func newService() *Service {
 	if s.setting.GormConfig.OpenLog == 1 {
 		gc.Logger = logger.Default.LogMode(logger.Info)
 	}
+	//gc.SkipDefaultTransaction = s.setting.GormConfig.SkipDefaultTransaction == 1
 	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/%s.db", dbDir, s.setting.GormConfig.DBName)), &gc)
 	if err != nil {
 		return nil
 	}
 	s.db = db
 	// 初始化Id分配器
-	s.idAllocator = id.NewIdAllocatorByDB(s.setting.Id, 1000, db)
-	s.config = config.NewConfigByDB(db)
+	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1000, db)
+	s.config = qconfig.NewConfigByDB(db)
 	// 创建Gin服务
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
