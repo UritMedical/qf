@@ -8,11 +8,12 @@ import (
 )
 
 type setting struct {
-	Id         uint        `comment:"框架Id，主服务为0"`
-	Name       string      `comment:"框架名称，用于网络发现，单体服务可为空"`
-	Port       string      `comment:"服务端口"`
-	WebConfig  *webConfig  `comment:"web配置"`
-	GormConfig *gormConfig `comment:"gorm配置"`
+	Id          uint         `comment:"框架Id，主服务为0"`
+	Name        string       `comment:"框架名称，用于网络发现，单体服务可为空"`
+	Port        string       `comment:"服务端口"`
+	WebConfig   *webConfig   `comment:"web配置"`
+	GormConfig  *gormConfig  `comment:"gorm配置"`
+	OtherConfig *otherConfig `comment:"其他配置"`
 }
 
 type webConfig struct {
@@ -27,6 +28,11 @@ type gormConfig struct {
 	OpenLog                byte   `comment:"是否输出脚本日志 0否 1是"`
 	SkipDefaultTransaction byte   `comment:"跳过默认事务 0否 1是"`
 	JournalMode            string `comment:"跳过默认事务\n DELETE：在事务提交后，删除journal文件\n MEMORY：在内存中生成journal文件，不写入磁盘\n WAL：使用WAL（Write-Ahead Logging）模式，将journal记录写入WAL文件中\n OFF：完全关闭journal模式，不记录任何日志消息"`
+}
+
+type otherConfig struct {
+	JsonDateFormat string `comment:"框架日期的Json格式"`
+	JsonTimeFormat string `comment:"框架时间的Json格式"`
 }
 
 func (s *setting) Load(path string) {
@@ -69,6 +75,7 @@ func (s *setting) Load(path string) {
 	}
 	if s.GormConfig == nil {
 		s.GormConfig = &gormConfig{}
+		changed = true
 	}
 	if s.GormConfig.DBName == "" {
 		s.GormConfig.DBName = "data"
@@ -82,6 +89,19 @@ func (s *setting) Load(path string) {
 		s.GormConfig.JournalMode = "OFF"
 		changed = true
 	}
+	if s.OtherConfig == nil {
+		s.OtherConfig = &otherConfig{}
+		changed = true
+	}
+	if strings.Contains(content, "JsonDateFormat") == false {
+		s.OtherConfig.JsonDateFormat = "yyyy-MM-dd"
+		changed = true
+	}
+	if strings.Contains(content, "JsonTimeFormat") == false {
+		s.OtherConfig.JsonTimeFormat = "HH:mm:ss"
+		changed = true
+	}
+
 	// 保存
 	if changed {
 		buf := bytes.Buffer{}

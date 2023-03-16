@@ -1,6 +1,9 @@
-package datetime
+package qdate
 
 import (
+	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -14,8 +17,47 @@ import (
 //  @return error
 //
 func Parse(valueStr, formatStr string) (time.Time, error) {
+	valueStr = strings.Trim(valueStr, "\"")
 	layout := getLayout(formatStr)
 	return time.ParseInLocation(layout, valueStr, time.Now().Location())
+}
+
+//
+// ToNumber
+//  @Description: 将时间字符串转为数值形式
+//  @return uint64
+//  @return error
+//
+func ToNumber(valueStr, formatStr string) (uint64, error) {
+	valueStr = strings.Trim(valueStr, "\"")
+	// 才分格式化串
+	layouts := strings.FieldsFunc(formatStr, func(r rune) bool {
+		return r == '-' || r == '/' || r == ' ' || r == ':' ||
+			r == '年' || r == '月' || r == '日' ||
+			r == '时' || r == '分' || r == '秒'
+	})
+	layLen := len(layouts)
+	// 然后从时间字符串中提取所有数值
+	numMap := map[string]string{}
+	for i, num := range regexp.MustCompile(`\d+`).FindAllStringSubmatch(valueStr, -1) {
+		if len(num) == 0 {
+			continue
+		}
+		n, err := strconv.Atoi(num[0])
+		if err == nil && i < layLen {
+			f := "%0" + fmt.Sprintf("%d", len(layouts[i])) + "d"
+			numMap[layouts[i]] = fmt.Sprintf(f, n)
+		}
+	}
+	// 按照年月日时分秒重新排序
+	final := ""
+	for _, sort := range []string{"yyyy", "yy", "MM", "dd", "HH", "hh", "mm", "ss"} {
+		if m, ok := numMap[sort]; ok {
+			final += m
+		}
+	}
+	// 最后返回数值
+	return strconv.ParseUint(final, 10, 64)
 }
 
 //

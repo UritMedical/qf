@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -153,9 +154,26 @@ func (r *Reflect) set(v reflect.Value, subT reflect.Type, subV reflect.Value) er
 		for i := 0; i < subV.NumField(); i++ {
 			f := v.FieldByName(subT.Field(i).Name)
 			if f.CanSet() {
-				vv, err := r.convert(f.Type().String(), subV.Field(i).Interface())
+				tp := strings.ToLower(f.Type().Kind().String())
+				vv, err := r.convert(tp, subV.Field(i).Interface())
 				if err == nil {
-					f.Set(reflect.ValueOf(vv))
+					// 如果是自定义类型包原生类型，则特殊处理
+					if tp != f.Type().String() {
+						switch tp {
+						case "uint", "uint8", "uint32", "uint64":
+							u, e := strconv.ParseUint(fmt.Sprintf("%v", vv), 10, 64)
+							if e == nil {
+								f.SetUint(u)
+							}
+						case "int", "int8", "int32", "int64":
+							u, e := strconv.ParseInt(fmt.Sprintf("%v", vv), 10, 64)
+							if e == nil {
+								f.SetInt(u)
+							}
+						}
+					} else {
+						f.Set(reflect.ValueOf(vv))
+					}
 				}
 			}
 		}

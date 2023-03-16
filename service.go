@@ -120,6 +120,9 @@ func newService() *Service {
 	for _, any := range s.setting.WebConfig.Any {
 		s.engine.Any(any)
 	}
+	// 其他初始化
+	dateFormat = s.setting.OtherConfig.JsonDateFormat
+	dateTimeFormat = fmt.Sprintf("%s %s", s.setting.OtherConfig.JsonDateFormat, s.setting.OtherConfig.JsonTimeFormat)
 
 	return s
 }
@@ -230,10 +233,10 @@ func (s *Service) context(ctx *gin.Context) {
 	url := fmt.Sprintf("%s:%s", ctx.Request.Method, ctx.FullPath())
 	if handler, ok := s.apiHandler[url]; ok {
 		qfCtx := &Context{
-			time:        time.Now().Local(),
 			loginUser:   s.loginUser,
 			idAllocator: s.idAllocator,
 		}
+		qfCtx.time.FromTime(time.Now())
 
 		contentType := ctx.Request.Header.Get("Content-Type")
 		if strings.HasPrefix(contentType, "application/json") {

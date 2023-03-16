@@ -9,7 +9,6 @@ import (
 	"mime/multipart"
 	"reflect"
 	"strconv"
-	"time"
 )
 
 //
@@ -17,7 +16,7 @@ import (
 //  @Description: Api上下文参数
 //
 type Context struct {
-	time      time.Time // 操作时间
+	time      DateTime  // 操作时间
 	loginUser LoginUser // 登陆用户信息
 	// input的原始内容字典
 	inputValue  []map[string]interface{}
@@ -108,12 +107,17 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) err
 	if objectPtr == nil {
 		return errors.New("the object cannot be empty")
 	}
+
 	// 创建反射
 	ref := qreflect.New(objectPtr)
 	// 必须为指针
 	if ref.IsPtr() == false {
 		return errors.New("the object must be pointer")
 	}
+
+	// 先用json反转一次
+	_ = json.Unmarshal([]byte(ctx.inputSource), objectPtr)
+
 	// 追加附加内容到字典
 	for _, value := range attachValues {
 		r := qreflect.New(value)
