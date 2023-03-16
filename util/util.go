@@ -73,7 +73,7 @@ func ToMap(model interface{}) map[string]interface{} {
 	// 然后在反转到内容对象
 	cnt := struct {
 		Id       uint64
-		LastTime time.Time
+		LastTime uint64
 		FullInfo string
 	}{}
 	_ = json.Unmarshal(tj, &cnt)
@@ -119,23 +119,30 @@ func SetModel(objectPtr interface{}, value map[string]interface{}) error {
 	if ref.IsPtr() == false {
 		return errors.New("the object must be pointer")
 	}
-	mp := ref.ToMap()
-	for k, v := range value {
-		if _, ok := mp[k]; ok {
-			mp[k] = v
+
+	// 修改外部值
+	if value != nil {
+		e := ref.Set(value)
+		if e != nil {
+			return e
 		}
 	}
-	if info, ok := mp["FullInfo"]; ok {
-		imap := map[string]interface{}{}
-		err := json.Unmarshal([]byte(info.(string)), &imap)
+	// 修改FullInfo值
+	all := ref.ToMap()
+	if info, ok := all["FullInfo"]; ok {
+		mp := map[string]interface{}{}
+		err := json.Unmarshal([]byte(info.(string)), &mp)
 		if err == nil {
 			for k, v := range value {
-				if _, ok := mp[k]; ok == false {
-					imap[k] = v
+				if _, ok := all[k]; ok == false {
+					mp[k] = v
 				}
 			}
-			mj, _ := json.Marshal(imap)
-			mp["FullInfo"] = string(mj)
+			mj, _ := json.Marshal(mp)
+			e := ref.Set(map[string]interface{}{"FullInfo": string(mj)})
+			if e != nil {
+				return e
+			}
 		}
 	}
 	return nil

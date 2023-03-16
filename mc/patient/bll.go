@@ -59,6 +59,7 @@ func (b *Bll) Stop() {
 //  @return interface{} 患者唯一号
 //  @return error 异常
 func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
+	ctx.LoadFile()
 	model := &Patient{}
 	if err := ctx.Bind(model); err != nil {
 		return nil, err

@@ -1,7 +1,6 @@
 package qf
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/UritMedical/qf/util/io"
@@ -106,7 +105,7 @@ func newService() *Service {
 	}
 	s.db = db
 	// 初始化Id分配器
-	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1000, db)
+	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1001, db)
 	s.config = qconfig.NewConfigByDB(db)
 	// 创建Gin服务
 	s.engine = gin.Default()
@@ -121,6 +120,9 @@ func newService() *Service {
 	for _, any := range s.setting.WebConfig.Any {
 		s.engine.Any(any)
 	}
+	// 其他初始化
+	dateFormat = s.setting.OtherConfig.JsonDateFormat
+	dateTimeFormat = fmt.Sprintf("%s %s", s.setting.OtherConfig.JsonDateFormat, s.setting.OtherConfig.JsonTimeFormat)
 
 	return s
 }
@@ -231,47 +233,43 @@ func (s *Service) context(ctx *gin.Context) {
 	url := fmt.Sprintf("%s:%s", ctx.Request.Method, ctx.FullPath())
 	if handler, ok := s.apiHandler[url]; ok {
 		qfCtx := &Context{
-			time:        time.Now().Local(),
 			loginUser:   s.loginUser,
-			inputValue:  make([]map[string]interface{}, 0),
-			inputSource: "",
 			idAllocator: s.idAllocator,
 		}
-		// 获取body内容
-		if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil {
-			qfCtx.inputSource = string(body)
-			if json.Valid(body) {
-				// 如果是json列表
-				if strings.HasPrefix(qfCtx.inputSource, "[") &&
-					strings.HasSuffix(qfCtx.inputSource, "]") {
-					_ = json.Unmarshal(body, &qfCtx.inputValue)
-				}
-				// 如果是json结构
-				if strings.HasPrefix(qfCtx.inputSource, "{") &&
-					strings.HasSuffix(qfCtx.inputSource, "}") {
-					iv := map[string]interface{}{}
-					_ = json.Unmarshal(body, &iv)
-					qfCtx.inputValue = append(qfCtx.inputValue, iv)
-				}
-			} else {
-				if qfCtx.inputSource != "" {
-					s.returnError(ctx, errors.New("invalid json format"))
-					return
+		qfCtx.time.FromTime(time.Now())
+
+		contentType := ctx.Request.Header.Get("Content-Type")
+		if strings.HasPrefix(contentType, "application/json") {
+			// 处理 JSON 数据
+			if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil {
+				qfCtx.loadInput(body)
+			}
+		} else if strings.HasPrefix(contentType, "multipart/form-data") {
+			// 处理表单数据
+			form, err := ctx.MultipartForm()
+			if err != nil {
+				s.returnError(ctx, errors.New("invalid form-data"))
+				return
+			}
+			// 将非文件值加入到字典中
+			for key, value := range form.Value {
+				if len(value) > 0 {
+					qfCtx.setInputValue(key, value[0])
 				}
 			}
+			// 获取文件类的值
+			qfCtx.inputFiles = form.File
 		}
 
 		// 获取全部的Query
 		for k, v := range ctx.Request.URL.Query() {
-			if len(qfCtx.inputValue) == 0 {
-				qfCtx.inputValue = append(qfCtx.inputValue, map[string]interface{}{})
-			}
 			if len(v) > 0 {
-				qfCtx.inputValue[0][k] = v[0]
-			} else {
-				qfCtx.inputValue[0][k] = ""
+				qfCtx.setInputValue(k, v[0])
 			}
 		}
+
+		// 重新生成原始内容
+		qfCtx.resetSource()
 
 		// 执行业务方法
 		result, err := handler(qfCtx)
@@ -285,7 +283,7 @@ func (s *Service) context(ctx *gin.Context) {
 				go func() {
 					e := mh(qfCtx)
 					if e != nil {
-
+						// TODO 日志
 					}
 				}()
 			}

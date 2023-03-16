@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/UritMedical/qf/util/qid"
 	"github.com/UritMedical/qf/util/qreflect"
+	"mime/multipart"
+	"reflect"
 	"strconv"
-	"strings"
-	"time"
 )
 
 //
@@ -16,13 +16,13 @@ import (
 //  @Description: Api上下文参数
 //
 type Context struct {
-	time      time.Time // 操作时间
+	time      DateTime  // 操作时间
 	loginUser LoginUser // 登陆用户信息
 	// input的原始内容字典
 	inputValue  []map[string]interface{}
 	inputSource string
+	inputFiles  map[string][]*multipart.FileHeader
 	// id分配器
-	idPer       uint
 	idAllocator qid.IIdAllocator
 }
 
@@ -37,27 +37,13 @@ func (ctx *Context) NewContext(input interface{}) *Context {
 	context := &Context{
 		time:        ctx.time,
 		loginUser:   ctx.loginUser,
-		inputValue:  nil,
-		inputSource: "",
-		idPer:       ctx.idPer,
 		idAllocator: ctx.idAllocator,
 	}
+	// 将body转入到上下文入参
 	body, _ := json.Marshal(input)
-	context.inputSource = string(body)
-	if json.Valid(body) {
-		// 如果是json列表
-		if strings.HasPrefix(context.inputSource, "[") &&
-			strings.HasSuffix(context.inputSource, "]") {
-			_ = json.Unmarshal(body, &context.inputValue)
-		}
-		// 如果是json结构
-		if strings.HasPrefix(context.inputSource, "{") &&
-			strings.HasSuffix(context.inputSource, "}") {
-			iv := map[string]interface{}{}
-			_ = json.Unmarshal(body, &iv)
-			context.inputValue = append(context.inputValue, iv)
-		}
-	}
+	context.loadInput(body)
+	// 重新生成原始内容
+	context.resetSource()
 	return context
 }
 
@@ -121,12 +107,17 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) err
 	if objectPtr == nil {
 		return errors.New("the object cannot be empty")
 	}
+
 	// 创建反射
 	ref := qreflect.New(objectPtr)
 	// 必须为指针
 	if ref.IsPtr() == false {
 		return errors.New("the object must be pointer")
 	}
+
+	// 先用json反转一次
+	_ = json.Unmarshal([]byte(ctx.inputSource), objectPtr)
+
 	// 追加附加内容到字典
 	for _, value := range attachValues {
 		r := qreflect.New(value)
@@ -144,6 +135,112 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) err
 	}
 	// 重新赋值
 	return ref.Set(ctx.inputValue, cnt)
+}
+
+//
+// LoadFile
+//  @Description: 获取前端上传的文件列表
+//  @param key form表单的参数名称
+//  @return []*multipart.FileHeader
+//
+func (ctx *Context) LoadFile(key string) []*multipart.FileHeader {
+	if ctx.inputFiles == nil {
+		return nil
+	}
+	return ctx.inputFiles[key]
+}
+
+//
+// GetJsonValue
+//  @Description: 获取指定属性值，并返回json格式
+//  @param propName
+//  @return string
+//
+func (ctx *Context) GetJsonValue(propName string) string {
+	if len(ctx.inputValue) == 0 {
+		return ""
+	}
+	nj, _ := json.Marshal(ctx.inputValue[0][propName])
+	return string(nj)
+}
+
+//
+// GetStringValue
+//  @Description: 获取指定属性值，并返回字符串格式
+//  @param propName
+//  @return string
+//
+func (ctx *Context) GetStringValue(propName string) string {
+	if len(ctx.inputValue) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%v", ctx.inputValue[0][propName])
+}
+
+//
+// GetUIntValue
+//  @Description: 获取指定属性值，并返回整形格式
+//  @param propName
+//  @return uint64
+//
+func (ctx *Context) GetUIntValue(propName string) uint64 {
+	num, _ := strconv.Atoi(ctx.GetStringValue(propName))
+	return uint64(num)
+}
+
+//
+// GetId
+//  @Description: 直接获取Id的值
+//  @return uint64
+//
+func (ctx *Context) GetId() uint64 {
+	return ctx.GetUIntValue("Id")
+}
+
+//-----------------------------------------------------------------------
+
+func (ctx *Context) loadInput(body []byte) {
+	var obj interface{}
+	if err := json.Unmarshal(body, &obj); err == nil {
+		maps := make([]map[string]interface{}, 0)
+		kind := reflect.TypeOf(obj).Kind()
+		if kind == reflect.Slice {
+			for _, o := range obj.([]interface{}) {
+				maps = append(maps, o.(map[string]interface{}))
+			}
+		} else if kind == reflect.Map || kind == reflect.Struct {
+			maps = append(maps, obj.(map[string]interface{}))
+		}
+		ctx.inputValue = maps
+	} else {
+		ctx.inputValue = make([]map[string]interface{}, 0)
+	}
+}
+
+func (ctx *Context) setInputValue(key string, value interface{}) {
+	if len(ctx.inputValue) == 0 {
+		ctx.inputValue = append(ctx.inputValue, map[string]interface{}{})
+	}
+	for i := 0; i < len(ctx.inputValue); i++ {
+		ctx.inputValue[i][key] = value
+	}
+}
+
+func (ctx *Context) resetSource() {
+	ctx.inputSource = ""
+	if ctx.inputValue != nil {
+		if len(ctx.inputValue) == 1 {
+			is, err := json.Marshal(ctx.inputValue[0])
+			if err == nil {
+				ctx.inputSource = string(is)
+			}
+		} else {
+			is, err := json.Marshal(ctx.inputValue)
+			if err == nil {
+				ctx.inputSource = string(is)
+			}
+		}
+	}
 }
 
 func (ctx *Context) build(source map[string]interface{}, exclude map[string]interface{}) BaseModel {
@@ -171,28 +268,4 @@ func (ctx *Context) build(source map[string]interface{}, exclude map[string]inte
 		LastTime: ctx.time,
 		FullInfo: info,
 	}
-}
-
-func (ctx *Context) GetJsonValue(propName string) string {
-	if len(ctx.inputValue) == 0 {
-		return ""
-	}
-	nj, _ := json.Marshal(ctx.inputValue[0][propName])
-	return string(nj)
-}
-
-func (ctx *Context) GetStringValue(propName string) string {
-	if len(ctx.inputValue) == 0 {
-		return ""
-	}
-	return fmt.Sprintf("%v", ctx.inputValue[0][propName])
-}
-
-func (ctx *Context) GetUIntValue(propName string) uint64 {
-	num, _ := strconv.Atoi(ctx.GetStringValue(propName))
-	return uint64(num)
-}
-
-func (ctx *Context) GetId() uint64 {
-	return ctx.GetUIntValue("Id")
 }

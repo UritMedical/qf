@@ -3,8 +3,10 @@ package qf
 import (
 	"fmt"
 	"github.com/UritMedical/qf/util/qconfig"
+	"github.com/UritMedical/qf/util/qdate"
 	"gorm.io/gorm"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -160,9 +162,9 @@ func (ref RefMap) Load(kind EApiKind, router string) ApiHandler {
 //  @Description: 基础实体对象
 //
 type BaseModel struct {
-	Id       uint64    `gorm:"primaryKey"` // 唯一号
-	LastTime time.Time `gorm:"index"`      // 最后操作时间时间
-	FullInfo string    // 内容
+	Id       uint64   `gorm:"primaryKey"` // 唯一号
+	LastTime DateTime `gorm:"index"`      // 最后操作时间时间
+	FullInfo string   // 内容
 }
 
 //
@@ -180,4 +182,150 @@ type LoginUser struct {
 	roles map[uint64]struct {
 		Name string
 	} // 角色列表
+}
+
+var (
+	dateFormat     string
+	dateTimeFormat string
+)
+
+type Date uint32
+
+//
+// FromTime
+//  @Description: 通过原生的time赋值
+//  @param time
+//
+//goland:noinspection GoMixedReceiverTypes
+func (d *Date) FromTime(time time.Time) {
+	t := time.Local()
+	s := fmt.Sprintf("%04d%02d%02d", t.Year(), t.Month(), t.Day())
+	v, _ := strconv.ParseUint(s, 10, 32)
+	*d = Date(v)
+}
+
+//
+// ToString
+//  @Description: 根据全局format格式化输出
+//  @return string
+//
+//goland:noinspection GoMixedReceiverTypes
+func (d Date) ToString() string {
+	return qdate.ToString(d.ToTime(), dateFormat)
+}
+
+//
+// ToTime
+//  @Description: 转为原生时间对象
+//  @return time.Time
+//
+//goland:noinspection GoMixedReceiverTypes
+func (d Date) ToTime() time.Time {
+	str := fmt.Sprintf("%d", d)
+	if len(str) != 8 {
+		return time.Time{}
+	}
+	year, _ := strconv.Atoi(str[0:4])
+	month, _ := strconv.Atoi(str[4:6])
+	day, _ := strconv.Atoi(str[6:8])
+	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+}
+
+//
+// MarshalJSON
+//  @Description: 复写json转换
+//  @return []byte
+//  @return error
+//
+//goland:noinspection GoMixedReceiverTypes
+func (d Date) MarshalJSON() ([]byte, error) {
+	str := fmt.Sprintf("\"%s\"", d.ToString())
+	return []byte(str), nil
+}
+
+//
+// UnmarshalJSON
+//  @Description: 复写json转换
+//  @param data
+//  @return error
+//
+//goland:noinspection GoMixedReceiverTypes
+func (d *Date) UnmarshalJSON(data []byte) error {
+	v, err := qdate.ToNumber(string(data), dateFormat)
+	if err == nil {
+		*d = Date(v)
+	}
+	return err
+}
+
+type DateTime uint64
+
+//
+// FromTime
+//  @Description: 通过原生的time赋值
+//  @param time
+//
+//goland:noinspection GoMixedReceiverTypes
+func (d *DateTime) FromTime(time time.Time) {
+	t := time.Local()
+	s := fmt.Sprintf("%04d%02d%02d%02d%02d%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+	v, _ := strconv.ParseUint(s, 10, 64)
+	*d = DateTime(v)
+}
+
+//
+// ToString
+//  @Description: 根据全局format格式化输出
+//  @return string
+//
+//goland:noinspection GoMixedReceiverTypes
+func (d DateTime) ToString() string {
+	return qdate.ToString(d.ToTime(), dateTimeFormat)
+}
+
+//
+// ToTime
+//  @Description: 转为原生时间对象
+//  @return time.Time
+//
+//goland:noinspection GoMixedReceiverTypes
+func (d DateTime) ToTime() time.Time {
+	str := fmt.Sprintf("%d", d)
+	if len(str) != 14 {
+		return time.Time{}
+	}
+	year, _ := strconv.Atoi(str[0:4])
+	month, _ := strconv.Atoi(str[4:6])
+	day, _ := strconv.Atoi(str[6:8])
+	hour, _ := strconv.Atoi(str[8:10])
+	minute, _ := strconv.Atoi(str[10:12])
+	second, _ := strconv.Atoi(str[12:14])
+	return time.Date(year, time.Month(month), day, hour, minute, second, 0, time.Local)
+}
+
+//
+// MarshalJSON
+//  @Description: 复写json转换
+//  @return []byte
+//  @return error
+//
+//goland:noinspection GoMixedReceiverTypes
+func (d DateTime) MarshalJSON() ([]byte, error) {
+	str := fmt.Sprintf("\"%s\"", d.ToString())
+	return []byte(str), nil
+}
+
+//
+// UnmarshalJSON
+//  @Description: 复写json转换
+//  @param data
+//  @return error
+//
+//goland:noinspection GoMixedReceiverTypes
+func (d *DateTime) UnmarshalJSON(data []byte) error {
+	v, err := qdate.ToNumber(string(data), dateTimeFormat)
+	if err == nil {
+		*d = DateTime(v)
+	}
+	return err
 }
