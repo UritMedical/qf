@@ -71,6 +71,7 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 	if model.HisId != nil && *model.HisId == "" {
 		model.HisId = nil
 	}
+	
 	// 提交，如果HisId重复，则返回失败
 	err := b.infoDal.Save(model)
 	if err != nil {
