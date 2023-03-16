@@ -54,7 +54,7 @@ func (u *UserDal) CheckOldPassword(id uint64, password string) bool {
 //
 func (u *UserDal) GetAllUsers() ([]model.User, error) {
 	list := make([]model.User, 0)
-	err := u.DB().Where("Id > 0").Find(&list).Error
+	err := u.DB().Where("Id > 0").Order("Id DESC").Find(&list).Error
 	return list, err
 }
 
