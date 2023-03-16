@@ -58,7 +58,25 @@ func (b *Bll) deleteRole(ctx *qf.Context) (interface{}, error) {
 func (b *Bll) getAllRoles(ctx *qf.Context) (interface{}, error) {
 	roles := make([]model.Role, 0)
 	err := b.roleDal.GetList(0, 100, &roles)
-	return util.ToMaps(roles), err
+
+	result := make([]map[string]interface{}, 0)
+	for _, role := range roles {
+		//获取此角色拥有的用户
+		userIds, _ := b.userRoleDal.GetUsersByRoleId(role.Id)
+		users, _ := b.userDal.GetUsersByIds(userIds)
+
+		//获取此角色拥有的权限
+		permissionId, _ := b.rolePermissionDal.GetRolePermission(role.Id)
+		permissions, _ := b.permissionDal.GetPermissionsByIds(permissionId)
+
+		roleDict := make(map[string]interface{})
+		roleDict["RoleInfo"] = util.ToMap(role)
+		roleDict["Users"] = util.ToMaps(users)
+		roleDict["Permissions"] = util.ToMaps(permissions)
+
+		result = append(result, roleDict)
+	}
+	return result, err
 }
 
 //
@@ -123,4 +141,14 @@ func (b *Bll) getRolePermissions(ctx *qf.Context) (interface{}, error) {
 	permissionId, _ := b.rolePermissionDal.GetRolePermission(roleId)
 	permissions, err := b.permissionDal.GetPermissionsByIds(permissionId)
 	return util.ToMaps(permissions), err
+}
+
+//
+// getRolesByUserId
+//  @Description: 获取用户所拥有的角色
+//  @receiver b
+//
+func (b *Bll) getRolesByUserId(userId uint64) ([]model.Role, error) {
+	roleIds, _ := b.userRoleDal.GetRolesByUserId(userId)
+	return b.roleDal.GetRolesByIds(roleIds)
 }

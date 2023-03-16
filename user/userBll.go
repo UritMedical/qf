@@ -48,12 +48,11 @@ func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 		token, _ := util.GenerateToken(user.Id, role)
 
 		//获取用户所在部门
-		dptIds, _ := b.dptUserDal.GetDptsByUserId(user.Id)
-		departs, _ := b.dptDal.GetDptsByIds(dptIds)
+		departs, _ := b.getDepartsByUserId(user.Id)
 
 		//获取用户所拥有的角色
-		ids, _ := b.userRoleDal.GetRolesByUserId(user.Id)
-		roles, _ := b.roleDal.GetRolesByIds(ids)
+		roles, _ := b.getRolesByUserId(user.Id)
+
 		return map[string]interface{}{
 			"Token":    token,
 			"Departs":  util.ToMaps(departs),
@@ -91,19 +90,19 @@ func (b *Bll) deleteUser(ctx *qf.Context) (interface{}, error) {
 
 func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
 	var user model.User
-	//获取用户角色
-	roleIds, err := b.userRoleDal.GetRolesByUserId(ctx.LoginUser().UserId)
-	if err != nil {
-		return nil, err
-	}
-	roles, err := b.roleDal.GetRolesByIds(roleIds)
-	if err != nil {
-		return nil, err
-	}
-	err = b.userDal.GetModel(ctx.LoginUser().UserId, &user)
+	userId := ctx.LoginUser().UserId
+
+	//获取用户所在部门
+	departs, _ := b.getDepartsByUserId(userId)
+
+	//获取用户所拥有的角色
+	roles, _ := b.getRolesByUserId(userId)
+
+	err := b.userDal.GetModel(userId, &user)
 	ret := map[string]interface{}{
-		"info":  util.ToMaps(user),
-		"roles": util.ToMaps(roles),
+		"Info":        util.ToMap(user),
+		"Roles":       util.ToMaps(roles),
+		"Departments": util.ToMaps(departs),
 	}
 
 	return ret, err
@@ -118,7 +117,22 @@ func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
 //
 func (b *Bll) getAllUsers(ctx *qf.Context) (interface{}, error) {
 	list, err := b.userDal.GetAllUsers()
-	return util.ToMaps(list), err
+	result := make([]map[string]interface{}, 0)
+	for _, user := range list {
+		//获取用户所在部门
+		departs, _ := b.getDepartsByUserId(user.Id)
+
+		//获取用户所拥有的角色
+		roles, _ := b.getRolesByUserId(user.Id)
+
+		ret := map[string]interface{}{
+			"UserInfo":    util.ToMap(user),
+			"Roles":       util.ToMaps(roles),
+			"Departments": util.ToMaps(departs),
+		}
+		result = append(result, ret)
+	}
+	return result, err
 }
 
 //
