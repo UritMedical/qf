@@ -185,8 +185,8 @@ type LoginUser struct {
 }
 
 var (
-	dateFormat     string
-	dateTimeFormat string
+	dateFormat     string // 日期掩码
+	dateTimeFormat string // 日期时间掩码
 )
 
 type Date uint32
