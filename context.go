@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/UritMedical/qf/util/reflectex"
+	"github.com/UritMedical/qf/util/qid"
+	"github.com/UritMedical/qf/util/qreflect"
+	"mime/multipart"
 	"strconv"
 	"strings"
 	"time"
@@ -20,9 +22,10 @@ type Context struct {
 	// input的原始内容字典
 	inputValue  []map[string]interface{}
 	inputSource string
+	inputFiles  map[string][]*multipart.FileHeader
 	// id分配器
 	idPer       uint
-	idAllocator iIdAllocator
+	idAllocator qid.IIdAllocator
 }
 
 //
@@ -77,12 +80,20 @@ func (ctx *Context) NewId(object interface{}) uint64 {
 //
 func (ctx *Context) LoginUser() LoginUser {
 	user := LoginUser{
-		UserId:     ctx.loginUser.UserId,
-		UserName:   ctx.loginUser.UserName,
-		Department: map[uint64]struct{ Name string }{},
+		UserId:      ctx.loginUser.UserId,
+		UserName:    ctx.loginUser.UserName,
+		LoginId:     ctx.loginUser.LoginId,
+		Departments: map[uint64]struct{ Name string }{},
+		token:       ctx.loginUser.token,
+		roles:       map[uint64]struct{ Name string }{},
 	}
-	for id, info := range ctx.loginUser.Department {
-		user.Department[id] = struct{ Name string }{
+	for id, info := range ctx.loginUser.Departments {
+		user.Departments[id] = struct{ Name string }{
+			Name: info.Name,
+		}
+	}
+	for id, info := range ctx.loginUser.roles {
+		user.roles[id] = struct{ Name string }{
 			Name: info.Name,
 		}
 	}
@@ -112,40 +123,42 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) err
 	if objectPtr == nil {
 		return errors.New("the object cannot be empty")
 	}
+	// 创建反射
+	ref := qreflect.New(objectPtr)
 	// 必须为指针
-	if reflectex.IsPtr(objectPtr) == false {
+	if ref.IsPtr() == false {
 		return errors.New("the object must be pointer")
 	}
-
 	// 追加附加内容到字典
 	for _, value := range attachValues {
-		for k, v := range reflectex.StructToMap(value) {
-			for _, vv := range ctx.inputValue {
-				vv[k] = v
+		r := qreflect.New(value)
+		for k, v := range r.ToMap() {
+			for i := 0; i < len(ctx.inputValue); i++ {
+				ctx.inputValue[i][k] = v
 			}
 		}
 	}
 	// 然后根据类型，将字典写入到对象或列表中
 	cnt := make([]BaseModel, 0)
 	for i := 0; i < len(ctx.inputValue); i++ {
-		c := ctx.build(ctx.inputValue[i], reflectex.StructToMap(objectPtr))
+		c := ctx.build(ctx.inputValue[i], ref.ToMap())
 		cnt = append(cnt, c)
 	}
-	if reflectex.IsStruct(objectPtr) {
-		// 先将提交的input填充
-		nj, _ := json.Marshal(ctx.inputValue[0])
-		_ = json.Unmarshal(nj, objectPtr)
-		// 再将重新组织的内容填充
-		nj, _ = json.Marshal(cnt[0])
-		_ = json.Unmarshal(nj, objectPtr)
-	} else if reflectex.IsSlice(objectPtr) {
-		// 同上
-		nj, _ := json.Marshal(ctx.inputValue)
-		_ = json.Unmarshal(nj, objectPtr)
-		nj, _ = json.Marshal(cnt)
-		_ = json.Unmarshal(nj, objectPtr)
+	// 重新赋值
+	return ref.Set(ctx.inputValue, cnt)
+}
+
+//
+// GetFile
+//  @Description: 获取前端上传的文件列表
+//  @param key 属性名
+//  @return []*multipart.FileHeader
+//
+func (ctx *Context) GetFile(key string) []*multipart.FileHeader {
+	if ctx.inputFiles == nil {
+		return nil
 	}
-	return nil
+	return ctx.inputFiles[key]
 }
 
 func (ctx *Context) build(source map[string]interface{}, exclude map[string]interface{}) BaseModel {
@@ -163,11 +176,15 @@ func (ctx *Context) build(source map[string]interface{}, exclude map[string]inte
 			finals[k] = v
 		}
 	}
-	cj, _ := json.Marshal(finals)
+	info := ""
+	if len(finals) > 0 {
+		cj, _ := json.Marshal(finals)
+		info = string(cj)
+	}
 	return BaseModel{
 		Id:       nid,
 		LastTime: ctx.time,
-		FullInfo: string(cj),
+		FullInfo: info,
 	}
 }
 

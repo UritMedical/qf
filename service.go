@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/UritMedical/qf/helper/config"
-	"github.com/UritMedical/qf/helper/id"
 	"github.com/UritMedical/qf/util/io"
+	"github.com/UritMedical/qf/util/launcher"
+	"github.com/UritMedical/qf/util/qconfig"
+	"github.com/UritMedical/qf/util/qid"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -19,6 +20,42 @@ import (
 	"time"
 )
 
+var (
+	serv       *Service
+	regBllFunc func(s *Service)
+	stopFunc   func()
+)
+
+//
+// Run
+//  @Description: 启动
+//  @param regBll 注册业务（必须）
+//  @param stop 自定义释放
+//
+func Run(regBll func(s *Service), stop func()) {
+	regBllFunc = regBll
+	stopFunc = stop
+	launcher.Run(doStart, doStop)
+}
+
+func doStart() {
+	// 创建服务
+	serv = newService()
+	// 注册外部业务
+	regBllFunc(serv)
+	// 启动服务
+	serv.run()
+}
+
+func doStop() {
+	// 执行外部释放
+	if stopFunc != nil {
+		stopFunc()
+	}
+	// 停止服务
+	serv.stop()
+}
+
 type Service struct {
 	folder      string                    // 框架的文件夹路径
 	db          *gorm.DB                  // 数据库
@@ -27,8 +64,9 @@ type Service struct {
 	apiHandler  map[string]ApiHandler     // 所有注册的业务API函数指针
 	msgHandler  map[string]MessageHandler // 所有消息执行的函数指针
 	setting     setting                   // 框架配置
-	idAllocator iIdAllocator              // id分配器
-	config      iConfig                   // 配置文件接口
+	idAllocator qid.IIdAllocator          // id分配器接口
+	config      qconfig.IConfig           // 配置文件接口
+	loginUser   LoginUser                 // 登陆用户信息
 }
 
 //
@@ -58,14 +96,18 @@ func newService() *Service {
 	if s.setting.GormConfig.OpenLog == 1 {
 		gc.Logger = logger.Default.LogMode(logger.Info)
 	}
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/data.db", dbDir)), &gc)
+	gc.SkipDefaultTransaction = s.setting.GormConfig.SkipDefaultTransaction == 1
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/%s.db", dbDir, s.setting.GormConfig.DBName)), &gc)
 	if err != nil {
 		return nil
 	}
+	if s.setting.GormConfig.JournalMode != "" {
+		db.Exec(fmt.Sprintf("PRAGMA journal_mode = %s;", s.setting.GormConfig.JournalMode))
+	}
 	s.db = db
 	// 初始化Id分配器
-	s.idAllocator = id.NewIdAllocatorByDB(s.setting.Id, 1000, db)
-	s.config = config.NewConfigByDB(db)
+	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1001, db)
+	s.config = qconfig.NewConfigByDB(db)
 	// 创建Gin服务
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
@@ -128,7 +170,7 @@ func (s *Service) stop() {
 func (s *Service) RegBll(bll IBll, group string) {
 	group = strings.Trim(group, "/")
 	// 初始化业务对象
-	bll.set(bll, s.setting.UrlGroup, group, s.config)
+	bll.set(bll, s.setting.WebConfig.DefGroup, group, s.config)
 	// 加入到业务列表
 	if _, ok := s.bllList[bll.key()]; ok == false {
 		s.bllList[bll.key()] = bll
@@ -190,33 +232,57 @@ func (s *Service) context(ctx *gin.Context) {
 	if handler, ok := s.apiHandler[url]; ok {
 		qfCtx := &Context{
 			time:        time.Now().Local(),
-			loginUser:   LoginUser{}, // TODO
+			loginUser:   s.loginUser,
 			inputValue:  make([]map[string]interface{}, 0),
 			inputSource: "",
 			idAllocator: s.idAllocator,
 		}
-		// 获取body内容
-		if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil {
-			qfCtx.inputSource = string(body)
-			if json.Valid(body) {
-				// 如果是json列表
-				if strings.HasPrefix(qfCtx.inputSource, "[") &&
-					strings.HasSuffix(qfCtx.inputSource, "]") {
-					_ = json.Unmarshal(body, &qfCtx.inputValue)
-				}
-				// 如果是json结构
-				if strings.HasPrefix(qfCtx.inputSource, "{") &&
-					strings.HasSuffix(qfCtx.inputSource, "}") {
-					iv := map[string]interface{}{}
-					_ = json.Unmarshal(body, &iv)
-					qfCtx.inputValue = append(qfCtx.inputValue, iv)
-				}
-			} else {
-				if qfCtx.inputSource != "" {
-					s.returnError(ctx, errors.New("invalid json format"))
-					return
+
+		contentType := ctx.Request.Header.Get("Content-Type")
+		if strings.HasPrefix(contentType, "application/json") {
+			// 处理 JSON 数据
+			if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil {
+				qfCtx.inputSource = string(body)
+				if json.Valid(body) {
+					// 如果是json列表
+					if strings.HasPrefix(qfCtx.inputSource, "[") &&
+						strings.HasSuffix(qfCtx.inputSource, "]") {
+						_ = json.Unmarshal(body, &qfCtx.inputValue)
+					}
+					// 如果是json结构
+					if strings.HasPrefix(qfCtx.inputSource, "{") &&
+						strings.HasSuffix(qfCtx.inputSource, "}") {
+						iv := map[string]interface{}{}
+						_ = json.Unmarshal(body, &iv)
+						qfCtx.inputValue = append(qfCtx.inputValue, iv)
+					}
+				} else {
+					if qfCtx.inputSource != "" {
+						s.returnError(ctx, errors.New("invalid json format"))
+						return
+					}
 				}
 			}
+		} else if strings.HasPrefix(contentType, "multipart/form-data") {
+			// 处理表单数据
+			form, err := ctx.MultipartForm()
+			if err != nil {
+				s.returnError(ctx, errors.New("invalid form-data"))
+				return
+			}
+			// 将非文件值加入到字典中
+			if form.Value != nil {
+				if len(qfCtx.inputValue) == 0 {
+					qfCtx.inputValue = append(qfCtx.inputValue, map[string]interface{}{})
+				}
+				for key, value := range form.Value {
+					if len(value) > 0 {
+						qfCtx.inputValue[0][key] = value[0]
+					}
+				}
+			}
+			// 获取文件类的值
+			qfCtx.inputFiles = form.File
 		}
 
 		// 获取全部的Query
@@ -224,10 +290,12 @@ func (s *Service) context(ctx *gin.Context) {
 			if len(qfCtx.inputValue) == 0 {
 				qfCtx.inputValue = append(qfCtx.inputValue, map[string]interface{}{})
 			}
+			value := ""
 			if len(v) > 0 {
-				qfCtx.inputValue[0][k] = v[0]
-			} else {
-				qfCtx.inputValue[0][k] = ""
+				value = v[0]
+			}
+			for i := 0; i < len(qfCtx.inputValue); i++ {
+				qfCtx.inputValue[i][k] = value
 			}
 		}
 
@@ -247,7 +315,27 @@ func (s *Service) context(ctx *gin.Context) {
 					}
 				}()
 			}
-
+			// 截取登陆接口，获取登陆信息
+			if url == fmt.Sprintf("POST:/%s/login", s.setting.WebConfig.DefGroup) {
+				value := result.(map[string]interface{})
+				userInfo := value["UserInfo"].(map[string]interface{})
+				s.loginUser.UserId = userInfo["Id"].(uint64)
+				s.loginUser.UserName = userInfo["Name"].(string)
+				s.loginUser.LoginId = userInfo["LoginId"].(string)
+				s.loginUser.Departments = map[uint64]struct{ Name string }{}
+				s.loginUser.token = value["Token"].(string)
+				s.loginUser.roles = map[uint64]struct{ Name string }{}
+				for _, role := range value["Roles"].([]map[string]interface{}) {
+					s.loginUser.roles[role["Id"].(uint64)] = struct{ Name string }{
+						Name: role["Name"].(string),
+					}
+				}
+				for _, dp := range value["Departs"].([]map[string]interface{}) {
+					s.loginUser.Departments[dp["Id"].(uint64)] = struct{ Name string }{
+						Name: dp["Name"].(string),
+					}
+				}
+			}
 			// TODO：记录日志
 
 			s.returnOk(ctx, result)

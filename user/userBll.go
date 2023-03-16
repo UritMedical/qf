@@ -3,7 +3,6 @@ package user
 import (
 	"errors"
 	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/helper"
 	"github.com/UritMedical/qf/user/model"
 	"github.com/UritMedical/qf/util"
 	"strings"
@@ -46,7 +45,7 @@ func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 	params.LoginId = strings.Replace(params.LoginId, " ", "", -1)
 	if user, ok := b.userDal.CheckLogin(params.LoginId, params.Password); ok {
 		role, _ := b.userRoleDal.GetUsersByRoleId(user.Id)
-		token, _ := helper.GenerateToken(user.Id, role)
+		token, _ := util.GenerateToken(user.Id, role)
 
 		//获取用户所在部门
 		departs, _ := b.getDepartsByUserId(user.Id)
@@ -62,7 +61,7 @@ func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 		}, nil
 	} else if params.LoginId == devUser.LoginId && params.Password == devUser.Password {
 		//开发者账号
-		token, _ := helper.GenerateToken(devUser.Id, []uint64{})
+		token, _ := util.GenerateToken(devUser.Id, []uint64{})
 		return map[string]interface{}{
 			"Token":    token,
 			"UserInfo": util.ToMap(devUser),

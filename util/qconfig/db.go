@@ -1,11 +1,20 @@
-package config
+package qconfig
 
 import (
 	"encoding/json"
 	"gorm.io/gorm"
 )
 
-type ByDB struct {
+func NewConfigByDB(db *gorm.DB) IConfig {
+	name := "QfBllConfig"
+	_ = db.Table(name).AutoMigrate(config{})
+	return &byDB{
+		name: name,
+		db:   db,
+	}
+}
+
+type byDB struct {
 	name string
 	db   *gorm.DB
 }
@@ -15,21 +24,12 @@ type config struct {
 	Value string
 }
 
-func NewConfigByDB(db *gorm.DB) *ByDB {
-	name := "QfBllConfig"
-	_ = db.Table(name).AutoMigrate(config{})
-	return &ByDB{
-		name: name,
-		db:   db,
-	}
-}
-
 //
 // GetConfig
 //  @Description: 获取配置
 //  @return map[string]interface{}
 //
-func (b *ByDB) GetConfig(name string) map[string]interface{} {
+func (b *byDB) GetConfig(name string) map[string]interface{} {
 	cfg := config{
 		Name: name,
 	}
@@ -49,7 +49,7 @@ func (b *ByDB) GetConfig(name string) map[string]interface{} {
 //  @return bool
 //  @return error
 //
-func (b *ByDB) SetConfig(name string, value map[string]interface{}) (bool, error) {
+func (b *byDB) SetConfig(name string, value map[string]interface{}) (bool, error) {
 	cfg := config{
 		Name: name,
 	}
