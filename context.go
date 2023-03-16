@@ -138,18 +138,24 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) err
 }
 
 //
-// GetFile
+// LoadFile
 //  @Description: 获取前端上传的文件列表
-//  @param key 属性名
+//  @param key form表单的参数名称
 //  @return []*multipart.FileHeader
 //
-func (ctx *Context) GetFile(key string) []*multipart.FileHeader {
+func (ctx *Context) LoadFile(key string) []*multipart.FileHeader {
 	if ctx.inputFiles == nil {
 		return nil
 	}
 	return ctx.inputFiles[key]
 }
 
+//
+// GetJsonValue
+//  @Description: 获取指定属性值，并返回json格式
+//  @param propName
+//  @return string
+//
 func (ctx *Context) GetJsonValue(propName string) string {
 	if len(ctx.inputValue) == 0 {
 		return ""
@@ -158,6 +164,12 @@ func (ctx *Context) GetJsonValue(propName string) string {
 	return string(nj)
 }
 
+//
+// GetStringValue
+//  @Description: 获取指定属性值，并返回字符串格式
+//  @param propName
+//  @return string
+//
 func (ctx *Context) GetStringValue(propName string) string {
 	if len(ctx.inputValue) == 0 {
 		return ""
@@ -165,11 +177,22 @@ func (ctx *Context) GetStringValue(propName string) string {
 	return fmt.Sprintf("%v", ctx.inputValue[0][propName])
 }
 
+//
+// GetUIntValue
+//  @Description: 获取指定属性值，并返回整形格式
+//  @param propName
+//  @return uint64
+//
 func (ctx *Context) GetUIntValue(propName string) uint64 {
 	num, _ := strconv.Atoi(ctx.GetStringValue(propName))
 	return uint64(num)
 }
 
+//
+// GetId
+//  @Description: 直接获取Id的值
+//  @return uint64
+//
 func (ctx *Context) GetId() uint64 {
 	return ctx.GetUIntValue("Id")
 }
