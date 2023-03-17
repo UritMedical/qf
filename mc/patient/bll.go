@@ -27,6 +27,10 @@ func (b *Bll) RegDal(d qf.DalMap) {
 	d.Reg(b.caseDal, PatientCase{})
 }
 
+func (b *Bll) RegFault(_ qf.FaultMap) {
+
+}
+
 func (b *Bll) RegMsg(_ qf.MessageMap) {
 
 }
@@ -58,7 +62,7 @@ func (b *Bll) Stop() {
 //		}
 //  @return interface{} 患者唯一号
 //  @return error 异常
-func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, qf.IError) {
 	model := &Patient{}
 	if err := ctx.Bind(model); err != nil {
 		return nil, err
@@ -71,11 +75,11 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 	if model.HisId != nil && *model.HisId == "" {
 		model.HisId = nil
 	}
-	
+
 	// 提交，如果HisId重复，则返回失败
 	err := b.infoDal.Save(model)
 	if err != nil {
-		return 0, err
+		return 0, qf.Error(qf.ErrorCodeSaveFailure, err.Error())
 	}
 	return model.Id, nil
 }
@@ -90,14 +94,14 @@ func (b *Bll) SavePatient(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) DeletePatient(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) DeletePatient(ctx *qf.Context) (interface{}, qf.IError) {
 	// 删除患者信息
 	err := b.infoDal.Delete(ctx.GetId())
 	if err == nil {
 		// 删除所有病历
 		err = b.caseDal.DeleteByPatientId(ctx.GetId())
 	}
-	return nil, err
+	return nil, qf.Error(qf.ErrorCodeDeleteFailure, err.Error())
 }
 
 //
@@ -114,7 +118,7 @@ func (b *Bll) DeletePatient(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) SaveCase(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) SaveCase(ctx *qf.Context) (interface{}, qf.IError) {
 	model := &PatientCase{}
 	if err := ctx.Bind(model); err != nil {
 		return nil, err
@@ -140,7 +144,7 @@ func (b *Bll) SaveCase(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) DeleteCase(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) DeleteCase(ctx *qf.Context) (interface{}, qf.IError) {
 	return nil, b.caseDal.Delete(ctx.GetId())
 }
 
@@ -154,7 +158,7 @@ func (b *Bll) DeleteCase(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) GetFull(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) GetFull(ctx *qf.Context) (interface{}, qf.IError) {
 	// 通过ID检索
 	patInfo := Patient{}
 	err := b.infoDal.GetModel(ctx.GetId(), &patInfo)
@@ -189,7 +193,7 @@ func (b *Bll) GetFull(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, qf.IError) {
 	key := ctx.GetStringValue("key")
 	// 先查患者基本信息列表
 	pats := make([]Patient, 0)

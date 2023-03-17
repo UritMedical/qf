@@ -28,7 +28,7 @@ func (b *Bll) regRoleApi(api qf.ApiMap) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) saveRole(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) saveRole(ctx *qf.Context) (interface{}, qf.IError) {
 	role := &model.Role{}
 	if err := ctx.Bind(role); err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (b *Bll) saveRole(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) deleteRole(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) deleteRole(ctx *qf.Context) (interface{}, qf.IError) {
 	uId := ctx.GetId()
 	return nil, b.roleDal.Delete(uId)
 }
@@ -55,7 +55,7 @@ func (b *Bll) deleteRole(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) getAllRoles(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) getAllRoles(ctx *qf.Context) (interface{}, qf.IError) {
 	roles := make([]model.Role, 0)
 	err := b.roleDal.GetList(0, 100, &roles)
 
@@ -86,7 +86,7 @@ func (b *Bll) getAllRoles(ctx *qf.Context) (interface{}, error) {
 //  @param userId 用户Id
 //  @return error
 //
-func (b *Bll) setUserRoleRelation(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) setUserRoleRelation(ctx *qf.Context) (interface{}, qf.IError) {
 	var params = struct {
 		RoleId  uint64
 		UserIds []uint64
@@ -104,7 +104,7 @@ func (b *Bll) setUserRoleRelation(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) setRolePermission(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) setRolePermission(ctx *qf.Context) (interface{}, qf.IError) {
 	var params = struct {
 		RoleId        uint64
 		PermissionIds []uint64
@@ -122,7 +122,7 @@ func (b *Bll) setRolePermission(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) getRoleUsers(ctx *qf.Context) (interface{}, qf.IError) {
 	roleId := ctx.GetId()
 	userIds, _ := b.userRoleDal.GetUsersByRoleId(roleId)
 	users, err := b.userDal.GetUsersByIds(userIds)
@@ -136,7 +136,7 @@ func (b *Bll) getRoleUsers(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) getRolePermissions(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) getRolePermissions(ctx *qf.Context) (interface{}, qf.IError) {
 	roleId := ctx.GetId()
 	permissionId, _ := b.rolePermissionDal.GetRolePermission(roleId)
 	permissions, err := b.permissionDal.GetPermissionsByIds(permissionId)
@@ -148,7 +148,7 @@ func (b *Bll) getRolePermissions(ctx *qf.Context) (interface{}, error) {
 //  @Description: 获取用户所拥有的角色
 //  @receiver b
 //
-func (b *Bll) getRolesByUserId(userId uint64) ([]model.Role, error) {
+func (b *Bll) getRolesByUserId(userId uint64) ([]model.Role, qf.IError) {
 	roleIds, _ := b.userRoleDal.GetRolesByUserId(userId)
 	return b.roleDal.GetRolesByIds(roleIds)
 }

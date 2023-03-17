@@ -16,8 +16,12 @@ type UserDal struct {
 //  @param newPwd 新密码的MD5格式
 //  @return error
 //
-func (u *UserDal) SetPassword(id uint64, newPwd string) error {
-	return u.DB().Where("id = ?", id).Update("password", newPwd).Error
+func (u *UserDal) SetPassword(id uint64, newPwd string) qf.IError {
+	err := u.DB().Where("id = ?", id).Update("password", newPwd).Error
+	if err != nil {
+		return qf.Error(qf.ErrorCodeSaveFailure, err.Error())
+	}
+	return nil
 }
 
 //
@@ -52,10 +56,13 @@ func (u *UserDal) CheckOldPassword(id uint64, password string) bool {
 //  @return []uModel.User
 //  @return error
 //
-func (u *UserDal) GetAllUsers() ([]model.User, error) {
+func (u *UserDal) GetAllUsers() ([]model.User, qf.IError) {
 	list := make([]model.User, 0)
 	err := u.DB().Where("Id > 0").Order("Id DESC").Find(&list).Error
-	return list, err
+	if err != nil {
+		return nil, qf.Error(qf.ErrorCodeRecordNotFound, err.Error())
+	}
+	return list, nil
 }
 
 //
@@ -65,8 +72,11 @@ func (u *UserDal) GetAllUsers() ([]model.User, error) {
 //  @return []uModel.User
 //  @return error
 //
-func (u *UserDal) GetUsersByIds(userIds []uint64) ([]model.User, error) {
+func (u *UserDal) GetUsersByIds(userIds []uint64) ([]model.User, qf.IError) {
 	list := make([]model.User, 0)
 	err := u.DB().Where("Id IN (?)", userIds).Find(&list).Error
-	return list, err
+	if err != nil {
+		return nil, qf.Error(qf.ErrorCodeRecordNotFound, err.Error())
+	}
+	return list, nil
 }

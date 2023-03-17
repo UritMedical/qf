@@ -2,7 +2,6 @@ package qf
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/UritMedical/qf/util/qid"
 	"github.com/UritMedical/qf/util/qreflect"
@@ -41,7 +40,7 @@ func (ctx *Context) NewContext(input interface{}) *Context {
 	}
 	// 将body转入到上下文入参
 	body, _ := json.Marshal(input)
-	context.loadInput(body)
+	_ = context.loadInput(body)
 	// 重新生成原始内容
 	context.resetSource()
 	return context
@@ -103,16 +102,16 @@ func (ctx *Context) IsNull() bool {
 //  @param attachValues 需要附加的值（可以是结构体、字典）
 //  @return error
 //
-func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) error {
+func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) IError {
 	if objectPtr == nil {
-		return errors.New("the object cannot be empty")
+		return Error(ErrorCodeParamInvalid, "the object cannot be empty")
 	}
 
 	// 创建反射
 	ref := qreflect.New(objectPtr)
 	// 必须为指针
 	if ref.IsPtr() == false {
-		return errors.New("the object must be pointer")
+		return Error(ErrorCodeParamInvalid, "the object must be pointer")
 	}
 
 	// 先用json反转一次
@@ -134,7 +133,11 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) err
 		cnt = append(cnt, c)
 	}
 	// 重新赋值
-	return ref.Set(ctx.inputValue, cnt)
+	err := ref.Set(ctx.inputValue, cnt)
+	if err != nil {
+		return Error(ErrorCodeParamInvalid, err.Error())
+	}
+	return nil
 }
 
 //
@@ -199,22 +202,23 @@ func (ctx *Context) GetId() uint64 {
 
 //-----------------------------------------------------------------------
 
-func (ctx *Context) loadInput(body []byte) {
+func (ctx *Context) loadInput(body []byte) error {
 	var obj interface{}
-	if err := json.Unmarshal(body, &obj); err == nil {
-		maps := make([]map[string]interface{}, 0)
-		kind := reflect.TypeOf(obj).Kind()
-		if kind == reflect.Slice {
-			for _, o := range obj.([]interface{}) {
-				maps = append(maps, o.(map[string]interface{}))
-			}
-		} else if kind == reflect.Map || kind == reflect.Struct {
-			maps = append(maps, obj.(map[string]interface{}))
-		}
-		ctx.inputValue = maps
-	} else {
-		ctx.inputValue = make([]map[string]interface{}, 0)
+	err := json.Unmarshal(body, &obj)
+	if err != nil {
+		return err
 	}
+	maps := make([]map[string]interface{}, 0)
+	kind := reflect.TypeOf(obj).Kind()
+	if kind == reflect.Slice {
+		for _, o := range obj.([]interface{}) {
+			maps = append(maps, o.(map[string]interface{}))
+		}
+	} else if kind == reflect.Map || kind == reflect.Struct {
+		maps = append(maps, obj.(map[string]interface{}))
+	}
+	ctx.inputValue = maps
+	return nil
 }
 
 func (ctx *Context) setInputValue(key string, value interface{}) {

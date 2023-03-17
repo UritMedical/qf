@@ -17,7 +17,7 @@ func (b *Bll) regPermissionApi(api qf.ApiMap) {
 	api.Reg(qf.EApiKindGetList, "permission/apis", b.getPermissionApi)
 }
 
-func (b *Bll) savePermission(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) savePermission(ctx *qf.Context) (interface{}, qf.IError) {
 	var rg model.Permission
 	if err := ctx.Bind(&rg); err != nil {
 		return nil, err
@@ -25,12 +25,12 @@ func (b *Bll) savePermission(ctx *qf.Context) (interface{}, error) {
 	return nil, b.permissionDal.Save(&rg)
 }
 
-func (b *Bll) deletePermission(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) deletePermission(ctx *qf.Context) (interface{}, qf.IError) {
 	uId := ctx.GetId()
 	return nil, b.permissionDal.Delete(uId)
 }
 
-func (b *Bll) getPermissions(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) getPermissions(ctx *qf.Context) (interface{}, qf.IError) {
 	permissions := make([]model.Permission, 0)
 	err := b.permissionDal.GetList(0, 100, &permissions)
 	return util.ToMaps(permissions), err
@@ -43,7 +43,7 @@ func (b *Bll) getPermissions(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) setPermissionApi(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) setPermissionApi(ctx *qf.Context) (interface{}, qf.IError) {
 	params := struct {
 		PermissionId uint64
 		ApiIds       []string
@@ -61,7 +61,7 @@ func (b *Bll) setPermissionApi(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) getPermissionApi(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) getPermissionApi(ctx *qf.Context) (interface{}, qf.IError) {
 	permissionId := ctx.GetUIntValue("PermissionId")
 	return b.permissionApiDal.GetApisByPermissionId(permissionId)
 }

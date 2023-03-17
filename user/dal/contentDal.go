@@ -39,10 +39,13 @@ type PermissionDal struct {
 //  @return []model.Permission
 //  @return error
 //
-func (p PermissionDal) GetPermissionsByIds(ids []uint64) ([]model.Permission, error) {
+func (p PermissionDal) GetPermissionsByIds(ids []uint64) ([]model.Permission, qf.IError) {
 	list := make([]model.Permission, 0)
 	err := p.DB().Where("Id IN (?)", ids).Find(&list).Error
-	return list, err
+	if err != nil {
+		return nil, qf.Error(qf.ErrorCodeRecordNotFound, err.Error())
+	}
+	return list, nil
 }
 
 // RoleDal
@@ -59,8 +62,11 @@ type RoleDal struct {
 //  @return []uModel.Role
 //  @return error
 //
-func (role RoleDal) GetRolesByIds(ids []uint64) ([]model.Role, error) {
+func (role RoleDal) GetRolesByIds(ids []uint64) ([]model.Role, qf.IError) {
 	list := make([]model.Role, 0)
 	err := role.DB().Where("Id IN (?)", ids).Find(&list).Error
-	return list, err
+	if err != nil {
+		return nil, qf.Error(qf.ErrorCodeRecordNotFound, err.Error())
+	}
+	return list, nil
 }

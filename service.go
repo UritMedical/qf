@@ -1,7 +1,6 @@
 package qf
 
 import (
-	"errors"
 	"fmt"
 	"github.com/UritMedical/qf/util/io"
 	"github.com/UritMedical/qf/util/launcher"
@@ -62,6 +61,7 @@ type Service struct {
 	bllList     map[string]IBll           // 所有创建的业务层对象
 	apiHandler  map[string]ApiHandler     // 所有注册的业务API函数指针
 	msgHandler  map[string]MessageHandler // 所有消息执行的函数指针
+	errCodes    map[int]string            // 所有故障码字典
 	setting     setting                   // 框架配置
 	idAllocator qid.IIdAllocator          // id分配器接口
 	config      qconfig.IConfig           // 配置文件接口
@@ -78,8 +78,15 @@ func newService() *Service {
 		bllList:    map[string]IBll{},
 		apiHandler: map[string]ApiHandler{},
 		msgHandler: map[string]MessageHandler{},
+		errCodes:   map[int]string{},
 		setting:    setting{},
 	}
+	// 添加通用故障码
+	s.errCodes[ErrorCodeParamInvalid] = "无效的参数"
+	s.errCodes[ErrorCodePermissionDenied] = "权限不足，拒绝访问"
+	s.errCodes[ErrorCodeRecordNotFound] = "未找到记录"
+	s.errCodes[ErrorCodeSaveFailure] = "保存失败"
+	s.errCodes[ErrorCodeDeleteFailure] = "删除失败"
 	// 默认文件夹路径
 	s.folder = "."
 	// 加载配置
@@ -185,15 +192,31 @@ func (s *Service) reg() {
 	for _, bll := range s.bllList {
 		// 注册API和路由
 		bll.regApi(func(key string, handler ApiHandler) {
+			// 检测重复接口
+			if _, ok := s.apiHandler[key]; ok {
+				panic(fmt.Sprintf("【RegApi】: %s:%s already exists", bll.key(), key))
+			}
+			s.apiHandler[key] = handler
 			sp := strings.Split(key, ":")
 			s.engine.Handle(sp[0], sp[1], s.context)
-			s.apiHandler[key] = handler
 		})
 		// 注册数据访问层
 		bll.regDal(s.db)
 		// 注册消息
 		bll.regMsg(func(key string, handler MessageHandler) {
+			// 检测重复接口
+			if _, ok := s.msgHandler[key]; ok {
+				panic(fmt.Sprintf("【RegMsg】: %s: %s already exists", bll.key(), key))
+			}
 			s.msgHandler[key] = handler
+		})
+		// 注册异常
+		bll.regError(func(code int, err string) {
+			// 检测重复接口
+			if _, ok := s.errCodes[code]; ok {
+				panic(fmt.Sprintf("【RegFault】: %s: %d,%s already exists", bll.key(), code, err))
+			}
+			s.errCodes[code] = err
 		})
 	}
 }
@@ -214,7 +237,7 @@ func (s *Service) init() error {
 	for _, bll := range s.bllList {
 		bll.regRef(func(key string) ApiHandler {
 			if _, ok := s.apiHandler[key]; ok == false {
-				panic(fmt.Sprintf("【RegRef】：%s does not exist", key))
+				panic(fmt.Sprintf("【RegRef】：%s: %s does not exist", bll.key(), key))
 			}
 			return s.apiHandler[key]
 		})
@@ -242,13 +265,17 @@ func (s *Service) context(ctx *gin.Context) {
 		if strings.HasPrefix(contentType, "application/json") {
 			// 处理 JSON 数据
 			if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil {
-				qfCtx.loadInput(body)
+				err := qfCtx.loadInput(body)
+				if err != nil {
+					s.returnError(ctx, Error(ErrorCodeParamInvalid, err.Error()))
+					return
+				}
 			}
 		} else if strings.HasPrefix(contentType, "multipart/form-data") {
 			// 处理表单数据
 			form, err := ctx.MultipartForm()
 			if err != nil {
-				s.returnError(ctx, errors.New("invalid form-data"))
+				s.returnError(ctx, Error(ErrorCodeParamInvalid, "invalid form-data"))
 				return
 			}
 			// 将非文件值加入到字典中
@@ -315,10 +342,13 @@ func (s *Service) context(ctx *gin.Context) {
 	}
 }
 
-func (s *Service) returnError(ctx *gin.Context, err error) {
+func (s *Service) returnError(ctx *gin.Context, err IError) {
+	msg := map[string]interface{}{}
+	msg["code"] = err.Code()
+	msg["error"] = err.Error()
 	ctx.JSON(http.StatusBadRequest, gin.H{
 		"status": http.StatusBadRequest,
-		"msg":    err.Error(),
+		"msg":    msg,
 	})
 }
 
@@ -346,6 +376,20 @@ func (s *Service) getCors() gin.HandlerFunc {
 		}
 		// 处理请求
 		c.Next()
+	}
+}
+
+//
+// Error
+//  @Description: 创建故障内容
+//  @param code
+//  @param err
+//  @return IError
+//
+func Error(code int, err string) IError {
+	return errorInfo{
+		code:  code,
+		error: err,
 	}
 }
 

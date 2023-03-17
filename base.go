@@ -1,7 +1,6 @@
 package qf
 
 import (
-	"errors"
 	"fmt"
 	"github.com/UritMedical/qf/util/qconfig"
 	"gorm.io/gorm"
@@ -39,9 +38,12 @@ func (bll *BaseBll) key() string {
 }
 
 func (bll *BaseBll) regApi(bind func(key string, handler ApiHandler)) {
-	api := ApiMap{}
+	api := ApiMap{
+		bllName: bll.key(),
+		dict:    map[EApiKind]map[string]ApiHandler{},
+	}
 	bll.sub.RegApi(api)
-	for kind, routers := range api {
+	for kind, routers := range api.dict {
 		for relative, handler := range routers {
 			bind(bll.buildPathKey(kind, relative), handler)
 		}
@@ -49,9 +51,12 @@ func (bll *BaseBll) regApi(bind func(key string, handler ApiHandler)) {
 }
 
 func (bll *BaseBll) regMsg(bind func(key string, handler MessageHandler)) {
-	msg := MessageMap{}
+	msg := MessageMap{
+		bllName: bll.key(),
+		dict:    map[EApiKind]map[string]MessageHandler{},
+	}
 	bll.sub.RegMsg(msg)
-	for kind, routers := range msg {
+	for kind, routers := range msg.dict {
 		for relative, handler := range routers {
 			bind(bll.buildPathKey(kind, relative), handler)
 		}
@@ -59,10 +64,24 @@ func (bll *BaseBll) regMsg(bind func(key string, handler MessageHandler)) {
 }
 
 func (bll *BaseBll) regDal(db *gorm.DB) {
-	dal := DalMap{}
+	dal := DalMap{
+		bllName: bll.key(),
+		dict:    map[IDal]interface{}{},
+	}
 	bll.sub.RegDal(dal)
-	for d, model := range dal {
+	for d, model := range dal.dict {
 		d.init(db, model)
+	}
+}
+
+func (bll *BaseBll) regError(bind func(code int, error string)) {
+	err := FaultMap{
+		bllName: bll.key(),
+		dict:    map[int]string{},
+	}
+	bll.sub.RegFault(err)
+	for code, msg := range err.dict {
+		bind(code, msg)
 	}
 }
 
@@ -154,13 +173,16 @@ func (b *BaseDal) DB() *gorm.DB {
 //  @param content 包含了内容结构的实体对象
 //  @return error 异常
 //
-func (b *BaseDal) Save(content interface{}) error {
+func (b *BaseDal) Save(content interface{}) IError {
 	// 提交
-	result := b.DB().Create(content)
+	result := b.DB().Save(content)
 	if result.RowsAffected > 0 {
 		return nil
 	}
-	return result.Error
+	if result.Error != nil {
+		return Error(ErrorCodeSaveFailure, result.Error.Error())
+	}
+	return nil
 }
 
 //
@@ -169,12 +191,15 @@ func (b *BaseDal) Save(content interface{}) error {
 //  @param id 唯一号
 //  @return error 异常
 //
-func (b *BaseDal) Delete(id uint64) error {
+func (b *BaseDal) Delete(id uint64) IError {
 	result := b.DB().Delete(&BaseModel{Id: id})
 	if result.RowsAffected == 0 {
-		return errors.New(fmt.Sprintf("delete failed, id=%d does not exist", id))
+		return Error(ErrorCodeRecordNotFound, fmt.Sprintf("delete failed, id=%d does not exist", id))
 	}
-	return result.Error
+	if result.Error != nil {
+		return Error(ErrorCodeDeleteFailure, result.Error.Error())
+	}
+	return nil
 }
 
 //
@@ -184,11 +209,11 @@ func (b *BaseDal) Delete(id uint64) error {
 //  @param dest 目标实体结构
 //  @return error 返回异常
 //
-func (b *BaseDal) GetModel(id uint64, dest interface{}) error {
+func (b *BaseDal) GetModel(id uint64, dest interface{}) IError {
 	result := b.DB().Where("id = ?", id).Find(dest)
 	// 如果异常或者未查询到任何数据
 	if result.Error != nil {
-		return result.Error
+		return Error(ErrorCodeRecordNotFound, result.Error.Error())
 	}
 	return nil
 }
@@ -201,10 +226,10 @@ func (b *BaseDal) GetModel(id uint64, dest interface{}) error {
 //  @param dest 目标列表
 //  @return error 返回异常
 //
-func (b *BaseDal) GetList(startId uint64, maxCount uint, dest interface{}) error {
+func (b *BaseDal) GetList(startId uint64, maxCount uint, dest interface{}) IError {
 	result := b.DB().Limit(int(maxCount)).Offset(int(startId)).Find(dest)
 	if result.Error != nil {
-		return result.Error
+		return Error(ErrorCodeRecordNotFound, result.Error.Error())
 	}
 	return nil
 }
@@ -217,10 +242,10 @@ func (b *BaseDal) GetList(startId uint64, maxCount uint, dest interface{}) error
 //  @param args 条件参数
 //  @return error
 //
-func (b *BaseDal) GetConditions(dest interface{}, query interface{}, args ...interface{}) error {
+func (b *BaseDal) GetConditions(dest interface{}, query interface{}, args ...interface{}) IError {
 	result := b.DB().Where(query, args...).Find(dest)
 	if result.Error != nil {
-		return result.Error
+		return Error(ErrorCodeRecordNotFound, result.Error.Error())
 	}
 	return nil
 }

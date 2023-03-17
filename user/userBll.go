@@ -1,7 +1,6 @@
 package user
 
 import (
-	"errors"
 	"github.com/UritMedical/qf"
 	"github.com/UritMedical/qf/user/model"
 	"github.com/UritMedical/qf/util"
@@ -33,7 +32,7 @@ func (b *Bll) regUserApi(api qf.ApiMap) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) login(ctx *qf.Context) (interface{}, qf.IError) {
 	var params = struct {
 		LoginId  string
 		Password string //md5
@@ -67,11 +66,11 @@ func (b *Bll) login(ctx *qf.Context) (interface{}, error) {
 			"UserInfo": util.ToMap(devUser),
 		}, nil
 	} else {
-		return nil, errors.New("loginId not exist or password error")
+		return nil, qf.Error(ErrorCodeLogin, "loginId not exist or password error")
 	}
 }
 
-func (b *Bll) saveUser(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) saveUser(ctx *qf.Context) (interface{}, qf.IError) {
 	user := &model.User{}
 	if err := ctx.Bind(user); err != nil {
 		return nil, err
@@ -83,12 +82,12 @@ func (b *Bll) saveUser(ctx *qf.Context) (interface{}, error) {
 	return nil, b.userDal.Save(user)
 }
 
-func (b *Bll) deleteUser(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) deleteUser(ctx *qf.Context) (interface{}, qf.IError) {
 	uId := ctx.GetId()
 	return nil, b.userDal.Delete(uId)
 }
 
-func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, qf.IError) {
 	var user model.User
 	userId := ctx.LoginUser().UserId
 
@@ -115,7 +114,7 @@ func (b *Bll) getUserModel(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) getAllUsers(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) getAllUsers(ctx *qf.Context) (interface{}, qf.IError) {
 	list, err := b.userDal.GetAllUsers()
 	result := make([]map[string]interface{}, 0)
 	for _, user := range list {
@@ -142,7 +141,7 @@ func (b *Bll) getAllUsers(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) resetPassword(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) resetPassword(ctx *qf.Context) (interface{}, qf.IError) {
 	uId := ctx.GetId()
 	return nil, b.userDal.SetPassword(uId, util.ConvertToMD5([]byte(defPassword)))
 }
@@ -154,7 +153,7 @@ func (b *Bll) resetPassword(ctx *qf.Context) (interface{}, error) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) changePassword(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) changePassword(ctx *qf.Context) (interface{}, qf.IError) {
 	var params = struct {
 		OldPassword string
 		NewPassword string
@@ -163,7 +162,7 @@ func (b *Bll) changePassword(ctx *qf.Context) (interface{}, error) {
 		return nil, err
 	}
 	if !b.userDal.CheckOldPassword(ctx.LoginUser().UserId, params.OldPassword) {
-		return nil, errors.New("old password is incorrect")
+		return nil, qf.Error(qf.ErrorCodeSaveFailure, "old password is incorrect")
 	}
 	return nil, b.userDal.SetPassword(ctx.LoginUser().UserId, params.NewPassword)
 }
