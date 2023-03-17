@@ -11,6 +11,11 @@ import (
 var devUser = model.User{BaseModel: qf.BaseModel{Id: 202303, FullInfo: "{\"Name\":\"Developer\"}"},
 	LoginId: "developer", Password: util.ConvertToMD5([]byte("lisurit"))}
 
+const (
+	ErrorCodeToken = iota + 400
+	ErrorCodeLogin
+)
+
 type Bll struct {
 	qf.BaseBll
 	userDal           *dal.UserDal           //用户dal
@@ -57,6 +62,11 @@ func (b *Bll) RegDal(regDal qf.DalMap) {
 
 	b.dptUserDal = &dal.DptUserDal{}
 	regDal.Reg(b.dptUserDal, model.DepartUser{})
+}
+
+func (b *Bll) RegFault(f qf.FaultMap) {
+	f.Reg(ErrorCodeToken, "用户Token故障")
+	f.Reg(ErrorCodeLogin, "用户登陆故障")
 }
 
 func (b *Bll) RegMsg(msg qf.MessageMap) {
@@ -111,15 +121,19 @@ func (b *Bll) initDefUser() {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) resetJwtSecret(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) resetJwtSecret(ctx *qf.Context) (interface{}, qf.IError) {
 	jwtStr := util.RandomString(32)
 	util.JwtSecret = []byte(jwtStr)
 	//将密钥进行AES加密后存入文件
 	err := util.EncryptAndWriteToFile(jwtStr, util.JwtSecretFile, []byte(util.AESKey), []byte(util.IV))
-	return jwtStr, err
+	return jwtStr, qf.Error(ErrorCodeToken, err.Error())
 }
 
-func (b *Bll) testParseToken(ctx *qf.Context) (interface{}, error) {
+func (b *Bll) testParseToken(ctx *qf.Context) (interface{}, qf.IError) {
 	token := ctx.GetStringValue("token")
-	return util.ParseToken(token)
+	claims, err := util.ParseToken(token)
+	if err != nil {
+		return nil, qf.Error(ErrorCodeToken, err.Error())
+	}
+	return claims, nil
 }

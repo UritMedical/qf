@@ -17,7 +17,7 @@ type UserRoleDal struct {
 //  @param userIds
 //  @return error
 //
-func (u *UserRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) error {
+func (u *UserRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) qf.IError {
 	oldUsers, err := u.GetUsersByRoleId(roleId)
 	if err != nil {
 		return err
@@ -37,16 +37,20 @@ func (u *UserRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) error {
 		}
 		if err := tx.Create(&addList).Error; err != nil {
 			tx.Rollback()
-			return err
+			return qf.Error(qf.ErrorCodeSaveFailure, err.Error())
 		}
 	}
 
 	//删除关系
 	if err := tx.Where("RoleId = ? and UserId IN (?)", roleId, removeUsers).Delete(model.UserRole{}).Error; err != nil {
 		tx.Rollback()
-		return err
+		return qf.Error(qf.ErrorCodeDeleteFailure, err.Error())
 	}
-	return tx.Commit().Error
+	e := tx.Commit().Error
+	if e != nil {
+		return qf.Error(qf.ErrorCodeSaveFailure, e.Error())
+	}
+	return nil
 }
 
 //
@@ -56,10 +60,13 @@ func (u *UserRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) error {
 //  @return []uint64
 //  @return error
 //
-func (u *UserRoleDal) GetUsersByRoleId(roleId uint64) ([]uint64, error) {
+func (u *UserRoleDal) GetUsersByRoleId(roleId uint64) ([]uint64, qf.IError) {
 	userIds := make([]uint64, 0)
 	err := u.DB().Debug().Where("RoleId = ?", roleId).Select("UserId").Find(&userIds).Error
-	return userIds, err
+	if err != nil {
+		return nil, qf.Error(qf.ErrorCodeRecordNotFound, err.Error())
+	}
+	return userIds, nil
 }
 
 //
@@ -69,8 +76,11 @@ func (u *UserRoleDal) GetUsersByRoleId(roleId uint64) ([]uint64, error) {
 //  @return []uint64
 //  @return error
 //
-func (u *UserRoleDal) GetRolesByUserId(userId uint64) ([]uint64, error) {
+func (u *UserRoleDal) GetRolesByUserId(userId uint64) ([]uint64, qf.IError) {
 	roleIds := make([]uint64, 0)
 	err := u.DB().Where("UserId = ?", userId).Select("RoleId").Find(&roleIds).Error
-	return roleIds, err
+	if err != nil {
+		return nil, qf.Error(qf.ErrorCodeRecordNotFound, err.Error())
+	}
+	return roleIds, nil
 }

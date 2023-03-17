@@ -17,7 +17,7 @@ type DptUserDal struct {
 //  @param userIds
 //  @return error
 //
-func (d DptUserDal) AddUsers(departId uint64, userIds []uint64) error {
+func (d DptUserDal) AddUsers(departId uint64, userIds []uint64) qf.IError {
 	oldUserIds, err := d.GetUsersByDptId(departId)
 	if err != nil {
 		return err
@@ -33,18 +33,26 @@ func (d DptUserDal) AddUsers(departId uint64, userIds []uint64) error {
 			UserId:   id,
 		})
 	}
-	return d.DB().Create(list).Error
+	e := d.DB().Create(list).Error
+	if e != nil {
+		return qf.Error(qf.ErrorCodeSaveFailure, e.Error())
+	}
+	return nil
 }
 
 //
-// RemoveUsers
+// RemoveUser
 //  @Description: 从指定部门移除用户
 //  @param departId
 //  @param userIds
 //  @return error
 //
-func (d DptUserDal) RemoveUser(departId uint64, userId uint64) error {
-	return d.DB().Where("DepartId = ? AND UserId = ?", departId, userId).Delete(&model.DepartUser{}).Error
+func (d DptUserDal) RemoveUser(departId uint64, userId uint64) qf.IError {
+	err := d.DB().Where("DepartId = ? AND UserId = ?", departId, userId).Delete(&model.DepartUser{}).Error
+	if err != nil {
+		return qf.Error(qf.ErrorCodeDeleteFailure, err.Error())
+	}
+	return nil
 }
 
 //
@@ -54,10 +62,13 @@ func (d DptUserDal) RemoveUser(departId uint64, userId uint64) error {
 //  @return []uint64
 //  @return error
 //
-func (d DptUserDal) GetUsersByDptId(departId uint64) ([]uint64, error) {
+func (d DptUserDal) GetUsersByDptId(departId uint64) ([]uint64, qf.IError) {
 	userIds := make([]uint64, 0)
 	err := d.DB().Where("DepartId = ?", departId).Select("UserId").Find(&userIds).Error
-	return userIds, err
+	if err != nil {
+		return nil, qf.Error(qf.ErrorCodeRecordNotFound, err.Error())
+	}
+	return userIds, nil
 }
 
 //
@@ -67,8 +78,11 @@ func (d DptUserDal) GetUsersByDptId(departId uint64) ([]uint64, error) {
 //  @return []uint64
 //  @return error
 //
-func (d DptUserDal) GetDptsByUserId(userId uint64) ([]uint64, error) {
+func (d DptUserDal) GetDptsByUserId(userId uint64) ([]uint64, qf.IError) {
 	dptIds := make([]uint64, 0)
 	err := d.DB().Where("UserId = ?", userId).Select("DepartId").Find(&dptIds).Error
-	return dptIds, err
+	if err != nil {
+		return nil, qf.Error(qf.ErrorCodeRecordNotFound, err.Error())
+	}
+	return dptIds, nil
 }

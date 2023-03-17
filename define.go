@@ -17,6 +17,7 @@ import (
 type IBll interface {
 	RegApi(a ApiMap)     // 注册需要暴露的API方法
 	RegDal(d DalMap)     // 注册需要框架初始化的数据访问层对象
+	RegFault(f FaultMap) // 注册故障码
 	RegMsg(m MessageMap) // 注册需要接收处理的消息
 	RegRef(r RefMap)     // 注册引用
 	Init() error         // 业务自己的初始化方法
@@ -27,6 +28,7 @@ type IBll interface {
 	regApi(bind func(key string, handler ApiHandler))               // 框架注册方法
 	regMsg(bind func(key string, handler MessageHandler))           // 框架注册方法
 	regDal(db *gorm.DB)                                             // 框架注册方法
+	regError(bind func(code int, err string))                       // 框架注册方法
 	regRef(getApi func(key string) ApiHandler)                      // 框架注册方法
 	Debug(content string)                                           // 调试日志
 	GetConfig() map[string]interface{}                              // 获取配置
@@ -38,13 +40,13 @@ type IBll interface {
 //  @Description: 数据访问层接口
 //
 type IDal interface {
-	DB() *gorm.DB                                                  // 返回数据库对象
-	Save(content interface{}) error                                // 执行新增或修改操作
-	Delete(id uint64) error                                        // 执行删除操作
-	GetModel(id uint64, dest interface{}) error                    // 根据Id获取单条信息
-	GetList(startId uint64, maxCount uint, dest interface{}) error // 根据起始Id和最大数量，获取一组信息
-	GetCount(query interface{}, args ...interface{}) int64         // 根据条件获取数量
-	CheckExists(id uint64) bool                                    // 检测Id是否存在
+	DB() *gorm.DB                                                   // 返回数据库对象
+	Save(content interface{}) IError                                // 执行新增或修改操作
+	Delete(id uint64) IError                                        // 执行删除操作
+	GetModel(id uint64, dest interface{}) IError                    // 根据Id获取单条信息
+	GetList(startId uint64, maxCount uint, dest interface{}) IError // 根据起始Id和最大数量，获取一组信息
+	GetCount(query interface{}, args ...interface{}) int64          // 根据条件获取数量
+	CheckExists(id uint64) bool                                     // 检测Id是否存在
 	// 框架内部实现的方法
 	init(db *gorm.DB, model interface{})
 }
@@ -74,16 +76,34 @@ func (kind EApiKind) HttpMethod() string {
 	return "GET"
 }
 
+// 注册相关函数定义
+type (
+	ApiHandler     func(ctx *Context) (interface{}, IError) // API函数指针
+	MessageHandler func(ctx *Context) IError                // 消息函数指针
+)
+
 // 注册相关结构定义
 type (
-	ApiMap     map[EApiKind]map[string]ApiHandler     // API字典
-	DalMap     map[IDal]interface{}                   // 数据访问字典
-	MessageMap map[EApiKind]map[string]MessageHandler // 消息字典
-	RefMap     struct {
-		getApi func(kind EApiKind, router string) ApiHandler
+	ApiMap struct {
+		bllName string
+		dict    map[EApiKind]map[string]ApiHandler
+	} // API字典
+	DalMap struct {
+		bllName string
+		dict    map[IDal]interface{}
+	} // 数据访问字典
+	FaultMap struct {
+		bllName string
+		dict    map[int]string
+	} // 异常字典
+	MessageMap struct {
+		bllName string
+		dict    map[EApiKind]map[string]MessageHandler
+	} // 消息字典
+	RefMap struct {
+		bllName string
+		getApi  func(kind EApiKind, router string) ApiHandler
 	} // 外部引用字典
-	ApiHandler     func(ctx *Context) (interface{}, error) // API函数指针
-	MessageHandler func(ctx *Context) error                // 消息函数指针
 )
 
 //
@@ -94,13 +114,13 @@ type (
 //  @param handler 函数指针
 //
 func (api ApiMap) Reg(kind EApiKind, router string, handler ApiHandler) {
-	if api[kind] == nil {
-		api[kind] = make(map[string]ApiHandler)
+	if api.dict[kind] == nil {
+		api.dict[kind] = make(map[string]ApiHandler)
 	}
-	if _, ok := api[kind][router]; ok == false {
-		api[kind][router] = handler
+	if _, ok := api.dict[kind][router]; ok == false {
+		api.dict[kind][router] = handler
 	} else {
-		panic(fmt.Sprintf("api.reg: %s:%s already exists", kind, router))
+		panic(fmt.Sprintf("【RegApi】: %s: %s,%s already exists", api.bllName, kind, router))
 	}
 }
 
@@ -113,18 +133,31 @@ func (api ApiMap) Reg(kind EApiKind, router string, handler ApiHandler) {
 func (d DalMap) Reg(iDal IDal, model interface{}) {
 	t := reflect.TypeOf(iDal)
 	if t.Kind() != reflect.Ptr {
-		panic(fmt.Sprintf("【RegDal】: %s/%s this model must be of type pointer", t.PkgPath(), t.Name()))
+		panic(fmt.Sprintf("【RegDal】: %s: %s/%s this model must be of type pointer", d.bllName, t.PkgPath(), t.Name()))
 	}
 	t = t.Elem()
 	v := reflect.ValueOf(iDal)
 	if v.IsNil() {
-		panic(fmt.Sprintf("【RegDal】: %s/%s has not been initialized", t.PkgPath(), t.Name()))
+		panic(fmt.Sprintf("【RegDal】: %s: %s/%s has not been initialized", d.bllName, t.PkgPath(), t.Name()))
 	}
-	if _, ok := d[iDal]; ok == false {
-		d[iDal] = model
+	if _, ok := d.dict[iDal]; ok == false {
+		d.dict[iDal] = model
 	} else {
+		panic(fmt.Sprintf("【RegDal】: %s: %s/%s already exists", d.bllName, t.PkgPath(), t.Name()))
+	}
+}
 
-		panic(fmt.Sprintf("【RegDal】: %s/%s already exists", t.PkgPath(), t.Name()))
+//
+// Reg
+//  @Description: 注册异常
+//  @param code
+//  @param desc
+//
+func (err FaultMap) Reg(code int, desc string) {
+	if _, ok := err.dict[code]; ok == false {
+		err.dict[code] = desc
+	} else {
+		panic(fmt.Sprintf("【RegFault】: %s: %d,%s already exists", err.bllName, code, desc))
 	}
 }
 
@@ -136,13 +169,13 @@ func (d DalMap) Reg(iDal IDal, model interface{}) {
 //  @param handler 函数指针
 //
 func (msg MessageMap) Reg(kind EApiKind, router string, handler MessageHandler) {
-	if msg[kind] == nil {
-		msg[kind] = make(map[string]MessageHandler)
+	if msg.dict[kind] == nil {
+		msg.dict[kind] = make(map[string]MessageHandler)
 	}
-	if _, ok := msg[kind][router]; ok == false {
-		msg[kind][router] = handler
+	if _, ok := msg.dict[kind][router]; ok == false {
+		msg.dict[kind][router] = handler
 	} else {
-		panic(fmt.Sprintf("【RegMsg】: %s:%s already exists", kind, router))
+		panic(fmt.Sprintf("【RegMsg】: %s: %s,%s already exists", msg.bllName, kind, router))
 	}
 }
 
@@ -328,4 +361,44 @@ func (d *DateTime) UnmarshalJSON(data []byte) error {
 		*d = DateTime(v)
 	}
 	return err
+}
+
+//
+// IError
+//  @Description: 异常
+//
+type IError interface {
+	//
+	// Code
+	//  @Description: 获取故障码
+	//  @return int
+	//
+	Code() int
+	//
+	// Error
+	//  @Description: 获取异常描述
+	//  @return string
+	//
+	Error() string
+}
+
+const (
+	ErrorCodeParamInvalid     = iota + 100 // 传入参数无效
+	ErrorCodePermissionDenied              // 权限不足，拒绝访问
+	ErrorCodeRecordNotFound                // 未找到记录
+	ErrorCodeSaveFailure                   // 保存失败
+	ErrorCodeDeleteFailure                 // 删除失败
+)
+
+type errorInfo struct {
+	code  int
+	error string
+}
+
+func (e errorInfo) Code() int {
+	return e.code
+}
+
+func (e errorInfo) Error() string {
+	return e.error
 }

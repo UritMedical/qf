@@ -16,12 +16,12 @@ type PermissionApiDal struct {
 //  @param apiKeys
 //  @return error
 //
-func (r PermissionApiDal) SetPermissionApis(permissionId uint64, apiKeys []string) error {
+func (r PermissionApiDal) SetPermissionApis(permissionId uint64, apiKeys []string) qf.IError {
 	tx := r.DB().Begin()
 	//先删除此权限组所有的API
 	if err := tx.Where("PermissionId = ?", permissionId).Delete(&model.PermissionApi{}).Error; err != nil {
 		tx.Rollback()
-		return err
+		return qf.Error(qf.ErrorCodeDeleteFailure, err.Error())
 	}
 
 	apis := make([]model.PermissionApi, 0)
@@ -34,9 +34,13 @@ func (r PermissionApiDal) SetPermissionApis(permissionId uint64, apiKeys []strin
 
 	if err := tx.Create(&apis).Error; err != nil {
 		tx.Rollback()
-		return err
+		return qf.Error(qf.ErrorCodeSaveFailure, err.Error())
 	}
-	return tx.Commit().Error
+	e := tx.Commit().Error
+	if e != nil {
+		return qf.Error(qf.ErrorCodeSaveFailure, e.Error())
+	}
+	return nil
 }
 
 //
@@ -46,8 +50,11 @@ func (r PermissionApiDal) SetPermissionApis(permissionId uint64, apiKeys []strin
 //  @return []string
 //  @return error
 //
-func (r PermissionApiDal) GetApisByPermissionId(permissionId uint64) ([]string, error) {
+func (r PermissionApiDal) GetApisByPermissionId(permissionId uint64) ([]string, qf.IError) {
 	apis := make([]string, 0)
 	err := r.DB().Where("PermissionId = ?", permissionId).Select("ApiId").Find(&apis).Error
-	return apis, err
+	if err != nil {
+		return nil, qf.Error(qf.ErrorCodeRecordNotFound, err.Error())
+	}
+	return apis, nil
 }
