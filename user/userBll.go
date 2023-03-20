@@ -78,6 +78,9 @@ func (b *Bll) saveUser(ctx *qf.Context) (interface{}, qf.IError) {
 	if !b.userDal.CheckExists(user.Id) {
 		user.Password = util.ConvertToMD5([]byte(defPassword))
 	}
+	if user.Id == 0 {
+		user.Id = ctx.NewId(user)
+	}
 	//创建用户
 	return nil, b.userDal.Save(user)
 }

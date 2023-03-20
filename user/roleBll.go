@@ -33,6 +33,9 @@ func (b *Bll) saveRole(ctx *qf.Context) (interface{}, qf.IError) {
 	if err := ctx.Bind(role); err != nil {
 		return nil, err
 	}
+	if role.Id == 0 {
+		role.Id = ctx.NewId(role)
+	}
 	return nil, b.roleDal.Save(role)
 }
 
