@@ -36,9 +36,12 @@ func (b *Bll) regDptApi(api qf.ApiMap) {
 }
 
 func (b *Bll) saveDpt(ctx *qf.Context) (interface{}, qf.IError) {
-	dpt := model.Department{}
-	if err := ctx.Bind(&dpt); err != nil {
+	dpt := &model.Department{}
+	if err := ctx.Bind(dpt); err != nil {
 		return nil, err
+	}
+	if dpt.Id == 0 {
+		dpt.Id = ctx.NewId(dpt)
 	}
 	return nil, b.dptDal.Save(&dpt)
 }
@@ -159,8 +162,24 @@ func (b *Bll) getDpts(ctx *qf.Context) (interface{}, qf.IError) {
 //
 func (b *Bll) getDptUsers(ctx *qf.Context) (interface{}, qf.IError) {
 	departId := ctx.GetUIntValue("DepartId")
-	users, err := b.getDptAndSubDptUsers(departId)
-	return util.ToMaps(users), err
+	list, err := b.getDptAndSubDptUsers(departId)
+	result := make([]map[string]interface{}, 0)
+	for _, user := range list {
+		//获取用户所在部门
+		departs, _ := b.getDepartsByUserId(user.Id)
+
+		//获取用户所拥有的角色
+		roles, _ := b.getRolesByUserId(user.Id)
+
+		ret := map[string]interface{}{
+			"UserInfo":    util.ToMap(user),
+			"Roles":       util.ToMaps(roles),
+			"Departments": util.ToMaps(departs),
+		}
+		result = append(result, ret)
+	}
+	return result, err
+
 }
 
 //

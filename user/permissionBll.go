@@ -18,11 +18,14 @@ func (b *Bll) regPermissionApi(api qf.ApiMap) {
 }
 
 func (b *Bll) savePermission(ctx *qf.Context) (interface{}, qf.IError) {
-	var rg model.Permission
-	if err := ctx.Bind(&rg); err != nil {
+	permission := &model.Permission{}
+	if err := ctx.Bind(permission); err != nil {
 		return nil, err
 	}
-	return nil, b.permissionDal.Save(&rg)
+	if permission.Id == 0 {
+		permission.Id = ctx.NewId(permission)
+	}
+	return nil, b.permissionDal.Save(permission)
 }
 
 func (b *Bll) deletePermission(ctx *qf.Context) (interface{}, qf.IError) {
