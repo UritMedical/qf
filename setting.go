@@ -11,9 +11,16 @@ type setting struct {
 	Id          uint         `comment:"框架Id，主服务为0"`
 	Name        string       `comment:"框架名称，用于网络发现，单体服务可为空"`
 	Port        string       `comment:"服务端口"`
+	UserConfig  *userConfig  `comment:"用户配置"`
 	WebConfig   *webConfig   `comment:"web配置"`
 	GormConfig  *gormConfig  `comment:"gorm配置"`
 	OtherConfig *otherConfig `comment:"其他配置"`
+}
+
+type userConfig struct {
+	Enabled        byte     `comment:"是否启用用户模块 0否 1是"`
+	TokenVerify    byte     `comment:"是否启用全局token验证 0否 1是"`
+	TokenWhiteList []string `toml:",multiline" comment:"token白名单路由列表，以下路由不进行token验证"`
 }
 
 type webConfig struct {
@@ -43,6 +50,18 @@ func (s *setting) Load(path string) {
 	changed := false
 	if s.Port == "" {
 		s.Port = "80"
+		changed = true
+	}
+	if s.UserConfig == nil {
+		s.UserConfig = &userConfig{
+			Enabled:     1,
+			TokenVerify: 1,
+			TokenWhiteList: []string{
+				"POST:/api/login",
+				"POST:/api/user/parseToken",
+				"POST:/api/user/jwt/reset",
+			},
+		}
 		changed = true
 	}
 	if s.WebConfig == nil {

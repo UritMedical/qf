@@ -77,8 +77,8 @@ func (b *userBll) RegDal(regDal DalMap) {
 }
 
 func (b *userBll) RegFault(f FaultMap) {
-	f.Reg(ErrorCodeToken, "用户Token故障")
-	f.Reg(ErrorCodeLogin, "用户登陆故障")
+	f.Reg(ErrorCodeToken, "未登录或Token无效, 无法继续执行")
+	f.Reg(ErrorCodeLogin, "登陆失败, 用户名或密码不正确")
 }
 
 func (b *userBll) RegMsg(_ MessageMap) {

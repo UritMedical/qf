@@ -40,7 +40,9 @@ func doStart() {
 	// 创建服务
 	serv = newService()
 	// 根据配置是否注册用户模块
-	serv.RegBll(&userBll{}, "")
+	if serv.setting.UserConfig.Enabled == 1 {
+		serv.RegBll(&userBll{}, "")
+	}
 	// 注册外部业务
 	regBllFunc(serv)
 	// 启动服务
@@ -57,17 +59,18 @@ func doStop() {
 }
 
 type Service struct {
-	folder      string                    // 框架的文件夹路径
-	db          *gorm.DB                  // 数据库
-	engine      *gin.Engine               // gin
-	bllList     map[string]IBll           // 所有创建的业务层对象
-	apiHandler  map[string]ApiHandler     // 所有注册的业务API函数指针
-	msgHandler  map[string]MessageHandler // 所有消息执行的函数指针
-	errCodes    map[int]string            // 所有故障码字典
-	setting     setting                   // 框架配置
-	idAllocator qid.IIdAllocator          // id分配器接口
-	config      qconfig.IConfig           // 配置文件接口
-	loginUser   map[string]LoginUser      // 登陆用户信息
+	folder         string                    // 框架的文件夹路径
+	db             *gorm.DB                  // 数据库
+	engine         *gin.Engine               // gin
+	bllList        map[string]IBll           // 所有创建的业务层对象
+	apiHandler     map[string]ApiHandler     // 所有注册的业务API函数指针
+	msgHandler     map[string]MessageHandler // 所有消息执行的函数指针
+	errCodes       map[int]string            // 所有故障码字典
+	setting        setting                   // 框架配置
+	idAllocator    qid.IIdAllocator          // id分配器接口
+	config         qconfig.IConfig           // 配置文件接口
+	loginUser      map[string]LoginUser      // 登陆用户信息
+	tokenWhiteList map[string]byte           // token白名单
 }
 
 //
@@ -94,6 +97,10 @@ func newService() *Service {
 	s.folder = "."
 	// 加载配置
 	s.setting.Load(fmt.Sprintf("%s/config/config.toml", s.folder))
+	s.tokenWhiteList = map[string]byte{}
+	for _, t := range s.setting.UserConfig.TokenWhiteList {
+		s.tokenWhiteList[t] = 1
+	}
 	// 创建数据库
 	dbDir := io.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
 	gc := gorm.Config{
@@ -258,7 +265,19 @@ func (s *Service) init() error {
 func (s *Service) context(ctx *gin.Context) {
 	url := fmt.Sprintf("%s:%s", ctx.Request.Method, ctx.FullPath())
 	if handler, ok := s.apiHandler[url]; ok {
+		// 获取Token值
+		token := ctx.GetHeader("Token")
+		// 验证token
+		if s.setting.UserConfig.TokenVerify == 1 {
+			_, ok1 := s.tokenWhiteList[url]
+			_, ok2 := s.loginUser[token]
+			if ok1 == false && ok2 == false {
+				s.returnError(ctx, Error(ErrorCodeToken, "token is not valid"))
+				return
+			}
+		}
 		qfCtx := &Context{
+			loginUser:   s.loginUser[token],
 			idAllocator: s.idAllocator,
 		}
 		qfCtx.time.FromTime(time.Now())
@@ -295,11 +314,6 @@ func (s *Service) context(ctx *gin.Context) {
 			if len(v) > 0 {
 				qfCtx.setInputValue(k, v[0])
 			}
-		}
-		// 从上传数据中获取Token值
-		token := ctx.GetHeader("Token")
-		if u, ok := s.loginUser[token]; ok {
-			qfCtx.loginUser = u
 		}
 
 		// 重新生成原始内容
@@ -353,7 +367,8 @@ func (s *Service) context(ctx *gin.Context) {
 func (s *Service) returnError(ctx *gin.Context, err IError) {
 	msg := map[string]interface{}{}
 	msg["code"] = err.Code()
-	msg["error"] = err.Error()
+	//msg["error"] = err.Error()
+	msg["error"] = s.errCodes[err.Code()]
 	ctx.JSON(http.StatusBadRequest, gin.H{
 		"status": http.StatusBadRequest,
 		"msg":    msg,
