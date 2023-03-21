@@ -62,25 +62,7 @@ func (ctx *Context) NewId(object interface{}) uint64 {
 //  @return LoginUser
 //
 func (ctx *Context) LoginUser() LoginUser {
-	user := LoginUser{
-		UserId:      ctx.loginUser.UserId,
-		UserName:    ctx.loginUser.UserName,
-		LoginId:     ctx.loginUser.LoginId,
-		Departments: map[uint64]struct{ Name string }{},
-		token:       ctx.loginUser.token,
-		roles:       map[uint64]struct{ Name string }{},
-	}
-	for id, info := range ctx.loginUser.Departments {
-		user.Departments[id] = struct{ Name string }{
-			Name: info.Name,
-		}
-	}
-	for id, info := range ctx.loginUser.roles {
-		user.roles[id] = struct{ Name string }{
-			Name: info.Name,
-		}
-	}
-	return user
+	return ctx.loginUser.CopyTo()
 }
 
 //

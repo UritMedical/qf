@@ -65,7 +65,7 @@ type Service struct {
 	setting     setting                   // 框架配置
 	idAllocator qid.IIdAllocator          // id分配器接口
 	config      qconfig.IConfig           // 配置文件接口
-	loginUser   LoginUser                 // 登陆用户信息
+	loginUser   map[string]LoginUser      // 登陆用户信息
 }
 
 //
@@ -78,6 +78,7 @@ func newService() *Service {
 		bllList:    map[string]IBll{},
 		apiHandler: map[string]ApiHandler{},
 		msgHandler: map[string]MessageHandler{},
+		loginUser:  map[string]LoginUser{},
 		errCodes:   map[int]string{},
 		setting:    setting{},
 	}
@@ -256,7 +257,6 @@ func (s *Service) context(ctx *gin.Context) {
 	url := fmt.Sprintf("%s:%s", ctx.Request.Method, ctx.FullPath())
 	if handler, ok := s.apiHandler[url]; ok {
 		qfCtx := &Context{
-			loginUser:   s.loginUser,
 			idAllocator: s.idAllocator,
 		}
 		qfCtx.time.FromTime(time.Now())
@@ -294,6 +294,11 @@ func (s *Service) context(ctx *gin.Context) {
 				qfCtx.setInputValue(k, v[0])
 			}
 		}
+		// 从上传数据中获取Token值
+		token := ctx.GetHeader("Token")
+		if u, ok := s.loginUser[token]; ok {
+			qfCtx.loginUser = u
+		}
 
 		// 重新生成原始内容
 		qfCtx.resetSource()
@@ -318,19 +323,20 @@ func (s *Service) context(ctx *gin.Context) {
 			if url == fmt.Sprintf("POST:/%s/login", s.setting.WebConfig.DefGroup) {
 				value := result.(map[string]interface{})
 				userInfo := value["UserInfo"].(map[string]interface{})
-				s.loginUser.UserId = userInfo["Id"].(uint64)
-				s.loginUser.UserName = userInfo["Name"].(string)
-				s.loginUser.LoginId = userInfo["LoginId"].(string)
-				s.loginUser.Departments = map[uint64]struct{ Name string }{}
-				s.loginUser.token = value["Token"].(string)
-				s.loginUser.roles = map[uint64]struct{ Name string }{}
+				s.loginUser[value["Token"].(string)] = LoginUser{
+					UserId:      uint64(userInfo["Id"].(float64)),
+					UserName:    userInfo["Name"].(string),
+					LoginId:     userInfo["LoginId"].(string),
+					Departments: map[uint64]struct{ Name string }{},
+					roles:       map[uint64]struct{ Name string }{},
+				}
 				for _, role := range value["Roles"].([]map[string]interface{}) {
-					s.loginUser.roles[role["Id"].(uint64)] = struct{ Name string }{
+					s.loginUser[value["Token"].(string)].roles[uint64(role["Id"].(float64))] = struct{ Name string }{
 						Name: role["Name"].(string),
 					}
 				}
 				for _, dp := range value["Departs"].([]map[string]interface{}) {
-					s.loginUser.Departments[dp["Id"].(uint64)] = struct{ Name string }{
+					s.loginUser[value["Token"].(string)].Departments[uint64(dp["Id"].(float64))] = struct{ Name string }{
 						Name: dp["Name"].(string),
 					}
 				}

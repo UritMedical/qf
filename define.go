@@ -211,10 +211,30 @@ type LoginUser struct {
 	Departments map[uint64]struct {
 		Name string
 	} // 所属部门列表
-	token string // 登陆的token信息
 	roles map[uint64]struct {
 		Name string
 	} // 角色列表
+}
+
+func (u LoginUser) CopyTo() LoginUser {
+	user := LoginUser{
+		UserId:      u.UserId,
+		UserName:    u.UserName,
+		LoginId:     u.LoginId,
+		Departments: map[uint64]struct{ Name string }{},
+		roles:       map[uint64]struct{ Name string }{},
+	}
+	for id, info := range u.Departments {
+		user.Departments[id] = struct{ Name string }{
+			Name: info.Name,
+		}
+	}
+	for id, info := range u.roles {
+		user.roles[id] = struct{ Name string }{
+			Name: info.Name,
+		}
+	}
+	return user
 }
 
 var (

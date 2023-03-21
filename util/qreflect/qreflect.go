@@ -1,6 +1,7 @@
 package qreflect
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -26,6 +27,11 @@ func New(object interface{}) *Reflect {
 		t: reflect.TypeOf(object),
 		v: reflect.ValueOf(object),
 	}
+	// 通过json反转为字典
+	r.kv = make(map[string]interface{})
+	if str, err := json.Marshal(object); err == nil {
+		_ = json.Unmarshal(str, &r.kv)
+	}
 	return r
 }
 
@@ -45,10 +51,59 @@ func (r *Reflect) IsPtr() bool {
 //  @return map[string]interface{}
 //
 func (r *Reflect) ToMap() map[string]interface{} {
-	if r.kv == nil {
-		r.getMap(r.t, r.v)
-	}
+	//if r.kv == nil {
+	//	r.getMap(r.t, r.v)
+	//}
 	return r.kv
+}
+
+//
+// ToMapExpandAll
+//  @Description: 转为字典，此方法会遍历所有字典值，将值为json字符串的再次展开
+//  @return map[string]
+//
+func (r *Reflect) ToMapExpandAll() map[string]interface{} {
+	final := map[string]interface{}{}
+	expandAll(final, r.kv)
+	return final
+}
+
+func expandAll(source map[string]interface{}, target map[string]interface{}) {
+	for k, v := range target {
+		// 判断值类型
+		t := reflect.TypeOf(v)
+		if t != nil {
+			switch t.Kind() {
+			case reflect.String:
+				str := v.(string)
+				var js map[string]interface{}
+				if err := json.Unmarshal([]byte(str), &js); err != nil {
+					source[k] = str
+				} else {
+					for k, v := range js {
+						source[k] = v
+					}
+				}
+			case reflect.Map:
+				mp := map[string]interface{}{}
+				expandAll(mp, v.(map[string]interface{}))
+				source[k] = mp
+			case reflect.Slice:
+				tgs := v.([]interface{})
+				mps := make([]map[string]interface{}, len(tgs))
+				for i, t := range tgs {
+					mp := map[string]interface{}{}
+					expandAll(mp, t.(map[string]interface{}))
+					mps[i] = mp
+				}
+				source[k] = mps
+			default:
+				source[k] = v
+			}
+		} else {
+			source[k] = v
+		}
+	}
 }
 
 //
@@ -181,40 +236,40 @@ func (r *Reflect) set(v reflect.Value, subT reflect.Type, subV reflect.Value) er
 	return nil
 }
 
-// 转为字典
-func (r *Reflect) getMap(t reflect.Type, v reflect.Value) {
-	if r.kv == nil {
-		r.kv = map[string]interface{}{}
-	}
-	if t.Kind() == reflect.Map {
-		for _, m := range v.MapKeys() {
-			r.kv[m.String()] = v.MapIndex(m).Interface()
-		}
-	} else {
-		if v.Kind() == reflect.Ptr {
-			t = t.Elem()
-			v = v.Elem()
-			// 如果是空列表，则默认扩充一条用于反射结构体内部的字段
-			if t.Kind() == reflect.Slice && v.Len() == 0 {
-				v = reflect.MakeSlice(t, 1, 1)
-				v = v.Index(0)
-				t = v.Type()
-			}
-		}
-		for i := 0; i < v.NumField(); i++ {
-			field := v.Field(i)
-			if field.Kind() == reflect.Struct {
-				if field.String() == "<time.Time Value>" {
-					r.kv[t.Field(i).Name] = field.Interface()
-				} else {
-					r.getMap(field.Type(), field)
-				}
-			} else if field.CanInterface() {
-				r.kv[t.Field(i).Name] = field.Interface()
-			}
-		}
-	}
-}
+//// 转为字典
+//func (r *Reflect) getMap(t reflect.Type, v reflect.Value) {
+//	if r.kv == nil {
+//		r.kv = map[string]interface{}{}
+//	}
+//	if t.Kind() == reflect.Map {
+//		for _, m := range v.MapKeys() {
+//			r.kv[m.String()] = v.MapIndex(m).Interface()
+//		}
+//	} else {
+//		if v.Kind() == reflect.Ptr {
+//			t = t.Elem()
+//			v = v.Elem()
+//			// 如果是空列表，则默认扩充一条用于反射结构体内部的字段
+//			if t.Kind() == reflect.Slice && v.Len() == 0 {
+//				v = reflect.MakeSlice(t, 1, 1)
+//				v = v.Index(0)
+//				t = v.Type()
+//			}
+//		}
+//		for i := 0; i < v.NumField(); i++ {
+//			field := v.Field(i)
+//			if field.Kind() == reflect.Struct {
+//				if field.String() == "<time.Time Value>" {
+//					r.kv[t.Field(i).Name] = field.Interface()
+//				} else {
+//					r.getMap(field.Type(), field)
+//				}
+//			} else if field.CanInterface() {
+//				r.kv[t.Field(i).Name] = field.Interface()
+//			}
+//		}
+//	}
+//}
 
 // 类型转换
 func (r *Reflect) convert(typeName string, value interface{}) (interface{}, error) {
