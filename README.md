@@ -26,8 +26,8 @@ func main() {
 
 func regBll(s *qf.Service) {
 	// 注册框架提供的通用业务，位于mc文件夹内
-	s.RegBll(&user.Bll{}, "")    // 用户业务
-	s.RegBll(&patient.Bll{}, "") // 患者信息业务
+	s.RegBll(&user.userBll{}, "")    // 用户业务
+	s.RegBll(&patient.userBll{}, "") // 患者信息业务
 
 	// 注册自定义业务
 	// ...
@@ -38,11 +38,11 @@ func regBll(s *qf.Service) {
 
 ```go
 // 默认注册的路由为：.../api/...
-s.RegBll(&user.Bll{}, "")
+s.RegBll(&user.userBll{}, "")
 
 // 如果需要扩展一级路由，则可以使用如下方法
 // 此时路由为：.../api/custom/...
-s.RegBll(&user.Bll{}, "custom")
+s.RegBll(&user.userBll{}, "custom")
 
 // 推荐使用默认
 ```

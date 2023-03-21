@@ -1,9 +1,7 @@
-package user
+package qf
 
 import (
 	"fmt"
-	"github.com/UritMedical/qf"
-	"github.com/UritMedical/qf/user/model"
 	"github.com/UritMedical/qf/util"
 	"sort"
 )
@@ -21,22 +19,22 @@ type DepartNode struct {
 const maxCount = 100
 
 //注册部门相关API
-func (b *Bll) regDptApi(api qf.ApiMap) {
+func (b *userBll) regDptApi(api ApiMap) {
 	//部门
-	api.Reg(qf.EApiKindSave, "dpt", b.saveDpt)             //添加部门
-	api.Reg(qf.EApiKindDelete, "dpt", b.deleteDpt)         //删除部门
-	api.Reg(qf.EApiKindGetList, "dpts", b.getDpts)         //获取所有部门
-	api.Reg(qf.EApiKindGetModel, "dpt/tree", b.getDptTree) //获取部门组织树
+	api.Reg(EApiKindSave, "dpt", b.saveDpt)             //添加部门
+	api.Reg(EApiKindDelete, "dpt", b.deleteDpt)         //删除部门
+	api.Reg(EApiKindGetList, "dpts", b.getDpts)         //获取所有部门
+	api.Reg(EApiKindGetModel, "dpt/tree", b.getDptTree) //获取部门组织树
 
 	//部门-用户
-	api.Reg(qf.EApiKindSave, "dpt/users", b.addDptUsers)    //批量添加用户
-	api.Reg(qf.EApiKindDelete, "dpt/user", b.deleteDptUser) //从部门中删除单个用户
-	api.Reg(qf.EApiKindGetList, "dpt/users", b.getDptUsers) //获取指定部门的所有用户
+	api.Reg(EApiKindSave, "dpt/users", b.addDptUsers)    //批量添加用户
+	api.Reg(EApiKindDelete, "dpt/user", b.deleteDptUser) //从部门中删除单个用户
+	api.Reg(EApiKindGetList, "dpt/users", b.getDptUsers) //获取指定部门的所有用户
 
 }
 
-func (b *Bll) saveDpt(ctx *qf.Context) (interface{}, qf.IError) {
-	dpt := &model.Department{}
+func (b *userBll) saveDpt(ctx *Context) (interface{}, IError) {
+	dpt := &Department{}
 	if err := ctx.Bind(dpt); err != nil {
 		return nil, err
 	}
@@ -46,7 +44,7 @@ func (b *Bll) saveDpt(ctx *qf.Context) (interface{}, qf.IError) {
 	return nil, b.dptDal.Save(&dpt)
 }
 
-func (b *Bll) deleteDpt(ctx *qf.Context) (interface{}, qf.IError) {
+func (b *userBll) deleteDpt(ctx *Context) (interface{}, IError) {
 	uId := ctx.GetId()
 	return nil, b.dptDal.Delete(uId)
 }
@@ -58,7 +56,7 @@ func (b *Bll) deleteDpt(ctx *qf.Context) (interface{}, qf.IError) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) getDptTree(ctx *qf.Context) (interface{}, qf.IError) {
+func (b *userBll) getDptTree(ctx *Context) (interface{}, IError) {
 	return b.buildTree(), nil
 }
 
@@ -68,9 +66,9 @@ func (b *Bll) getDptTree(ctx *qf.Context) (interface{}, qf.IError) {
 //  @param departments
 //  @return []*DepartNode
 //
-func (b *Bll) buildTree() []*DepartNode {
+func (b *userBll) buildTree() []*DepartNode {
 	//获取所有部门
-	dptList := make([]model.Department, 0)
+	dptList := make([]Department, 0)
 	err := b.dptDal.GetList(0, maxCount, &dptList)
 	if err != nil {
 		return nil
@@ -116,7 +114,7 @@ func (b *Bll) buildTree() []*DepartNode {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) addDptUsers(ctx *qf.Context) (interface{}, qf.IError) {
+func (b *userBll) addDptUsers(ctx *Context) (interface{}, IError) {
 	params := struct {
 		DepartId uint64
 		UserIds  []uint64
@@ -134,7 +132,7 @@ func (b *Bll) addDptUsers(ctx *qf.Context) (interface{}, qf.IError) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) deleteDptUser(ctx *qf.Context) (interface{}, qf.IError) {
+func (b *userBll) deleteDptUser(ctx *Context) (interface{}, IError) {
 	DepartId := ctx.GetUIntValue("DepartId")
 	UserId := ctx.GetUIntValue("UserId")
 	return nil, b.dptUserDal.RemoveUser(DepartId, UserId)
@@ -147,8 +145,8 @@ func (b *Bll) deleteDptUser(ctx *qf.Context) (interface{}, qf.IError) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) getDpts(ctx *qf.Context) (interface{}, qf.IError) {
-	list := make([]model.Department, 0)
+func (b *userBll) getDpts(ctx *Context) (interface{}, IError) {
+	list := make([]Department, 0)
 	err := b.dptDal.GetList(0, maxCount, &list)
 	return util.ToMaps(list), err
 }
@@ -160,7 +158,7 @@ func (b *Bll) getDpts(ctx *qf.Context) (interface{}, qf.IError) {
 //  @return interface{}
 //  @return error
 //
-func (b *Bll) getDptUsers(ctx *qf.Context) (interface{}, qf.IError) {
+func (b *userBll) getDptUsers(ctx *Context) (interface{}, IError) {
 	departId := ctx.GetUIntValue("DepartId")
 	list, err := b.getDptAndSubDptUsers(departId)
 	result := make([]map[string]interface{}, 0)
@@ -188,13 +186,13 @@ func (b *Bll) getDptUsers(ctx *qf.Context) (interface{}, qf.IError) {
 //  @param dptId
 //  @return []uint64
 //
-func (b *Bll) getDptAndSubDptUsers(departId uint64) ([]model.User, qf.IError) {
+func (b *userBll) getDptAndSubDptUsers(departId uint64) ([]User, IError) {
 	dptNodes := b.buildTree()
 	//通过递归找到对应的部门节点
 	node := b.findChildrenDpt(departId, dptNodes)
 
 	if node == nil {
-		return nil, qf.Error(qf.ErrorCodeRecordNotFound, "can't find department")
+		return nil, Error(ErrorCodeRecordNotFound, "can't find department")
 	}
 
 	//通过递归找到此部门节点下所有用户
@@ -217,7 +215,7 @@ func (b *Bll) getDptAndSubDptUsers(departId uint64) ([]model.User, qf.IError) {
 }
 
 //递归查找用户
-func (b *Bll) findChildrenUserIds(uIdMap map[uint64]string, dptNode *DepartNode) {
+func (b *userBll) findChildrenUserIds(uIdMap map[uint64]string, dptNode *DepartNode) {
 	ids, _ := b.dptUserDal.GetUsersByDptId(dptNode.Id)
 	for _, id := range ids {
 		uIdMap[id] = ""
@@ -230,7 +228,7 @@ func (b *Bll) findChildrenUserIds(uIdMap map[uint64]string, dptNode *DepartNode)
 }
 
 //递归查找部门
-func (b *Bll) findChildrenDpt(departId uint64, dptNodes []*DepartNode) *DepartNode {
+func (b *userBll) findChildrenDpt(departId uint64, dptNodes []*DepartNode) *DepartNode {
 	var targetNode *DepartNode
 	for _, node := range dptNodes {
 		if node.Id == departId {
@@ -252,10 +250,10 @@ func (b *Bll) findChildrenDpt(departId uint64, dptNodes []*DepartNode) *DepartNo
 //  @Description: 获取用户的所在部门
 //  @receiver b
 //  @param userId
-//  @return []model.Department
+//  @return []Department
 //  @return error
 //
-func (b *Bll) getDepartsByUserId(userId uint64) ([]model.Department, error) {
+func (b *userBll) getDepartsByUserId(userId uint64) ([]Department, error) {
 	dptIds, _ := b.dptUserDal.GetDptsByUserId(userId)
 	return b.dptDal.GetDptsByIds(dptIds)
 }

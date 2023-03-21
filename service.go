@@ -39,6 +39,8 @@ func Run(regBll func(s *Service), stop func()) {
 func doStart() {
 	// 创建服务
 	serv = newService()
+	// 根据配置是否注册用户模块
+	serv.RegBll(&userBll{}, "")
 	// 注册外部业务
 	regBllFunc(serv)
 	// 启动服务
