@@ -210,12 +210,12 @@ func (r *Reflect) setSlice(v reflect.Value, sub reflect.Value) error {
 func (r *Reflect) set(v reflect.Value, subT reflect.Type, subV reflect.Value) error {
 	if subT.Kind() == reflect.Map {
 		for _, m := range subV.MapKeys() {
+			if m.String() == "Kind" {
+				fmt.Println("")
+			}
 			f := v.FieldByName(m.String())
 			if f.CanSet() {
-				vv, err := r.convert(f.Type().String(), subV.MapIndex(m).Interface())
-				if err == nil {
-					f.Set(reflect.ValueOf(vv))
-				}
+				r.inField(f, subV.MapIndex(m).Interface())
 			}
 		}
 	} else {
@@ -226,67 +226,51 @@ func (r *Reflect) set(v reflect.Value, subT reflect.Type, subV reflect.Value) er
 		for i := 0; i < subV.NumField(); i++ {
 			f := v.FieldByName(subT.Field(i).Name)
 			if f.CanSet() {
-				tp := strings.ToLower(f.Type().Kind().String())
-				vv, err := r.convert(tp, subV.Field(i).Interface())
-				if err == nil {
-					// 如果是自定义类型包原生类型，则特殊处理
-					if tp != f.Type().String() {
-						switch tp {
-						case "uint", "uint8", "uint32", "uint64":
-							u, e := strconv.ParseUint(fmt.Sprintf("%v", vv), 10, 64)
-							if e == nil {
-								f.SetUint(u)
-							}
-						case "int", "int8", "int32", "int64":
-							u, e := strconv.ParseInt(fmt.Sprintf("%v", vv), 10, 64)
-							if e == nil {
-								f.SetInt(u)
-							}
-						}
-					} else {
-						f.Set(reflect.ValueOf(vv))
-					}
-				}
+				r.inField(f, subV.Field(i).Interface())
 			}
 		}
 	}
 	return nil
 }
 
-//// 转为字典
-//func (r *Reflect) getMap(t reflect.Type, v reflect.Value) {
-//	if r.kv == nil {
-//		r.kv = map[string]interface{}{}
-//	}
-//	if t.Kind() == reflect.Map {
-//		for _, m := range v.MapKeys() {
-//			r.kv[m.String()] = v.MapIndex(m).Interface()
-//		}
-//	} else {
-//		if v.Kind() == reflect.Ptr {
-//			t = t.Elem()
-//			v = v.Elem()
-//			// 如果是空列表，则默认扩充一条用于反射结构体内部的字段
-//			if t.Kind() == reflect.Slice && v.Len() == 0 {
-//				v = reflect.MakeSlice(t, 1, 1)
-//				v = v.Index(0)
-//				t = v.Type()
-//			}
-//		}
-//		for i := 0; i < v.NumField(); i++ {
-//			field := v.Field(i)
-//			if field.Kind() == reflect.Struct {
-//				if field.String() == "<time.Time Value>" {
-//					r.kv[t.Field(i).Name] = field.Interface()
-//				} else {
-//					r.getMap(field.Type(), field)
-//				}
-//			} else if field.CanInterface() {
-//				r.kv[t.Field(i).Name] = field.Interface()
-//			}
-//		}
-//	}
-//}
+func (r *Reflect) inField(field reflect.Value, value interface{}) {
+	tp := strings.ToLower(field.Type().Kind().String())
+	vv, err := r.convert(tp, value)
+	if err == nil {
+		// 如果是自定义类型包原生类型，则特殊处理
+		if tp != field.Type().String() {
+			switch tp {
+			case "uint", "uint8", "uint32", "uint64":
+				u, e := strconv.ParseUint(fmt.Sprintf("%v", vv), 10, 64)
+				if e == nil {
+					field.SetUint(u)
+				}
+			case "int", "int8", "int32", "int64":
+				u, e := strconv.ParseInt(fmt.Sprintf("%v", vv), 10, 64)
+				if e == nil {
+					field.SetInt(u)
+				}
+			case "float32":
+				u, e := strconv.ParseFloat(fmt.Sprintf("%v", vv), 32)
+				if e == nil {
+					field.SetFloat(u)
+				}
+			case "float64":
+				u, e := strconv.ParseFloat(fmt.Sprintf("%v", vv), 64)
+				if e == nil {
+					field.SetFloat(u)
+				}
+			case "bool":
+				u, e := strconv.ParseBool(fmt.Sprintf("%v", vv))
+				if e == nil {
+					field.SetBool(u)
+				}
+			}
+		} else {
+			field.Set(reflect.ValueOf(vv))
+		}
+	}
+}
 
 // 类型转换
 func (r *Reflect) convert(typeName string, value interface{}) (interface{}, error) {

@@ -10,9 +10,6 @@ func main() {
 }
 
 func regBll(s *qf.Service) {
-	// 注册框架提供的通用业务
-	// 通用业务位于mc文件夹内
-	s.RegBll(&patient.Bll{}, "") // 患者信息业务
 	// 注册自定义业务
-	// ...
+	s.RegBll(&patient.Bll{}, "") // 患者信息业务
 }
