@@ -266,7 +266,7 @@ func (b *userBll) getDepartsByUserId(userId uint64) ([]Department, error) {
 //  @return interface{}
 //  @return IError
 //
-func (b *userBll) getOrg(userId uint64) (map[uint64]Department, IError) {
+func (b *userBll) getOrg(userId uint64) ([]Department, IError) {
 	//获取用户的所在部门
 	dptIds, err := b.dptUserDal.GetDptsByUserId(userId)
 	if err != nil {
@@ -289,7 +289,17 @@ func (b *userBll) getOrg(userId uint64) (map[uint64]Department, IError) {
 	for _, id := range dptIds {
 		b.findParentDpt(id, orgMap, allDptMap)
 	}
-	return orgMap, nil
+
+	//转换成数组
+	ret := make([]Department, 0)
+	for _, department := range orgMap {
+		ret = append(ret, department)
+	}
+
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Id < ret[j].Id
+	})
+	return ret, nil
 }
 
 func (b *userBll) findParentDpt(dptId uint64, orgMap map[uint64]Department, allDptMap map[uint64]Department) {
