@@ -33,14 +33,14 @@ type userBll struct {
 func (b *userBll) RegApi(api ApiMap) {
 	//登录
 	api.Reg(EApiKindSave, "login", b.login)
-	api.Reg(EApiKindSave, "user/jwt/reset", b.resetJwtSecret)  //刷新jwt密钥
-	api.Reg(EApiKindSave, "user/parseToken", b.testParseToken) //测试token
+	api.Reg(EApiKindSave, "user/jwt/reset", b.resetJwtSecret) //刷新jwt密钥
 
 	//用户增删改查
 	api.Reg(EApiKindSave, "user", b.saveUser)
 	api.Reg(EApiKindDelete, "user", b.deleteUser)
 	api.Reg(EApiKindGetModel, "user", b.getUserModel)
 	api.Reg(EApiKindGetList, "users", b.getAllUsers)
+	api.Reg(EApiKindGetList, "user/orgs", b.getUserOrg)
 
 	//密码重置、修改
 	api.Reg(EApiKindSave, "user/pwd/reset", b.resetPassword)
@@ -137,22 +137,6 @@ func (b *userBll) resetJwtSecret(_ *Context) (interface{}, IError) {
 	//将密钥进行AES加密后存入文件
 	err := util.EncryptAndWriteToFile(jwtStr, util.JwtSecretFile, []byte(util.AESKey), []byte(util.IV))
 	return jwtStr, Error(ErrorCodeToken, err.Error())
-}
-
-//
-// testParseToken
-//  @Description:
-//  @param ctx
-//  @return interface{}
-//  @return IError
-//
-func (b *userBll) testParseToken(ctx *Context) (interface{}, IError) {
-	token := ctx.GetStringValue("token")
-	claims, err := util.ParseToken(token)
-	if err != nil {
-		return nil, Error(ErrorCodeToken, err.Error())
-	}
-	return claims, nil
 }
 
 //
@@ -298,4 +282,17 @@ func (b *userBll) changePassword(ctx *Context) (interface{}, IError) {
 		return nil, Error(ErrorCodeSaveFailure, "old password is incorrect")
 	}
 	return nil, b.userDal.SetPassword(ctx.LoginUser().UserId, params.NewPassword)
+}
+
+//
+// getUserOrg
+//  @Description: 获取用户机构
+//  @receiver b
+//  @param ctx
+//  @return interface{}
+//  @return IError
+//
+func (b *userBll) getUserOrg(ctx *Context) (interface{}, IError) {
+	userId := ctx.LoginUser().UserId
+	return b.getOrg(userId)
 }

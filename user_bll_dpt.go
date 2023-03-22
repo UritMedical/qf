@@ -257,3 +257,51 @@ func (b *userBll) getDepartsByUserId(userId uint64) ([]Department, error) {
 	dptIds, _ := b.dptUserDal.GetDptsByUserId(userId)
 	return b.dptDal.GetDptsByIds(dptIds)
 }
+
+//
+// getOrg
+//  @Description: 获取用户所在的组织机构
+//  @receiver b
+//  @param userId
+//  @return interface{}
+//  @return IError
+//
+func (b *userBll) getOrg(userId uint64) (map[uint64]Department, IError) {
+	//获取用户的所在部门
+	dptIds, err := b.dptUserDal.GetDptsByUserId(userId)
+	if err != nil {
+		return nil, err
+	}
+	//获取所有部门
+	dptList := make([]Department, 0)
+	err = b.dptDal.GetList(0, maxCount, &dptList)
+	if err != nil {
+		return nil, err
+	}
+	//转成map，便于做递归判断
+	allDptMap := make(map[uint64]Department, 0)
+	for _, dpt := range dptList {
+		allDptMap[dpt.Id] = dpt
+	}
+
+	//获取此用户所在机构列表
+	orgMap := make(map[uint64]Department, 0)
+	for _, id := range dptIds {
+		b.findParentDpt(id, orgMap, allDptMap)
+	}
+	return orgMap, nil
+}
+
+func (b *userBll) findParentDpt(dptId uint64, orgMap map[uint64]Department, allDptMap map[uint64]Department) {
+	dpt, ok := allDptMap[dptId]
+	if !ok {
+		return
+	}
+
+	if dpt.ParentId == 0 {
+		orgMap[dpt.Id] = dpt
+	} else {
+		orgMap[dpt.Id] = dpt
+		b.findParentDpt(dpt.ParentId, orgMap, allDptMap)
+	}
+}
