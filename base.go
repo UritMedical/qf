@@ -2,7 +2,6 @@ package qf
 
 import (
 	"fmt"
-	"github.com/UritMedical/qf/util/qconfig"
 	"gorm.io/gorm"
 	"reflect"
 	"strings"
@@ -13,15 +12,14 @@ import (
 //  @Description: 提供业务基础通用方法
 //
 type BaseBll struct {
-	pkg      string          // 业务所在的包名
-	name     string          // 业务名称
-	qfGroup  string          // 框架路径组
-	subGroup string          // 自定义路径组
-	config   qconfig.IConfig // 配置接口
-	sub      IBll            // 子接口
+	pkg      string // 业务所在的包名
+	name     string // 业务名称
+	qfGroup  string // 框架路径组
+	subGroup string // 自定义路径组
+	sub      IBll   // 子接口
 }
 
-func (bll *BaseBll) set(sub IBll, qfGroup, subGroup string, config qconfig.IConfig) {
+func (bll *BaseBll) set(sub IBll, qfGroup, subGroup string) {
 	// 反射子类
 	t := reflect.TypeOf(sub).Elem()
 	// 初始化
@@ -30,7 +28,7 @@ func (bll *BaseBll) set(sub IBll, qfGroup, subGroup string, config qconfig.IConf
 	bll.name = strings.ToLower(t.Name())
 	bll.qfGroup = strings.ToLower(qfGroup)
 	bll.subGroup = strings.ToLower(subGroup)
-	bll.config = config
+	//bll.config = config
 }
 
 func (bll *BaseBll) key() string {
@@ -110,25 +108,25 @@ func (bll *BaseBll) Debug(info string) {
 	fmt.Println(info)
 }
 
+////
+//// GetConfig
+////  @Description:
+////  @return map[string]interface{}
+////
+//func (bll *BaseBll) GetConfig() map[string]interface{} {
+//	return bll.config.GetConfig(fmt.Sprintf("%s.%s", bll.pkg, bll.name))
+//}
 //
-// GetConfig
-//  @Description:
-//  @return map[string]interface{}
-//
-func (bll *BaseBll) GetConfig() map[string]interface{} {
-	return bll.config.GetConfig(fmt.Sprintf("%s.%s", bll.pkg, bll.name))
-}
-
-//
-// SetConfig
-//  @Description:
-//  @param value
-//  @return bool
-//  @return error
-//
-func (bll *BaseBll) SetConfig(value map[string]interface{}) (bool, error) {
-	return bll.config.SetConfig(fmt.Sprintf("%s.%s", bll.pkg, bll.name), value)
-}
+////
+//// SetConfig
+////  @Description:
+////  @param value
+////  @return bool
+////  @return error
+////
+//func (bll *BaseBll) SetConfig(value map[string]interface{}) (bool, error) {
+//	return bll.config.SetConfig(fmt.Sprintf("%s.%s", bll.pkg, bll.name), value)
+//}
 
 //
 // BaseDal

@@ -5,7 +5,6 @@ import (
 	"github.com/UritMedical/qf/util"
 	"github.com/UritMedical/qf/util/io"
 	"github.com/UritMedical/qf/util/launcher"
-	"github.com/UritMedical/qf/util/qconfig"
 	"github.com/UritMedical/qf/util/qid"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
@@ -62,20 +61,20 @@ func doStop() {
 }
 
 type Service struct {
-	folder         string                    // 框架的文件夹路径
-	db             *gorm.DB                  // 数据库
-	engine         *gin.Engine               // gin
-	bllList        map[string]IBll           // 所有创建的业务层对象
-	apiHandler     map[string]ApiHandler     // 所有注册的业务API函数指针
-	allApis        map[string][]string       // 所有业务包含的API路由
-	msgHandler     map[string]MessageHandler // 所有消息执行的函数指针
-	errCodes       map[int]string            // 所有故障码字典
-	setting        setting                   // 框架配置
-	idAllocator    qid.IIdAllocator          // id分配器接口
-	config         qconfig.IConfig           // 配置文件接口
-	loginUser      map[string]LoginUser      // 登陆用户信息
-	tokenWhiteList map[string]byte           // token白名单
-	userBll        *userBll                  // 用户业务模块
+	folder      string                    // 框架的文件夹路径
+	db          *gorm.DB                  // 数据库
+	engine      *gin.Engine               // gin
+	bllList     map[string]IBll           // 所有创建的业务层对象
+	apiHandler  map[string]ApiHandler     // 所有注册的业务API函数指针
+	allApis     map[string][]string       // 所有业务包含的API路由
+	msgHandler  map[string]MessageHandler // 所有消息执行的函数指针
+	errCodes    map[int]string            // 所有故障码字典
+	setting     setting                   // 框架配置
+	idAllocator qid.IIdAllocator          // id分配器接口
+	//config         qconfig.IConfig           // 配置文件接口
+	loginUser      map[string]LoginUser // 登陆用户信息
+	tokenWhiteList map[string]byte      // token白名单
+	userBll        *userBll             // 用户业务模块
 }
 
 //
@@ -129,7 +128,7 @@ func newService() *Service {
 	s.db = db
 	// 初始化Id分配器
 	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1001, db)
-	s.config = qconfig.NewConfigByDB(db)
+	//s.config = qconfig.NewConfigByDB(db)
 	// 创建Gin服务
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
@@ -196,7 +195,8 @@ func (s *Service) stop() {
 func (s *Service) RegBll(bll IBll, group string) {
 	group = strings.Trim(group, "/")
 	// 初始化业务对象
-	bll.set(bll, s.setting.WebConfig.DefGroup, group, s.config)
+	//bll.set(bll, s.setting.WebConfig.DefGroup, group, s.config)
+	bll.set(bll, s.setting.WebConfig.DefGroup, group)
 	// 加入到业务列表
 	if _, ok := s.bllList[bll.key()]; ok == false {
 		s.bllList[bll.key()] = bll

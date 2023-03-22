@@ -2,7 +2,6 @@ package qf
 
 import (
 	"fmt"
-	"github.com/UritMedical/qf/util/qconfig"
 	"github.com/UritMedical/qf/util/qdate"
 	"gorm.io/gorm"
 	"reflect"
@@ -23,16 +22,16 @@ type IBll interface {
 	Init() error         // 业务自己的初始化方法
 	Stop()               // 业务自己的资源释放方法
 	// 框架内部实现的方法
-	set(sub IBll, qfGroup, subGroup string, config qconfig.IConfig) // 将主服务的部分对象设置被基础业务
-	key() string                                                    // 获取业务唯一编号
-	regApi(bind func(key string, handler ApiHandler))               // 框架注册方法
-	regMsg(bind func(key string, handler MessageHandler))           // 框架注册方法
-	regDal(db *gorm.DB)                                             // 框架注册方法
-	regError(bind func(code int, err string))                       // 框架注册方法
-	regRef(getApi func(key string) ApiHandler)                      // 框架注册方法
-	Debug(content string)                                           // 调试日志
-	GetConfig() map[string]interface{}                              // 获取配置
-	SetConfig(value map[string]interface{}) (bool, error)           // 写入配置
+	set(sub IBll, qfGroup, subGroup string)               // 将主服务的部分对象设置被基础业务
+	key() string                                          // 获取业务唯一编号
+	regApi(bind func(key string, handler ApiHandler))     // 框架注册方法
+	regMsg(bind func(key string, handler MessageHandler)) // 框架注册方法
+	regDal(db *gorm.DB)                                   // 框架注册方法
+	regError(bind func(code int, err string))             // 框架注册方法
+	regRef(getApi func(key string) ApiHandler)            // 框架注册方法
+	Debug(content string)                                 // 调试日志
+	//GetConfig() map[string]interface{}                              // 获取配置
+	//SetConfig(value map[string]interface{}) (bool, error)           // 写入配置
 }
 
 //
