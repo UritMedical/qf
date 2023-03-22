@@ -183,6 +183,13 @@ func (b *Bll) GetFull(ctx *qf.Context) (interface{}, qf.IError) {
 	return rt, nil
 }
 
+type Info struct {
+	Patient
+	Case  PatientCase
+	Cases []PatientCase
+	ABS   string
+}
+
 //
 // GetFullList
 //  @Description: 按条件获取完整列表 ?key=xxx

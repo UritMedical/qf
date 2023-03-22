@@ -68,22 +68,8 @@ func RandomString(length int) string {
 //  @return map[string]interface{} 字典
 //
 func ToMap(model interface{}) map[string]interface{} {
-	// 先转一次json
-	tj, _ := json.Marshal(model)
-	// 然后在反转到内容对象
-	cnt := struct {
-		Id       uint64
-		LastTime uint64
-		FullInfo string
-	}{}
-	_ = json.Unmarshal(tj, &cnt)
-
-	// 生成字典
-	final := join(cnt.FullInfo, model)
-	// 补齐字段的值
-	final["Id"] = cnt.Id
-
-	return final
+	ref := qreflect.New(model)
+	return ref.ToMapExpandAll()
 }
 
 //
@@ -130,9 +116,10 @@ func SetModel(objectPtr interface{}, value map[string]interface{}) error {
 	// 修改FullInfo值
 	all := ref.ToMap()
 	if info, ok := all["FullInfo"]; ok {
+		str := info.(string)
 		mp := map[string]interface{}{}
-		err := json.Unmarshal([]byte(info.(string)), &mp)
-		if err == nil {
+		err := json.Unmarshal([]byte(str), &mp)
+		if err == nil || str == "" {
 			for k, v := range value {
 				if _, ok := all[k]; ok == false {
 					mp[k] = v
@@ -146,36 +133,4 @@ func SetModel(objectPtr interface{}, value map[string]interface{}) error {
 		}
 	}
 	return nil
-}
-
-// 将完整内容Json和对应的实体，合并为一个字典对象
-func join(info string, model interface{}) map[string]interface{} {
-	data := map[string]interface{}{}
-
-	// 将内容的信息写入到字典中
-	_ = json.Unmarshal([]byte(info), &data)
-
-	// 反射对象，并将其他字段附加到字典
-	value := reflect.ValueOf(model)
-	if value.Kind() == reflect.Map {
-		for _, v := range value.MapKeys() {
-			data[v.String()] = value.MapIndex(v).Interface()
-		}
-	} else {
-		if value.Kind() == reflect.Ptr {
-			value = value.Elem()
-		}
-		for i := 0; i < value.NumField(); i++ {
-			field := value.Field(i)
-			// 通过原始内容
-			if field.Kind() == reflect.Struct && field.Type().Name() == "BaseModel" {
-				continue
-			}
-			tag := value.Type().Field(i).Tag.Get("json")
-			if tag != "-" {
-				data[value.Type().Field(i).Name] = field.Interface()
-			}
-		}
-	}
-	return data
 }

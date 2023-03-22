@@ -2,7 +2,6 @@ package qf
 
 import (
 	"fmt"
-	"github.com/UritMedical/qf/util/qconfig"
 	"github.com/UritMedical/qf/util/qdate"
 	"gorm.io/gorm"
 	"reflect"
@@ -23,16 +22,16 @@ type IBll interface {
 	Init() error         // 业务自己的初始化方法
 	Stop()               // 业务自己的资源释放方法
 	// 框架内部实现的方法
-	set(sub IBll, qfGroup, subGroup string, config qconfig.IConfig) // 将主服务的部分对象设置被基础业务
-	key() string                                                    // 获取业务唯一编号
-	regApi(bind func(key string, handler ApiHandler))               // 框架注册方法
-	regMsg(bind func(key string, handler MessageHandler))           // 框架注册方法
-	regDal(db *gorm.DB)                                             // 框架注册方法
-	regError(bind func(code int, err string))                       // 框架注册方法
-	regRef(getApi func(key string) ApiHandler)                      // 框架注册方法
-	Debug(content string)                                           // 调试日志
-	GetConfig() map[string]interface{}                              // 获取配置
-	SetConfig(value map[string]interface{}) (bool, error)           // 写入配置
+	set(sub IBll, qfGroup, subGroup string)               // 将主服务的部分对象设置被基础业务
+	key() string                                          // 获取业务唯一编号
+	regApi(bind func(key string, handler ApiHandler))     // 框架注册方法
+	regMsg(bind func(key string, handler MessageHandler)) // 框架注册方法
+	regDal(db *gorm.DB)                                   // 框架注册方法
+	regError(bind func(code int, err string))             // 框架注册方法
+	regRef(getApi func(key string) ApiHandler)            // 框架注册方法
+	Debug(content string)                                 // 调试日志
+	//GetConfig() map[string]interface{}                              // 获取配置
+	//SetConfig(value map[string]interface{}) (bool, error)           // 写入配置
 }
 
 //
@@ -205,16 +204,34 @@ type BaseModel struct {
 //  @Description: 登陆用户信息
 //
 type LoginUser struct {
-	UserId      uint64 // 登陆用户唯一号
-	UserName    string // 登陆用户名字
-	LoginId     string // 登陆用户账号
-	Departments map[uint64]struct {
-		Name string
-	} // 所属部门列表
-	token string // 登陆的token信息
-	roles map[uint64]struct {
+	UserId      uint64       // 登陆用户唯一号
+	UserName    string       // 登陆用户名字
+	LoginId     string       // 登陆用户账号
+	Departments []Department // 所属部门列表
+	roles       map[uint64]struct {
 		Name string
 	} // 角色列表
+	// 允许操作的api列表
+	apis map[string]byte
+}
+
+func (u LoginUser) copyTo() LoginUser {
+	user := LoginUser{
+		UserId:      u.UserId,
+		UserName:    u.UserName,
+		LoginId:     u.LoginId,
+		Departments: make([]Department, len(u.Departments)),
+		roles:       map[uint64]struct{ Name string }{},
+	}
+	for i, d := range u.Departments {
+		user.Departments[i] = d
+	}
+	for id, info := range u.roles {
+		user.roles[id] = struct{ Name string }{
+			Name: info.Name,
+		}
+	}
+	return user
 }
 
 var (

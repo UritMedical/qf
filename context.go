@@ -62,25 +62,7 @@ func (ctx *Context) NewId(object interface{}) uint64 {
 //  @return LoginUser
 //
 func (ctx *Context) LoginUser() LoginUser {
-	user := LoginUser{
-		UserId:      ctx.loginUser.UserId,
-		UserName:    ctx.loginUser.UserName,
-		LoginId:     ctx.loginUser.LoginId,
-		Departments: map[uint64]struct{ Name string }{},
-		token:       ctx.loginUser.token,
-		roles:       map[uint64]struct{ Name string }{},
-	}
-	for id, info := range ctx.loginUser.Departments {
-		user.Departments[id] = struct{ Name string }{
-			Name: info.Name,
-		}
-	}
-	for id, info := range ctx.loginUser.roles {
-		user.roles[id] = struct{ Name string }{
-			Name: info.Name,
-		}
-	}
-	return user
+	return ctx.loginUser.copyTo()
 }
 
 //
@@ -126,17 +108,21 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) IEr
 			}
 		}
 	}
-	// 然后根据类型，将字典写入到对象或列表中
-	cnt := make([]BaseModel, 0)
-	for i := 0; i < len(ctx.inputValue); i++ {
-		c := ctx.build(ctx.inputValue[i], ref.ToMap())
-		cnt = append(cnt, c)
+
+	if ref.IsMap() == false {
+		// 然后根据类型，将字典写入到对象或列表中
+		cnt := make([]BaseModel, 0)
+		for i := 0; i < len(ctx.inputValue); i++ {
+			c := ctx.build(ctx.inputValue[i], ref.ToMap())
+			cnt = append(cnt, c)
+		}
+		// 重新赋值
+		err := ref.Set(ctx.inputValue, cnt)
+		if err != nil {
+			return Error(ErrorCodeParamInvalid, err.Error())
+		}
 	}
-	// 重新赋值
-	err := ref.Set(ctx.inputValue, cnt)
-	if err != nil {
-		return Error(ErrorCodeParamInvalid, err.Error())
-	}
+
 	return nil
 }
 
