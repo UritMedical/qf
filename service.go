@@ -298,7 +298,7 @@ func (s *Service) context(ctx *gin.Context) {
 		contentType := ctx.Request.Header.Get("Content-Type")
 		if strings.HasPrefix(contentType, "application/json") {
 			// 处理 JSON 数据
-			if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil {
+			if body, e := ioutil.ReadAll(ctx.Request.Body); e == nil && len(body) > 0 {
 				err := qfCtx.loadInput(body)
 				if err != nil {
 					s.returnError(ctx, Error(ErrorCodeParamInvalid, err.Error()))

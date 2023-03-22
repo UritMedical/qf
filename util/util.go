@@ -116,9 +116,10 @@ func SetModel(objectPtr interface{}, value map[string]interface{}) error {
 	// 修改FullInfo值
 	all := ref.ToMap()
 	if info, ok := all["FullInfo"]; ok {
+		str := info.(string)
 		mp := map[string]interface{}{}
-		err := json.Unmarshal([]byte(info.(string)), &mp)
-		if err == nil {
+		err := json.Unmarshal([]byte(str), &mp)
+		if err == nil || str == "" {
 			for k, v := range value {
 				if _, ok := all[k]; ok == false {
 					mp[k] = v
