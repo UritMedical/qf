@@ -11,16 +11,16 @@ type setting struct {
 	Id          uint         `comment:"框架Id，主服务为0"`
 	Name        string       `comment:"框架名称，用于网络发现，单体服务可为空"`
 	Port        string       `comment:"服务端口"`
-	UserConfig  *userConfig  `comment:"用户配置"`
 	WebConfig   *webConfig   `comment:"web配置"`
+	UserConfig  *userConfig  `comment:"用户配置"`
 	GormConfig  *gormConfig  `comment:"gorm配置"`
 	OtherConfig *otherConfig `comment:"其他配置"`
 }
 
 type userConfig struct {
 	Enabled        byte     `comment:"是否启用用户模块 0否 1是"`
-	TokenVerify    byte     `comment:"是否启用全局token验证 0否 1是"`
-	TokenWhiteList []string `toml:",multiline" comment:"token白名单路由列表，以下路由不进行token验证"`
+	TokenVerify    string   `comment:"特殊放行的Token密码"`
+	TokenWhiteList []string `toml:",multiline" comment:"token白名单，以下路由不进行token验证"`
 }
 
 type webConfig struct {
@@ -34,7 +34,7 @@ type gormConfig struct {
 	DBName                 string `comment:"默认数据库名称"`
 	OpenLog                byte   `comment:"是否输出脚本日志 0否 1是"`
 	SkipDefaultTransaction byte   `comment:"跳过默认事务 0否 1是"`
-	JournalMode            string `comment:"跳过默认事务\n DELETE：在事务提交后，删除journal文件\n MEMORY：在内存中生成journal文件，不写入磁盘\n WAL：使用WAL（Write-Ahead Logging）模式，将journal记录写入WAL文件中\n OFF：完全关闭journal模式，不记录任何日志消息"`
+	JournalMode            string `comment:"Journal模式\n DELETE：在事务提交后，删除journal文件\n MEMORY：在内存中生成journal文件，不写入磁盘\n WAL：使用WAL（Write-Ahead Logging）模式，将journal记录写入WAL文件中\n OFF：完全关闭journal模式，不记录任何日志消息"`
 }
 
 type otherConfig struct {
@@ -55,10 +55,9 @@ func (s *setting) Load(path string) {
 	if s.UserConfig == nil {
 		s.UserConfig = &userConfig{
 			Enabled:     1,
-			TokenVerify: 1,
+			TokenVerify: "lis",
 			TokenWhiteList: []string{
 				"POST:/api/login",
-				"POST:/api/user/parseToken",
 				"POST:/api/user/jwt/reset",
 			},
 		}

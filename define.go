@@ -205,29 +205,27 @@ type BaseModel struct {
 //  @Description: 登陆用户信息
 //
 type LoginUser struct {
-	UserId      uint64 // 登陆用户唯一号
-	UserName    string // 登陆用户名字
-	LoginId     string // 登陆用户账号
-	Departments map[uint64]struct {
-		Name string
-	} // 所属部门列表
-	roles map[uint64]struct {
+	UserId      uint64       // 登陆用户唯一号
+	UserName    string       // 登陆用户名字
+	LoginId     string       // 登陆用户账号
+	Departments []Department // 所属部门列表
+	roles       map[uint64]struct {
 		Name string
 	} // 角色列表
+	// 允许操作的api列表
+	apis map[string]byte
 }
 
-func (u LoginUser) CopyTo() LoginUser {
+func (u LoginUser) copyTo() LoginUser {
 	user := LoginUser{
 		UserId:      u.UserId,
 		UserName:    u.UserName,
 		LoginId:     u.LoginId,
-		Departments: map[uint64]struct{ Name string }{},
+		Departments: make([]Department, len(u.Departments)),
 		roles:       map[uint64]struct{ Name string }{},
 	}
-	for id, info := range u.Departments {
-		user.Departments[id] = struct{ Name string }{
-			Name: info.Name,
-		}
+	for i, d := range u.Departments {
+		user.Departments[i] = d
 	}
 	for id, info := range u.roles {
 		user.roles[id] = struct{ Name string }{

@@ -62,7 +62,7 @@ func (ctx *Context) NewId(object interface{}) uint64 {
 //  @return LoginUser
 //
 func (ctx *Context) LoginUser() LoginUser {
-	return ctx.loginUser.CopyTo()
+	return ctx.loginUser.copyTo()
 }
 
 //
@@ -108,17 +108,21 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) IEr
 			}
 		}
 	}
-	// 然后根据类型，将字典写入到对象或列表中
-	cnt := make([]BaseModel, 0)
-	for i := 0; i < len(ctx.inputValue); i++ {
-		c := ctx.build(ctx.inputValue[i], ref.ToMap())
-		cnt = append(cnt, c)
+
+	if ref.IsMap() == false {
+		// 然后根据类型，将字典写入到对象或列表中
+		cnt := make([]BaseModel, 0)
+		for i := 0; i < len(ctx.inputValue); i++ {
+			c := ctx.build(ctx.inputValue[i], ref.ToMap())
+			cnt = append(cnt, c)
+		}
+		// 重新赋值
+		err := ref.Set(ctx.inputValue, cnt)
+		if err != nil {
+			return Error(ErrorCodeParamInvalid, err.Error())
+		}
 	}
-	// 重新赋值
-	err := ref.Set(ctx.inputValue, cnt)
-	if err != nil {
-		return Error(ErrorCodeParamInvalid, err.Error())
-	}
+
 	return nil
 }
 

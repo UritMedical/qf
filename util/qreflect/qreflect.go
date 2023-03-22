@@ -46,6 +46,23 @@ func (r *Reflect) IsPtr() bool {
 }
 
 //
+// IsMap
+//  @Description: 是否是字典
+//  @return bool
+//
+func (r *Reflect) IsMap() bool {
+	if r.v.Kind() == reflect.Map {
+		return true
+	}
+	if r.v.Kind() == reflect.Ptr {
+		if r.v.Elem().Kind() == reflect.Map {
+			return true
+		}
+	}
+	return false
+}
+
+//
 // ToMap
 //  @Description: 转为字典
 //  @return map[string]interface{}
@@ -117,7 +134,7 @@ func (r *Reflect) Set(values ...interface{}) error {
 		return errors.New("the value 's length must be greater than 0")
 	}
 	// 如果对象不是指针，则无法执行
-	if r.v.Kind() != reflect.Ptr {
+	if r.IsPtr() == false {
 		return errors.New("the obj 's kind must be ptr")
 	}
 	// 如果是结构体

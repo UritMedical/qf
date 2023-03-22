@@ -214,3 +214,34 @@ func (b *userBll) getPermissionApi(ctx *Context) (interface{}, IError) {
 	permissionId := ctx.GetUIntValue("PermissionId")
 	return b.permissionApiDal.GetApisByPermissionId(permissionId)
 }
+
+//
+// getUserAllApis
+//  @Description: 获取全部用户可以访问的Api列表
+//  @param roleIds
+//
+func (b *userBll) getUserAllApis(roleIds ...uint64) map[string]byte {
+	apis := map[string]byte{}
+	for _, roleId := range roleIds {
+		// 获取角色全部的权限列表
+		permissionId, _ := b.rolePermissionDal.GetRolePermission(roleId)
+		permissions, err := b.permissionDal.GetPermissionsByIds(permissionId)
+		if err != nil {
+			continue
+		}
+
+		// 再获取权限包含的所有Api
+		for _, permission := range permissions {
+			apiIds, err := b.permissionApiDal.GetApisByPermissionId(permission.Id)
+			if err != nil {
+				continue
+			}
+			for _, apiId := range apiIds {
+				if _, ok := apis[apiId]; !ok {
+					apis[apiId] = 1
+				}
+			}
+		}
+	}
+	return apis
+}

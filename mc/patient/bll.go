@@ -173,20 +173,14 @@ func (b *Bll) GetFull(ctx *qf.Context) (interface{}, qf.IError) {
 	}
 
 	// 返回
-	//rt := struct {
-	//	Patient interface{}
-	//	Cases   interface{}
-	//}{
-	//	Patient: util.ToMap(patInfo),
-	//	Cases:   util.ToMaps(caseList),
-	//}
-	i := Info{}
-	i.Patient = patInfo
-	i.Case = caseList[0]
-	i.Cases = make([]PatientCase, 0)
-	i.Cases = append(i.Cases, caseList...)
-	i.ABS = "NNN"
-	return util.ToMap(i), nil
+	rt := struct {
+		Patient interface{}
+		Cases   interface{}
+	}{
+		Patient: util.ToMap(patInfo),
+		Cases:   util.ToMaps(caseList),
+	}
+	return rt, nil
 }
 
 type Info struct {

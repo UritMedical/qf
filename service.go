@@ -2,6 +2,7 @@ package qf
 
 import (
 	"fmt"
+	"github.com/UritMedical/qf/util"
 	"github.com/UritMedical/qf/util/io"
 	"github.com/UritMedical/qf/util/launcher"
 	"github.com/UritMedical/qf/util/qconfig"
@@ -13,6 +14,7 @@ import (
 	"gorm.io/gorm/schema"
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -41,7 +43,8 @@ func doStart() {
 	serv = newService()
 	// 根据配置是否注册用户模块
 	if serv.setting.UserConfig.Enabled == 1 {
-		serv.RegBll(&userBll{}, "")
+		serv.userBll = &userBll{}
+		serv.RegBll(serv.userBll, "")
 	}
 	// 注册外部业务
 	regBllFunc(serv)
@@ -64,6 +67,7 @@ type Service struct {
 	engine         *gin.Engine               // gin
 	bllList        map[string]IBll           // 所有创建的业务层对象
 	apiHandler     map[string]ApiHandler     // 所有注册的业务API函数指针
+	allApis        map[string][]string       // 所有业务包含的API路由
 	msgHandler     map[string]MessageHandler // 所有消息执行的函数指针
 	errCodes       map[int]string            // 所有故障码字典
 	setting        setting                   // 框架配置
@@ -71,6 +75,7 @@ type Service struct {
 	config         qconfig.IConfig           // 配置文件接口
 	loginUser      map[string]LoginUser      // 登陆用户信息
 	tokenWhiteList map[string]byte           // token白名单
+	userBll        *userBll                  // 用户业务模块
 }
 
 //
@@ -81,6 +86,7 @@ type Service struct {
 func newService() *Service {
 	s := &Service{
 		bllList:    map[string]IBll{},
+		allApis:    map[string][]string{},
 		apiHandler: map[string]ApiHandler{},
 		msgHandler: map[string]MessageHandler{},
 		loginUser:  map[string]LoginUser{},
@@ -127,6 +133,7 @@ func newService() *Service {
 	// 创建Gin服务
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
+	s.initApiRouter()
 	// 创建静态资源
 	for _, static := range s.setting.WebConfig.Static {
 		s.engine.Static(static[0], static[1])
@@ -206,6 +213,10 @@ func (s *Service) reg() {
 			if _, ok := s.apiHandler[key]; ok {
 				panic(fmt.Sprintf("【RegApi】: %s:%s already exists", bll.key(), key))
 			}
+			if _, ok := s.allApis[bll.key()]; ok == false {
+				s.allApis[bll.key()] = []string{}
+			}
+			s.allApis[bll.key()] = append(s.allApis[bll.key()], key)
 			s.apiHandler[key] = handler
 			sp := strings.Split(key, ":")
 			s.engine.Handle(sp[0], sp[1], s.context)
@@ -267,21 +278,23 @@ func (s *Service) context(ctx *gin.Context) {
 	if handler, ok := s.apiHandler[url]; ok {
 		// 获取Token值
 		token := ctx.GetHeader("Token")
-		// 验证token
-		if s.setting.UserConfig.TokenVerify == 1 {
-			_, ok1 := s.tokenWhiteList[url]
-			_, ok2 := s.loginUser[token]
-			if ok1 == false && ok2 == false {
-				s.returnError(ctx, Error(ErrorCodeToken, "token is not valid"))
-				return
-			}
+
+		// 验证token和权限，返回登陆用户信息
+		// 白名单跳过
+		login, err := s.verify(token, url)
+		if err != nil && s.tokenWhiteList[url] == 0 {
+			s.returnError(ctx, err)
+			return
 		}
+
+		// 生成上下文
 		qfCtx := &Context{
-			loginUser:   s.loginUser[token],
+			loginUser:   login,
 			idAllocator: s.idAllocator,
 		}
 		qfCtx.time.FromTime(time.Now())
 
+		// 解析body
 		contentType := ctx.Request.Header.Get("Content-Type")
 		if strings.HasPrefix(contentType, "application/json") {
 			// 处理 JSON 数据
@@ -309,7 +322,7 @@ func (s *Service) context(ctx *gin.Context) {
 			qfCtx.inputFiles = form.File
 		}
 
-		// 获取全部的Query
+		// 解析Query
 		for k, v := range ctx.Request.URL.Query() {
 			if len(v) > 0 {
 				qfCtx.setInputValue(k, v[0])
@@ -337,25 +350,8 @@ func (s *Service) context(ctx *gin.Context) {
 			}
 			// 截取登陆接口，获取登陆信息
 			if url == fmt.Sprintf("POST:/%s/login", s.setting.WebConfig.DefGroup) {
-				value := result.(map[string]interface{})
-				userInfo := value["UserInfo"].(map[string]interface{})
-				s.loginUser[value["Token"].(string)] = LoginUser{
-					UserId:      uint64(userInfo["Id"].(float64)),
-					UserName:    userInfo["Name"].(string),
-					LoginId:     userInfo["LoginId"].(string),
-					Departments: map[uint64]struct{ Name string }{},
-					roles:       map[uint64]struct{ Name string }{},
-				}
-				for _, role := range value["Roles"].([]map[string]interface{}) {
-					s.loginUser[value["Token"].(string)].roles[uint64(role["Id"].(float64))] = struct{ Name string }{
-						Name: role["Name"].(string),
-					}
-				}
-				for _, dp := range value["Departs"].([]map[string]interface{}) {
-					s.loginUser[value["Token"].(string)].Departments[uint64(dp["Id"].(float64))] = struct{ Name string }{
-						Name: dp["Name"].(string),
-					}
-				}
+				token = result.(map[string]interface{})["Token"].(string)
+				_, _ = s.verify(token, "")
 			}
 			// TODO：记录日志
 
@@ -383,6 +379,68 @@ func (s *Service) returnOk(ctx *gin.Context, data interface{}) {
 	})
 }
 
+func (s *Service) verify(token string, url string) (LoginUser, IError) {
+	// 如果缓存存在，则通过缓存
+	if _, ok := s.loginUser[token]; ok {
+		return s.loginUser[token], nil
+	}
+	// 解析token
+	claims, err := util.ParseToken(token)
+	if err != nil {
+		return LoginUser{}, Error(ErrorCodeTokenInvalid, err.Error())
+	}
+	t := time.Unix(claims.ExpiresAt, 0)
+	if time.Now().After(t) {
+		return LoginUser{}, Error(ErrorCodeTokenExpires, err.Error())
+	}
+	// 获取用户信息
+	user, err := s.userBll.getUserModel(&Context{loginUser: LoginUser{UserId: claims.Id}})
+	if err != nil {
+		return LoginUser{}, Error(ErrorCodeTokenInvalid, err.Error())
+	}
+
+	value := user.(map[string]interface{})
+	info := value["Info"].(map[string]interface{})
+	login := LoginUser{
+		UserId:   uint64(info["Id"].(float64)),
+		UserName: info["Name"].(string),
+		LoginId:  info["LoginId"].(string),
+		roles:    map[uint64]struct{ Name string }{},
+	}
+	rlist := make([]uint64, 0)
+	for _, role := range value["Roles"].([]map[string]interface{}) {
+		rid := uint64(role["Id"].(float64))
+		login.roles[rid] = struct{ Name string }{
+			Name: role["Name"].(string),
+		}
+		rlist = append(rlist, rid)
+	}
+
+	// 获取组织机构
+	dps, err := s.userBll.getOrg(login.UserId)
+	if err != nil {
+		return LoginUser{}, Error(ErrorCodeTokenInvalid, err.Error())
+	}
+	login.Departments = dps
+	if token != "" {
+		s.loginUser[token] = login
+	}
+
+	// 获取api
+	login.apis = s.userBll.getUserAllApis(rlist...)
+
+	// 权限验证
+	if login.UserId > 2 {
+		// 获取用户权限
+		if _, exist := login.apis[url]; exist == false {
+			e := fmt.Sprintf("the user does not have %s permission", url)
+			return login, Error(ErrorCodePermissionDenied, e)
+		}
+	}
+
+	return login, nil
+}
+
 func (s *Service) getCors() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		method := c.Request.Method
@@ -400,6 +458,21 @@ func (s *Service) getCors() gin.HandlerFunc {
 		// 处理请求
 		c.Next()
 	}
+}
+
+func (s *Service) initApiRouter() {
+	s.engine.GET("/apis", func(ctx *gin.Context) {
+		apis := map[string][]string{}
+		for k, v := range s.allApis {
+			name := filepath.Base(k)
+			apis[name] = v
+		}
+		ctx.JSON(http.StatusOK, gin.H{
+			"status": http.StatusOK,
+			"msg":    "success",
+			"data":   apis,
+		})
+	})
 }
 
 //

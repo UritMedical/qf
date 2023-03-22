@@ -10,8 +10,9 @@ var devUser = User{BaseModel: BaseModel{Id: 202303, FullInfo: "{\"Name\":\"Devel
 	LoginId: "developer", Password: util.ConvertToMD5([]byte("lisurit"))}
 
 const (
-	ErrorCodeToken = iota + 400
-	ErrorCodeLogin
+	ErrorCodeTokenInvalid = iota + 400
+	ErrorCodeTokenExpires
+	ErrorCodeLoginInvalid
 )
 
 const (
@@ -77,8 +78,9 @@ func (b *userBll) RegDal(regDal DalMap) {
 }
 
 func (b *userBll) RegFault(f FaultMap) {
-	f.Reg(ErrorCodeToken, "未登录或Token无效, 无法继续执行")
-	f.Reg(ErrorCodeLogin, "登陆失败, 用户名或密码不正确")
+	f.Reg(ErrorCodeTokenInvalid, "未登录或Token无效, 无法继续执行")
+	f.Reg(ErrorCodeTokenExpires, "Token已过期, 请查询登陆")
+	f.Reg(ErrorCodeLoginInvalid, "登陆失败, 用户名或密码不正确")
 }
 
 func (b *userBll) RegMsg(_ MessageMap) {
@@ -136,7 +138,7 @@ func (b *userBll) resetJwtSecret(_ *Context) (interface{}, IError) {
 	util.JwtSecret = []byte(jwtStr)
 	//将密钥进行AES加密后存入文件
 	err := util.EncryptAndWriteToFile(jwtStr, util.JwtSecretFile, []byte(util.AESKey), []byte(util.IV))
-	return jwtStr, Error(ErrorCodeToken, err.Error())
+	return jwtStr, Error(ErrorCodeTokenInvalid, err.Error())
 }
 
 //
@@ -180,7 +182,7 @@ func (b *userBll) login(ctx *Context) (interface{}, IError) {
 			"UserInfo": util.ToMap(devUser),
 		}, nil
 	} else {
-		return nil, Error(ErrorCodeLogin, "loginId not exist or password error")
+		return nil, Error(ErrorCodeLoginInvalid, "loginId not exist or password error")
 	}
 }
 
