@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"path/filepath"
 	"reflect"
@@ -128,7 +129,6 @@ func newService() *Service {
 	s.db = db
 	// 初始化Id分配器
 	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1001, db)
-	//s.config = qconfig.NewConfigByDB(db)
 	// 创建Gin服务
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
@@ -142,6 +142,16 @@ func newService() *Service {
 	}
 	for _, any := range s.setting.WebConfig.Any {
 		s.engine.Any(any)
+	}
+	// 初始化前端静态文件
+	for _, ext := range s.setting.WebConfig.Mime {
+		_ = mime.AddExtensionType(ext[0], ext[1])
+	}
+	// 短路由
+	for _, route := range s.setting.WebConfig.ShortRoute {
+		s.engine.GET(route[0], func(c *gin.Context) {
+			c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s://%s/%s", "http", c.Request.Host, route[1]))
+		})
 	}
 	// 其他初始化
 	dateFormat = s.setting.OtherConfig.JsonDateFormat
@@ -278,6 +288,10 @@ func (s *Service) context(ctx *gin.Context) {
 	if handler, ok := s.apiHandler[url]; ok {
 		// 获取Token值
 		token := ctx.GetHeader("Token")
+		bt := ctx.Query("Bi")
+		if bt != "" {
+			token = bt
+		}
 
 		// 验证token和权限，返回登陆用户信息
 		// 白名单跳过
@@ -380,9 +394,8 @@ func (s *Service) returnOk(ctx *gin.Context, data interface{}) {
 }
 
 func (s *Service) verify(token string, url string) (LoginUser, IError) {
-	// 如果缓存存在，则通过缓存
-	if _, ok := s.loginUser[token]; ok {
-		return s.loginUser[token], nil
+	if s.userBll == nil || token == s.setting.UserConfig.TokenVerify {
+		return LoginUser{}, nil
 	}
 	// 解析token
 	claims, err := util.ParseToken(token)
@@ -392,6 +405,10 @@ func (s *Service) verify(token string, url string) (LoginUser, IError) {
 	t := time.Unix(claims.ExpiresAt, 0)
 	if time.Now().After(t) {
 		return LoginUser{}, Error(ErrorCodeTokenExpires, err.Error())
+	}
+	// 如果缓存存在，则通过缓存
+	if _, ok := s.loginUser[token]; ok {
+		return s.loginUser[token], nil
 	}
 	// 获取用户信息
 	user, err := s.userBll.getUserModel(&Context{loginUser: LoginUser{UserId: claims.Id}})
