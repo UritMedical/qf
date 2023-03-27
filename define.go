@@ -40,6 +40,7 @@ type IBll interface {
 //
 type IDal interface {
 	DB() *gorm.DB                                                   // 返回数据库对象
+	Create(content interface{}) IError                              // 执行新增操作
 	Save(content interface{}) IError                                // 执行新增或修改操作
 	Delete(id uint64) IError                                        // 执行删除操作
 	GetModel(id uint64, dest interface{}) IError                    // 根据Id获取单条信息

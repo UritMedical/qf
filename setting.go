@@ -30,7 +30,8 @@ type webConfig struct {
 }
 
 type gormConfig struct {
-	DBName                 string `comment:"默认数据库名称"`
+	DBType                 string `comment:"数据库类型：sqlite, sqlserver\n 参数\n sqlite：xxx.db\n sqlserver：ip,db,user,pwd"`
+	DBParam                string
 	OpenLog                byte   `comment:"是否输出脚本日志 0否 1是"`
 	SkipDefaultTransaction byte   `comment:"跳过默认事务 0否 1是"`
 	JournalMode            string `comment:"Journal模式\n DELETE：在事务提交后，删除journal文件\n MEMORY：在内存中生成journal文件，不写入磁盘\n WAL：使用WAL（Write-Ahead Logging）模式，将journal记录写入WAL文件中\n OFF：完全关闭journal模式，不记录任何日志消息"`
@@ -72,7 +73,8 @@ func (s *setting) Load(path string) {
 		ShortRoute: [][]string{},
 	}
 	s.GormConfig = gormConfig{
-		DBName:                 "data",
+		DBType:                 "sqlite",
+		DBParam:                "data.db",
 		OpenLog:                0,
 		SkipDefaultTransaction: 1,
 		JournalMode:            "OFF",

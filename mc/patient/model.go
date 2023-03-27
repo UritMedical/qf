@@ -19,7 +19,7 @@ type Patient struct {
 	// HisId
 	//  @Description: HIS唯一号，唯一索引
 	//
-	HisId *string `gorm:"uniqueIndex:null"`
+	HisId *string `gorm:"unique"`
 }
 
 //
@@ -39,7 +39,7 @@ type PatientCase struct {
 	// CaseId
 	//  @Description: 病历号（门诊号/住院号）
 	//
-	CaseId string `gorm:"uniqueIndex"`
+	CaseId string `gorm:"unique"`
 
 	//
 	// Classify
