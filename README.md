@@ -4,13 +4,13 @@
 
 # Start
 
-获取包
+## Installation
 
 ```go
 go get github.com/UritMedical/qf
 ```
 
-快速开始
+## Usage
 
 ```go
 import (
@@ -28,16 +28,10 @@ func regBll(s *qf.Service) {
 	// 注册相关业务
 	s.RegBll(&your.Bll{}, "")
 	...
+    
+    // 如果需要自定义扩展路由组，则使用如下方法
+    s.RegBll(&your.Bll{}, "custom")
+    // 默认：.../api/...  ->  设置后：.../api/custom/...
 }
-```
-
-自定义路由组
-
-```go
-// 默认路由组为：.../api/...
-s.RegBll(&your.Bll{}, "")
-
-// 自定义路由组为：.../custom/...
-s.RegBll(&your.Bll{}, "custom")
 ```
 

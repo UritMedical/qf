@@ -163,7 +163,11 @@ func (ctx *Context) GetStringValue(propName string) string {
 	if len(ctx.inputValue) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%v", ctx.inputValue[0][propName])
+	v := ctx.inputValue[0][propName]
+	if v == nil {
+		v = ""
+	}
+	return fmt.Sprintf("%v", v)
 }
 
 //

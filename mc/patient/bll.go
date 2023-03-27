@@ -251,6 +251,7 @@ func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, qf.IError) {
 				Cases:   util.ToMaps(caseList),
 			})
 		}
+
 	}
 	return rts, nil
 }
