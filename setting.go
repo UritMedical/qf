@@ -21,6 +21,7 @@ type userConfig struct {
 }
 
 type webConfig struct {
+	GinRelease byte       `comment:"是否启动gin的release版本 0否 1是"`
 	DefGroup   string     `comment:"路由的默认所在组"`
 	Static     [][]string `toml:",multiline" comment:"静态资源配置，格式为：相对路径,root路径"`
 	StaticFile [][]string `toml:",multiline" comment:"静态资源配置，格式为：相对路径,文件路径"`
@@ -54,7 +55,8 @@ func (s *setting) Load(path string) {
 		},
 	}
 	s.WebConfig = webConfig{
-		DefGroup: "api",
+		GinRelease: 0,
+		DefGroup:   "api",
 		Static: [][]string{
 			{"/assets", "./res/assets"},
 			{"/js", "./res/js"},

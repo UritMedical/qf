@@ -145,6 +145,10 @@ func newService() *Service {
 	// 初始化Id分配器
 	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1001, db)
 	// 创建Gin服务
+	if s.setting.WebConfig.GinRelease == 1 {
+		gin.SetMode(gin.ReleaseMode)
+		gin.DefaultWriter = ioutil.Discard
+	}
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
 	s.initApiRouter()
