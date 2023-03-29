@@ -55,7 +55,7 @@ func (b *byDB) Next(name string) uint64 {
 	val := idAllocator{
 		Name: name,
 	}
-	rs := b.db.Table(b.name).First(&val)
+	rs := b.db.Table(b.name).Find(&val)
 	if rs.RowsAffected == 0 {
 		val.Value = uint64(b.start)
 	} else {

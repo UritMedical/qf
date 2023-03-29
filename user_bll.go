@@ -6,7 +6,7 @@ import (
 )
 
 //TODO 开发者密码要可以配置
-var devUser = User{BaseModel: BaseModel{Id: 202303, FullInfo: "{\"Name\":\"Developer\"}"},
+var devUser = User{BaseModel: BaseModel{Id: 1, FullInfo: "{\"Name\":\"Developer\"}"},
 	LoginId: "developer", Password: util.ConvertToMD5([]byte("lisurit"))}
 
 const (
@@ -111,7 +111,7 @@ func (b *userBll) initDefUser() {
 	if err != nil {
 		panic("can't create default user")
 	}
-	const adminId = 1
+	const adminId = 2
 	if len(list) == 0 {
 		_ = b.userDal.Save(&User{
 			BaseModel: BaseModel{Id: adminId, FullInfo: "{\"Name\":\"Admin\"}"},

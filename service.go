@@ -3,11 +3,12 @@ package qf
 import (
 	"fmt"
 	"github.com/UritMedical/qf/util"
-	"github.com/UritMedical/qf/util/io"
 	"github.com/UritMedical/qf/util/launcher"
 	"github.com/UritMedical/qf/util/qid"
+	"github.com/UritMedical/qf/util/qio"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
+	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -62,20 +63,19 @@ func doStop() {
 }
 
 type Service struct {
-	folder      string                    // 框架的文件夹路径
-	db          *gorm.DB                  // 数据库
-	engine      *gin.Engine               // gin
-	bllList     map[string]IBll           // 所有创建的业务层对象
-	apiHandler  map[string]ApiHandler     // 所有注册的业务API函数指针
-	allApis     map[string][]string       // 所有业务包含的API路由
-	msgHandler  map[string]MessageHandler // 所有消息执行的函数指针
-	errCodes    map[int]string            // 所有故障码字典
-	setting     setting                   // 框架配置
-	idAllocator qid.IIdAllocator          // id分配器接口
-	//config         qconfig.IConfig           // 配置文件接口
-	loginUser      map[string]LoginUser // 登陆用户信息
-	tokenWhiteList map[string]byte      // token白名单
-	userBll        *userBll             // 用户业务模块
+	folder         string                    // 框架的文件夹路径
+	db             *gorm.DB                  // 数据库
+	engine         *gin.Engine               // gin
+	bllList        map[string]IBll           // 所有创建的业务层对象
+	apiHandler     map[string]ApiHandler     // 所有注册的业务API函数指针
+	allApis        map[string][]string       // 所有业务包含的API路由
+	msgHandler     map[string]MessageHandler // 所有消息执行的函数指针
+	errCodes       map[int]string            // 所有故障码字典
+	setting        setting                   // 框架配置
+	idAllocator    qid.IIdAllocator          // id分配器接口
+	loginUser      map[string]LoginUser      // 登陆用户信息
+	tokenWhiteList map[string]byte           // token白名单
+	userBll        *userBll                  // 用户业务模块
 }
 
 //
@@ -108,28 +108,47 @@ func newService() *Service {
 		s.tokenWhiteList[t] = 1
 	}
 	// 创建数据库
-	dbDir := io.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
+	dbDir := qio.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
 	gc := gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
 			NoLowerCase:   true,
 		},
+		SkipDefaultTransaction: s.setting.GormConfig.SkipDefaultTransaction == 1,
 	}
 	if s.setting.GormConfig.OpenLog == 1 {
 		gc.Logger = logger.Default.LogMode(logger.Info)
 	}
-	gc.SkipDefaultTransaction = s.setting.GormConfig.SkipDefaultTransaction == 1
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("%s/%s.db", dbDir, s.setting.GormConfig.DBName)), &gc)
-	if err != nil {
-		return nil
+	var db *gorm.DB
+	var err error
+	switch s.setting.GormConfig.DBType {
+	case "sqlite":
+		db, err = gorm.Open(sqlite.Open(fmt.Sprintf("%s/%s", dbDir, s.setting.GormConfig.DBParam)), &gc)
+		if err != nil {
+			return nil
+		}
+		if s.setting.GormConfig.JournalMode != "" {
+			db.Exec(fmt.Sprintf("PRAGMA journal_mode = %s;", s.setting.GormConfig.JournalMode))
+		}
+	case "sqlserver":
+		sp := strings.Split(s.setting.GormConfig.DBParam, ",")
+		dsn := fmt.Sprintf("sqlserver://%s:%s@%s?database=%s", sp[2], sp[3], sp[0], sp[1])
+		db, err = gorm.Open(sqlserver.Open(dsn), &gc)
+		if err != nil {
+			return nil
+		}
 	}
-	if s.setting.GormConfig.JournalMode != "" {
-		db.Exec(fmt.Sprintf("PRAGMA journal_mode = %s;", s.setting.GormConfig.JournalMode))
+	if db == nil {
+		return nil
 	}
 	s.db = db
 	// 初始化Id分配器
 	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1001, db)
 	// 创建Gin服务
+	if s.setting.WebConfig.GinRelease == 1 {
+		gin.SetMode(gin.ReleaseMode)
+		gin.DefaultWriter = ioutil.Discard
+	}
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
 	s.initApiRouter()

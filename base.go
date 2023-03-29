@@ -28,7 +28,6 @@ func (bll *BaseBll) set(sub IBll, qfGroup, subGroup string) {
 	bll.name = strings.ToLower(t.Name())
 	bll.qfGroup = strings.ToLower(qfGroup)
 	bll.subGroup = strings.ToLower(subGroup)
-	//bll.config = config
 }
 
 func (bll *BaseBll) key() string {
@@ -166,10 +165,28 @@ func (b *BaseDal) DB() *gorm.DB {
 }
 
 //
-// Save
-//  @Description: 保存内容
+// Create
+//  @Description: 新增内容
 //  @param content 包含了内容结构的实体对象
-//  @return error 异常
+//  @return IError 异常
+//
+func (b *BaseDal) Create(content interface{}) IError {
+	// 提交
+	result := b.DB().Create(content)
+	if result.RowsAffected > 0 {
+		return nil
+	}
+	if result.Error != nil {
+		return Error(ErrorCodeSaveFailure, result.Error.Error())
+	}
+	return nil
+}
+
+//
+// Save
+//  @Description: 保存内容（存在更新、不存在则新增）
+//  @param content 包含了内容结构的实体对象
+//  @return IError 异常
 //
 func (b *BaseDal) Save(content interface{}) IError {
 	// 提交
@@ -187,7 +204,7 @@ func (b *BaseDal) Save(content interface{}) IError {
 // Delete
 //  @Description: 删除内容
 //  @param id 唯一号
-//  @return error 异常
+//  @return IError 异常
 //
 func (b *BaseDal) Delete(id uint64) IError {
 	result := b.DB().Delete(&BaseModel{Id: id})
@@ -205,7 +222,7 @@ func (b *BaseDal) Delete(id uint64) IError {
 //  @Description: 获取单条数据
 //  @param id 唯一号
 //  @param dest 目标实体结构
-//  @return error 返回异常
+//  @return IError 返回异常
 //
 func (b *BaseDal) GetModel(id uint64, dest interface{}) IError {
 	result := b.DB().Where("id = ?", id).Find(dest)
@@ -222,7 +239,7 @@ func (b *BaseDal) GetModel(id uint64, dest interface{}) IError {
 //  @param startId 起始编号
 //  @param maxCount 最大获取数
 //  @param dest 目标列表
-//  @return error 返回异常
+//  @return IError 返回异常
 //
 func (b *BaseDal) GetList(startId uint64, maxCount uint, dest interface{}) IError {
 	result := b.DB().Limit(int(maxCount)).Offset(int(startId)).Find(dest)
@@ -238,7 +255,7 @@ func (b *BaseDal) GetList(startId uint64, maxCount uint, dest interface{}) IErro
 //  @param dest 结构体/列表
 //  @param query 条件
 //  @param args 条件参数
-//  @return error
+//  @return IError
 //
 func (b *BaseDal) GetConditions(dest interface{}, query interface{}, args ...interface{}) IError {
 	result := b.DB().Where(query, args...).Find(dest)

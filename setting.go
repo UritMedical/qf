@@ -21,6 +21,7 @@ type userConfig struct {
 }
 
 type webConfig struct {
+	GinRelease byte       `comment:"是否启动gin的release版本 0否 1是"`
 	DefGroup   string     `comment:"路由的默认所在组"`
 	Static     [][]string `toml:",multiline" comment:"静态资源配置，格式为：相对路径,root路径"`
 	StaticFile [][]string `toml:",multiline" comment:"静态资源配置，格式为：相对路径,文件路径"`
@@ -30,7 +31,8 @@ type webConfig struct {
 }
 
 type gormConfig struct {
-	DBName                 string `comment:"默认数据库名称"`
+	DBType                 string `comment:"数据库类型：sqlite, sqlserver\n 参数\n sqlite：xxx.db\n sqlserver：ip,db,user,pwd"`
+	DBParam                string
 	OpenLog                byte   `comment:"是否输出脚本日志 0否 1是"`
 	SkipDefaultTransaction byte   `comment:"跳过默认事务 0否 1是"`
 	JournalMode            string `comment:"Journal模式\n DELETE：在事务提交后，删除journal文件\n MEMORY：在内存中生成journal文件，不写入磁盘\n WAL：使用WAL（Write-Ahead Logging）模式，将journal记录写入WAL文件中\n OFF：完全关闭journal模式，不记录任何日志消息"`
@@ -53,26 +55,28 @@ func (s *setting) Load(path string) {
 		},
 	}
 	s.WebConfig = webConfig{
-		DefGroup: "api",
+		GinRelease: 0,
+		DefGroup:   "api",
 		Static: [][]string{
 			{"/assets", "./res/assets"},
 			{"/js", "./res/js"},
 			{"/img", "./res/img"},
-			{"/child", "./child"},
-			{"/app1", "./child/app1"},
-			{"/app2", "./child/app2"},
+			{"/user", "./user"},
 		},
 		StaticFile: [][]string{
 			{"/", "./res/index.html"},
 		},
-		Any: []string{"index.html/*any"},
+		Any: []string{
+			"index.html/*any",
+		},
 		Mime: [][]string{
 			{".js", "text/javascript"},
 		},
 		ShortRoute: [][]string{},
 	}
 	s.GormConfig = gormConfig{
-		DBName:                 "data",
+		DBType:                 "sqlite",
+		DBParam:                "data.db",
 		OpenLog:                0,
 		SkipDefaultTransaction: 1,
 		JournalMode:            "OFF",
