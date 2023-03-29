@@ -1,4 +1,4 @@
-package io
+package qio
 
 import (
 	"errors"

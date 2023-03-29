@@ -61,14 +61,14 @@ func (s *setting) Load(path string) {
 			{"/assets", "./res/assets"},
 			{"/js", "./res/js"},
 			{"/img", "./res/img"},
-			{"/child", "./child"},
-			{"/app1", "./child/app1"},
-			{"/app2", "./child/app2"},
+			{"/user", "./user"},
 		},
 		StaticFile: [][]string{
 			{"/", "./res/index.html"},
 		},
-		Any: []string{"index.html/*any"},
+		Any: []string{
+			"index.html/*any",
+		},
 		Mime: [][]string{
 			{".js", "text/javascript"},
 		},

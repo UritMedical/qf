@@ -24,7 +24,7 @@ func Parse(valueStr, formatStr string) (time.Time, error) {
 
 //
 // ToNumber
-//  @Description: 将时间字符串转为数值形式
+//  @Description: 将时间字符串转为数值形式，如20230101
 //  @return uint64
 //  @return error
 //

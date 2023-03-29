@@ -3,9 +3,9 @@ package qf
 import (
 	"fmt"
 	"github.com/UritMedical/qf/util"
-	"github.com/UritMedical/qf/util/io"
 	"github.com/UritMedical/qf/util/launcher"
 	"github.com/UritMedical/qf/util/qid"
+	"github.com/UritMedical/qf/util/qio"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/driver/sqlserver"
@@ -108,7 +108,7 @@ func newService() *Service {
 		s.tokenWhiteList[t] = 1
 	}
 	// 创建数据库
-	dbDir := io.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
+	dbDir := qio.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
 	gc := gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,

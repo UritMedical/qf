@@ -2,7 +2,7 @@ package launcher
 
 import (
 	"fmt"
-	"github.com/UritMedical/qf/util/io"
+	"github.com/UritMedical/qf/util/qio"
 	"github.com/kardianos/service"
 	"log"
 	"os"
@@ -42,7 +42,7 @@ func Run(start func(), stop func()) {
 		stop:  stop,
 	}
 	// 获取当前程序所在路径
-	p, err := io.GetCurrentDirectory()
+	p, err := qio.GetCurrentDirectory()
 	p = strings.Replace(p, "\\", "/", -1)
 	n1 := strings.Split(path.Dir(p), "/")
 	n2 := strings.TrimSuffix(path.Base(p), path.Ext(p))
@@ -68,7 +68,7 @@ func Run(start func(), stop func()) {
 		st, se := serv.Status()
 		if st == service.StatusUnknown && se.Error() == "the service is not installed" {
 			// 如果有对应的服务部署文件
-			if io.PathExists(fmt.Sprintf("/lib/systemd/system/%s.service", serv.String())) {
+			if qio.PathExists(fmt.Sprintf("/lib/systemd/system/%s.service", serv.String())) {
 				err = serv.Install()
 				if err != nil {
 					log.Println(fmt.Sprintf("[%s] Installed Error, %s", serv.String(), err))

@@ -3,7 +3,7 @@ package qconfig
 import (
 	"bytes"
 	"errors"
-	"github.com/UritMedical/qf/util/io"
+	"github.com/UritMedical/qf/util/qio"
 	"github.com/pelletier/go-toml/v2"
 	"reflect"
 	"strings"
@@ -24,7 +24,7 @@ func LoadFromToml(path string, config interface{}) error {
 		return errors.New("the obj 's kind must be ptr")
 	}
 	// 从文件读取内容
-	data, _ := io.ReadAllBytes(path)
+	data, _ := qio.ReadAllBytes(path)
 	// 反序列化
 	err := toml.Unmarshal(data, config)
 	if err != nil {
@@ -50,7 +50,7 @@ func SaveFromToml(path string, config interface{}) error {
 	if err != nil {
 		return err
 	}
-	return io.WriteAllBytes(path, buf, false)
+	return qio.WriteAllBytes(path, buf, false)
 }
 
 func marshal(setting interface{}) ([]byte, error) {
