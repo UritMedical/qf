@@ -17,7 +17,9 @@ import (
 //
 func NewIdAllocatorByDB(per uint, start uint, db *gorm.DB) IIdAllocator {
 	name := "QfId"
-	_ = db.Table(name).AutoMigrate(idAllocator{})
+	if db.Migrator().HasTable(name) == false {
+		_ = db.Table(name).AutoMigrate(idAllocator{})
+	}
 	return &byDB{
 		name:  name,
 		db:    db,

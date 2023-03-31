@@ -6,6 +6,7 @@ import (
 	"github.com/UritMedical/qf/util/qio"
 	"github.com/fatih/color"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -36,12 +37,10 @@ func Recover(after func(err string)) {
 			if strings.HasPrefix(line, "panic") {
 				errStr := ""
 				if i+3 < len(lines) {
-					sp := strings.Split(strings.Replace(lines[i+3], "\t", "", -1), "+")
-					errStr += fmt.Sprintf("   %-5s -> %s in %s\n", "curr", filepath.Base(lines[i+2]), sp[0])
+					errStr += formatStack(lines[i+2], lines[i+3])
 				}
 				if i+5 < len(lines) {
-					sp := strings.Split(strings.Replace(lines[i+5], "\t", "", -1), "+")
-					errStr += fmt.Sprintf("   %-5s -> %s in %s\n", "upper", filepath.Base(lines[i+4]), sp[0])
+					errStr += formatStack(lines[i+4], lines[i+5])
 				}
 				color.New(color.FgMagenta).PrintfFunc()("%s\n", errStr)
 			}
@@ -58,4 +57,14 @@ func Recover(after func(err string)) {
 			after(fmt.Sprintf("%s", r))
 		}
 	}
+}
+
+func formatStack(name string, row string) string {
+	sp := strings.Split(strings.Replace(row, "\t", "", -1), "+")
+	funcName := filepath.Base(name)
+	matches := regexp.MustCompile(`\((.*?)\)`).FindAllStringSubmatch(funcName, -1)
+	if matches != nil && len(matches) > 0 && len(matches[len(matches)-1]) > 0 {
+		funcName = strings.Replace(funcName, matches[len(matches)-1][0], "(...)", 1)
+	}
+	return fmt.Sprintf("   %-5s -> %s in %s\n", "curr", funcName, sp[0])
 }

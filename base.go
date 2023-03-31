@@ -150,9 +150,11 @@ func (b *BaseDal) init(db *gorm.DB, model interface{}) {
 	if model != nil {
 		b.tableName = buildTableName(model)
 		// 自动生成表
-		err := db.Table(b.tableName).AutoMigrate(model)
-		if err != nil {
-			panic(fmt.Sprintf("【Gorm】 AutoMigrate %s failed: %s", b.tableName, err.Error()))
+		if db.Migrator().HasTable(b.tableName) == false {
+			err := db.Table(b.tableName).AutoMigrate(model)
+			if err != nil {
+				panic(fmt.Sprintf("AutoMigrate %s failed: %s", b.tableName, err.Error()))
+			}
 		}
 	}
 }

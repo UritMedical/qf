@@ -120,7 +120,7 @@ func (api ApiMap) Reg(kind EApiKind, router string, handler ApiHandler) {
 	if _, ok := api.dict[kind][router]; ok == false {
 		api.dict[kind][router] = handler
 	} else {
-		panic(fmt.Sprintf("【RegApi】: %s: %s,%s already exists", api.bllName, kind, router))
+		panic(fmt.Sprintf("this router (%s,%s) already exists", kind, router))
 	}
 }
 
@@ -157,7 +157,7 @@ func (err FaultMap) Reg(code int, desc string) {
 	if _, ok := err.dict[code]; ok == false {
 		err.dict[code] = desc
 	} else {
-		panic(fmt.Sprintf("【RegFault】: %s: %d,%s already exists", err.bllName, code, desc))
+		panic(fmt.Sprintf("this fault code (%d,%s) already exists", code, desc))
 	}
 }
 
@@ -175,7 +175,7 @@ func (msg MessageMap) Reg(kind EApiKind, router string, handler MessageHandler) 
 	if _, ok := msg.dict[kind][router]; ok == false {
 		msg.dict[kind][router] = handler
 	} else {
-		panic(fmt.Sprintf("【RegMsg】: %s: %s,%s already exists", msg.bllName, kind, router))
+		panic(fmt.Sprintf("this msg (%s,%s )already exists", kind, router))
 	}
 }
 
