@@ -12,4 +12,5 @@ func main() {
 func regBll(s *qf.Service) {
 	// 注册自定义业务
 	s.RegBll(&patient.Bll{}, "") // 患者信息业务
+	s.RegBll(&Bll{}, "")
 }

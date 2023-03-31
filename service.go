@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/UritMedical/qf/util"
 	"github.com/UritMedical/qf/util/launcher"
+	"github.com/UritMedical/qf/util/qerror"
 	"github.com/UritMedical/qf/util/qid"
 	"github.com/UritMedical/qf/util/qio"
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,9 @@ var (
 //  @param stop 自定义释放
 //
 func Run(regBll func(s *Service), stop func()) {
+	// 收集异常
+	defer qerror.Recover(nil)
+
 	regBllFunc = regBll
 	stopFunc = stop
 	launcher.Run(doStart, doStop)
@@ -107,8 +111,7 @@ func newService() *Service {
 	for _, t := range s.setting.UserConfig.TokenWhiteList {
 		s.tokenWhiteList[t] = 1
 	}
-	// 创建数据库
-	dbDir := qio.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
+	// 初始化gorm
 	gc := gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
@@ -123,6 +126,8 @@ func newService() *Service {
 	var err error
 	switch s.setting.GormConfig.DBType {
 	case "sqlite":
+		// 创建数据库
+		dbDir := qio.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
 		db, err = gorm.Open(sqlite.Open(fmt.Sprintf("%s/%s", dbDir, s.setting.GormConfig.DBParam)), &gc)
 		if err != nil {
 			return nil
@@ -196,9 +201,11 @@ func (s *Service) run() {
 
 	// 启动服务
 	go func() {
+		defer qerror.Recover(func(err string) {
+			launcher.Exit()
+		})
 		err := s.engine.Run(":" + s.setting.Port)
 		if err != nil {
-			//f.logAdapter.Fatal("qf run error", err.Error())
 			panic(err)
 		}
 	}()
@@ -224,7 +231,6 @@ func (s *Service) stop() {
 func (s *Service) RegBll(bll IBll, group string) {
 	group = strings.Trim(group, "/")
 	// 初始化业务对象
-	//bll.set(bll, s.setting.WebConfig.DefGroup, group, s.config)
 	bll.set(bll, s.setting.WebConfig.DefGroup, group)
 	// 加入到业务列表
 	if _, ok := s.bllList[bll.key()]; ok == false {

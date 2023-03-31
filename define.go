@@ -133,17 +133,17 @@ func (api ApiMap) Reg(kind EApiKind, router string, handler ApiHandler) {
 func (d DalMap) Reg(iDal IDal, model interface{}) {
 	t := reflect.TypeOf(iDal)
 	if t.Kind() != reflect.Ptr {
-		panic(fmt.Sprintf("【RegDal】: %s: %s/%s this model must be of type pointer", d.bllName, t.PkgPath(), t.Name()))
+		panic(fmt.Sprintf("this dal (%s) must be of type pointer", t.String()))
 	}
 	t = t.Elem()
 	v := reflect.ValueOf(iDal)
 	if v.IsNil() {
-		panic(fmt.Sprintf("【RegDal】: %s: %s/%s has not been initialized", d.bllName, t.PkgPath(), t.Name()))
+		panic(fmt.Sprintf("this dal (%s) has not been initialized", t.String()))
 	}
 	if _, ok := d.dict[iDal]; ok == false {
 		d.dict[iDal] = model
 	} else {
-		panic(fmt.Sprintf("【RegDal】: %s: %s/%s already exists", d.bllName, t.PkgPath(), t.Name()))
+		panic(fmt.Sprintf("this dal (%s) already exists", t.String()))
 	}
 }
 

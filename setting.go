@@ -27,7 +27,7 @@ type webConfig struct {
 	StaticFile [][]string `toml:",multiline" comment:"静态资源配置，格式为：相对路径,文件路径"`
 	Any        []string   `toml:",multiline" comment:"特殊路由注册"`
 	Mime       [][]string `toml:",multiline" comment:"MIME文件扩展名配置，格式为：文件后缀名,类型"`
-	ShortRoute [][]string `toml:",multiline" comment:"短路由配置，格式为：短路由,实际路由（如：/item /dist/#/setting/item）"`
+	ShortRoute [][]string `toml:",multiline" comment:"短路由配置，格式为：短路由,实际路由（如：['/item', '/dist/#/setting/item']）"`
 }
 
 type gormConfig struct {
