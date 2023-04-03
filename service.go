@@ -2,11 +2,11 @@ package qf
 
 import (
 	"fmt"
-	"github.com/UritMedical/qf/util"
 	"github.com/UritMedical/qf/util/launcher"
 	"github.com/UritMedical/qf/util/qerror"
 	"github.com/UritMedical/qf/util/qid"
 	"github.com/UritMedical/qf/util/qio"
+	"github.com/UritMedical/qf/util/token"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/driver/sqlserver"
@@ -27,21 +27,6 @@ var (
 	regBllFunc func(s *Service)
 	stopFunc   func()
 )
-
-//
-// Run
-//  @Description: 启动
-//  @param regBll 注册业务（必须）
-//  @param stop 自定义释放
-//
-func Run(regBll func(s *Service), stop func()) {
-	// 收集异常
-	defer qerror.Recover(nil)
-
-	regBllFunc = regBll
-	stopFunc = stop
-	launcher.Run(doStart, doStop)
-}
 
 func doStart() {
 	// 创建服务
@@ -418,12 +403,12 @@ func (s *Service) returnOk(ctx *gin.Context, data interface{}) {
 	})
 }
 
-func (s *Service) verify(token string, url string) (LoginUser, IError) {
-	if s.userBll == nil || token == s.setting.UserConfig.TokenVerify {
+func (s *Service) verify(tokenStr string, url string) (LoginUser, IError) {
+	if s.userBll == nil || tokenStr == s.setting.UserConfig.TokenVerify {
 		return LoginUser{}, nil
 	}
 	// 解析token
-	claims, err := util.ParseToken(token)
+	claims, err := token.ParseToken(tokenStr)
 	if err != nil {
 		return LoginUser{}, Error(ErrorCodeTokenInvalid, err.Error())
 	}
@@ -432,8 +417,8 @@ func (s *Service) verify(token string, url string) (LoginUser, IError) {
 		return LoginUser{}, Error(ErrorCodeTokenExpires, err.Error())
 	}
 	// 如果缓存存在，则通过缓存
-	if _, ok := s.loginUser[token]; ok {
-		return s.loginUser[token], nil
+	if _, ok := s.loginUser[tokenStr]; ok {
+		return s.loginUser[tokenStr], nil
 	}
 	// 获取用户信息
 	user, err := s.userBll.getUserModel(&Context{loginUser: LoginUser{UserId: claims.Id}})
@@ -464,8 +449,8 @@ func (s *Service) verify(token string, url string) (LoginUser, IError) {
 		return LoginUser{}, Error(ErrorCodeTokenInvalid, err.Error())
 	}
 	login.Departments = dps
-	if token != "" {
-		s.loginUser[token] = login
+	if tokenStr != "" {
+		s.loginUser[tokenStr] = login
 	}
 
 	// 获取api

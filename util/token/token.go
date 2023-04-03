@@ -1,4 +1,4 @@
-package util
+package token
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"time"
 )
@@ -64,6 +65,23 @@ func InitJwtSecret() {
 	} else {
 		JwtSecret = []byte(jwt)
 	}
+}
+
+// RandomString
+//  @Description: 生成随机字符串
+//  @param length
+//  @return string
+//
+func RandomString(length int) string {
+	rand.Seed(time.Now().UnixNano())
+
+	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	result := make([]rune, length)
+	for i := range result {
+		result[i] = letters[rand.Intn(len(letters))]
+	}
+
+	return string(result)
 }
 
 //

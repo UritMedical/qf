@@ -1,9 +1,5 @@
 package qf
 
-import (
-	"github.com/UritMedical/qf/util"
-)
-
 //
 // departmentDal
 //  @Description:
@@ -97,8 +93,8 @@ func (d dptUserDal) SetDptUsers(departId uint64, userIds []uint64) IError {
 	if err != nil {
 		return err
 	}
-	newUsers := util.DiffIntSet(userIds, oldUserIds)
-	removeUsers := util.DiffIntSet(oldUserIds, userIds)
+	newUsers := diffIntSet(userIds, oldUserIds)
+	removeUsers := diffIntSet(oldUserIds, userIds)
 
 	tx := d.DB().Begin()
 	//新增关系
@@ -383,8 +379,8 @@ func (u *userRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) IError {
 	if err != nil {
 		return err
 	}
-	newUsers := util.DiffIntSet(userIds, oldUsers)
-	removeUsers := util.DiffIntSet(oldUsers, userIds)
+	newUsers := diffIntSet(userIds, oldUsers)
+	removeUsers := diffIntSet(oldUsers, userIds)
 
 	tx := u.DB().Begin()
 	//新增关系
