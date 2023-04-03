@@ -488,7 +488,8 @@ func (s *Service) getCors() gin.HandlerFunc {
 }
 
 func (s *Service) initApiRouter() {
-	s.engine.GET("/apis", func(ctx *gin.Context) {
+	router := s.engine.Group(s.setting.WebConfig.DefGroup)
+	router.GET("/qf/allApis", func(ctx *gin.Context) {
 		apis := map[string][]string{}
 		for k, v := range s.allApis {
 			name := filepath.Base(k)
