@@ -11,9 +11,10 @@ import (
 )
 
 type Reflect struct {
-	t  reflect.Type
-	v  reflect.Value
-	kv map[string]interface{}
+	t   reflect.Type
+	v   reflect.Value
+	obj interface{}
+	kv  map[string]interface{}
 }
 
 //
@@ -24,8 +25,9 @@ type Reflect struct {
 //
 func New(object interface{}) *Reflect {
 	r := &Reflect{
-		t: reflect.TypeOf(object),
-		v: reflect.ValueOf(object),
+		t:   reflect.TypeOf(object),
+		v:   reflect.ValueOf(object),
+		obj: object,
 	}
 	// 通过json反转为字典
 	r.kv = make(map[string]interface{})
@@ -137,6 +139,12 @@ func (r *Reflect) Set(values ...interface{}) error {
 	if r.IsPtr() == false {
 		return errors.New("the obj 's kind must be ptr")
 	}
+	// 先通过json反转一次
+	for _, v := range values {
+		js, _ := json.Marshal(v)
+		_ = json.Unmarshal(js, r.obj)
+	}
+
 	// 如果是结构体
 	kind := r.t.Elem().Kind()
 	if kind == reflect.Struct {
@@ -210,10 +218,15 @@ func (r *Reflect) setSlice(v reflect.Value, sub reflect.Value) error {
 func (r *Reflect) set(v reflect.Value, subT reflect.Type, subV reflect.Value) error {
 	if subT.Kind() == reflect.Map {
 		for _, m := range subV.MapKeys() {
-			if m.String() == "Kind" {
+			if m.String() == "Time" {
 				fmt.Println("")
 			}
 			f := v.FieldByName(m.String())
+			if f.IsValid() {
+				if f.Kind() == reflect.Ptr && !f.IsNil() {
+					f = f.Elem()
+				}
+			}
 			if f.CanSet() {
 				r.inField(f, subV.MapIndex(m).Interface())
 			}
@@ -225,6 +238,11 @@ func (r *Reflect) set(v reflect.Value, subT reflect.Type, subV reflect.Value) er
 		}
 		for i := 0; i < subV.NumField(); i++ {
 			f := v.FieldByName(subT.Field(i).Name)
+			if f.IsValid() {
+				if f.Kind() == reflect.Ptr && !f.IsNil() {
+					f = f.Elem()
+				}
+			}
 			if f.CanSet() {
 				r.inField(f, subV.Field(i).Interface())
 			}
@@ -235,10 +253,14 @@ func (r *Reflect) set(v reflect.Value, subT reflect.Type, subV reflect.Value) er
 
 func (r *Reflect) inField(field reflect.Value, value interface{}) {
 	tp := strings.ToLower(field.Type().Kind().String())
-	vv, err := r.convert(tp, value)
+	vv, err := r.convert(field.Type(), value)
 	if err == nil {
 		// 如果是自定义类型包原生类型，则特殊处理
-		if tp != field.Type().String() {
+		if tp == "ptr" {
+			ptr := reflect.New(field.Type().Elem())
+			ptr.Elem().Set(reflect.ValueOf(vv))
+			field.Set(ptr)
+		} else if tp != field.Type().String() {
 			switch tp {
 			case "uint", "uint8", "uint32", "uint64":
 				u, e := strconv.ParseUint(fmt.Sprintf("%v", vv), 10, 64)
@@ -273,7 +295,11 @@ func (r *Reflect) inField(field reflect.Value, value interface{}) {
 }
 
 // 类型转换
-func (r *Reflect) convert(typeName string, value interface{}) (interface{}, error) {
+func (r *Reflect) convert(tp reflect.Type, value interface{}) (interface{}, error) {
+	typeName := strings.ToLower(tp.Kind().String())
+	if tp.Kind() == reflect.Ptr {
+		typeName = strings.ToLower(tp.Elem().Kind().String())
+	}
 	str := fmt.Sprintf("%v", value)
 	switch typeName {
 	case "string":

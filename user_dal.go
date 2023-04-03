@@ -1,9 +1,5 @@
 package qf
 
-import (
-	"github.com/UritMedical/qf/util"
-)
-
 //
 // departmentDal
 //  @Description:
@@ -99,7 +95,7 @@ func (d dptUserDal) AddUsers(departId uint64, userIds []uint64) IError {
 	}
 
 	//过滤出部门中已经存在的账号
-	newUsers := util.DiffIntSet(userIds, oldUserIds)
+	newUsers := diffIntSet(userIds, oldUserIds)
 
 	list := make([]DepartUser, 0)
 	for _, id := range newUsers {
@@ -370,8 +366,8 @@ func (u *userRoleDal) SetRoleUsers(roleId uint64, userIds []uint64) IError {
 	if err != nil {
 		return err
 	}
-	newUsers := util.DiffIntSet(userIds, oldUsers)
-	removeUsers := util.DiffIntSet(oldUsers, userIds)
+	newUsers := diffIntSet(userIds, oldUsers)
+	removeUsers := diffIntSet(oldUsers, userIds)
 
 	tx := u.DB().Begin()
 	//新增关系
