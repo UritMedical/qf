@@ -39,7 +39,7 @@ func ToMaps(list interface{}) []map[string]interface{} {
 
 //
 // SetModel
-//  @Description: 修改结构体内的方法
+//  @Description: 修改结构体内的字段值
 //  @param objectPtr
 //  @param value
 //
@@ -60,7 +60,47 @@ func SetModel(objectPtr interface{}, value map[string]interface{}) error {
 			return e
 		}
 	}
-	// 修改FullInfo值
+	// 修改FullInfo
+	return setFullInfo(ref, value)
+}
+
+//
+// SetList
+//  @Description: 修改列表
+//  @param objectPtr
+//  @param values
+//  @return error
+//
+func SetList(objectPtr interface{}, values []map[string]interface{}) error {
+	if objectPtr == nil {
+		return errors.New("the objectPtr cannot be empty")
+	}
+	ref := qreflect.New(objectPtr)
+	// 必须为指针
+	if ref.IsSlice() == false {
+		return errors.New("the objectPtr must be slice")
+	}
+
+	// 修改外部值
+	if values != nil {
+		e := ref.Set(values)
+		if e != nil {
+			return e
+		}
+	}
+	// 修改FullInfo
+	objs := ref.InterfaceArray()
+	for i, obj := range objs {
+		e := setFullInfo(qreflect.New(obj), values[i])
+		if e != nil {
+			return e
+		}
+	}
+	ref.Clear()
+	return ref.Set(objs)
+}
+
+func setFullInfo(ref *qreflect.Reflect, value map[string]interface{}) error {
 	all := ref.ToMap()
 	if info, ok := all["FullInfo"]; ok {
 		str := info.(string)

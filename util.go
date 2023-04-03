@@ -1,7 +1,6 @@
 package qf
 
 import (
-	"errors"
 	"github.com/UritMedical/qf/util"
 	"github.com/UritMedical/qf/util/launcher"
 	"github.com/UritMedical/qf/util/qerror"
@@ -31,9 +30,6 @@ func Run(regBll func(s *Service), stop func()) {
 //  @return error
 //
 func Bind(targetPtr interface{}, source interface{}) error {
-	r := qreflect.New(targetPtr)
-	if r.IsPtr() == false {
-		return errors.New("target must be pointer")
-	}
-	return r.Set(util.ToMap(source))
+	r := qreflect.New(source)
+	return util.SetModel(targetPtr, r.ToMapExpandAll())
 }

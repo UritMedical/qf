@@ -3,6 +3,7 @@ package qf
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/UritMedical/qf/util"
 	"github.com/UritMedical/qf/util/qid"
 	"github.com/UritMedical/qf/util/qreflect"
 	"mime/multipart"
@@ -85,20 +86,6 @@ func (ctx *Context) IsNull() bool {
 //  @return error
 //
 func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) IError {
-	if objectPtr == nil {
-		return Error(ErrorCodeParamInvalid, "the object cannot be empty")
-	}
-
-	// 创建反射
-	ref := qreflect.New(objectPtr)
-	// 必须为指针
-	if ref.IsPtr() == false {
-		return Error(ErrorCodeParamInvalid, "the object must be pointer")
-	}
-
-	// 先用json反转一次
-	_ = json.Unmarshal([]byte(ctx.inputSource), objectPtr)
-
 	// 追加附加内容到字典
 	for _, value := range attachValues {
 		r := qreflect.New(value)
@@ -108,21 +95,26 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) IEr
 			}
 		}
 	}
-
-	if ref.IsMap() == false {
-		// 然后根据类型，将字典写入到对象或列表中
-		cnt := make([]BaseModel, 0)
-		for i := 0; i < len(ctx.inputValue); i++ {
-			c := ctx.build(ctx.inputValue[i], ref.ToMap())
-			cnt = append(cnt, c)
-		}
-		// 重新赋值
-		err := ref.Set(ctx.inputValue, cnt)
+	for i := 0; i < len(ctx.inputValue); i++ {
+		ctx.inputValue[i]["LastTime"] = ctx.time
+	}
+	// 赋值
+	ref := qreflect.New(objectPtr)
+	if ref.IsSlice() {
+		// 设置切片
+		err := util.SetList(objectPtr, ctx.inputValue)
 		if err != nil {
 			return Error(ErrorCodeParamInvalid, err.Error())
 		}
+	} else {
+		// 设置结构体值
+		for i := 0; i < len(ctx.inputValue); i++ {
+			err := util.SetModel(objectPtr, ctx.inputValue[i])
+			if err != nil {
+				return Error(ErrorCodeParamInvalid, err.Error())
+			}
+		}
 	}
-
 	return nil
 }
 
