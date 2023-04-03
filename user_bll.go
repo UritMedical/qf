@@ -117,13 +117,6 @@ func (b *userBll) initDefUser() {
 			BaseModel: BaseModel{Id: adminId, FullInfo: "{\"Name\":\"Admin\"}"},
 			LoginId:   "admin",
 			Password:  util.ConvertToMD5([]byte("admin123"))})
-
-		//创建默认角色
-		_ = b.roleDal.Save(&Role{BaseModel: BaseModel{Id: adminId, FullInfo: "{\"Name\":\"administrator\"}"}, Name: "administrator"})
-
-		//分配角色
-		_ = b.userRoleDal.SetRoleUsers(adminId, []uint64{adminId}) //admin 分配 administrator角色
-
 	}
 }
 
@@ -217,6 +210,9 @@ func (b *userBll) getUserModel(ctx *Context) (interface{}, IError) {
 	roles, _ := b.getRolesByUserId(userId)
 
 	err := b.userDal.GetModel(userId, &user)
+	if user.Id == 0 {
+		return nil, Error(ErrorCodeRecordNotFound, "not found")
+	}
 	ret := map[string]interface{}{
 		"Info":        util.ToMap(user),
 		"Roles":       util.ToMaps(roles),
