@@ -184,7 +184,7 @@ type permissionApiDal struct {
 //  @param apiKeys
 //  @return error
 //
-func (r permissionApiDal) SetPermissionApis(permissionId uint64, apiKeys []string) IError {
+func (r permissionApiDal) SetPermissionApis(permissionId uint64, apiList []ApiInfo) IError {
 	tx := r.DB().Begin()
 	//先删除此权限组所有的API
 	if err := tx.Where("PermissionId = ?", permissionId).Delete(&PermissionApi{}).Error; err != nil {
@@ -193,10 +193,11 @@ func (r permissionApiDal) SetPermissionApis(permissionId uint64, apiKeys []strin
 	}
 
 	apis := make([]PermissionApi, 0)
-	for _, key := range apiKeys {
+	for _, api := range apiList {
 		apis = append(apis, PermissionApi{
 			PermissionId: permissionId,
-			ApiId:        key,
+			Group:        api.Group,
+			ApiId:        api.ApiId,
 		})
 	}
 
@@ -218,9 +219,9 @@ func (r permissionApiDal) SetPermissionApis(permissionId uint64, apiKeys []strin
 //  @return []string
 //  @return error
 //
-func (r permissionApiDal) GetApisByPermissionId(permissionId uint64) ([]string, IError) {
-	apis := make([]string, 0)
-	err := r.DB().Where("PermissionId = ?", permissionId).Select("ApiId").Find(&apis).Error
+func (r permissionApiDal) GetApisByPermissionId(permissionId uint64) ([]PermissionApi, IError) {
+	apis := make([]PermissionApi, 0)
+	err := r.DB().Where("PermissionId = ?", permissionId).Find(&apis).Error
 	if err != nil {
 		return nil, Error(ErrorCodeRecordNotFound, err.Error())
 	}
@@ -332,13 +333,13 @@ func (u *userDal) CheckOldPassword(id uint64, password string) bool {
 
 //
 // GetAllUsers
-//  @Description: 获取所有用
+//  @Description: 获取所有用，不返回admin账号
 //  @return []uUser
 //  @return error
 //
 func (u *userDal) GetAllUsers() ([]User, IError) {
 	list := make([]User, 0)
-	err := u.DB().Where("Id > 0").Order("Id ASC").Find(&list).Error
+	err := u.DB().Where("Id > 2").Order("Id ASC").Find(&list).Error
 	if err != nil {
 		return nil, Error(ErrorCodeRecordNotFound, err.Error())
 	}

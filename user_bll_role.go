@@ -24,8 +24,8 @@ func (b *userBll) regRoleApi(api ApiMap) {
 	api.Reg(EApiKindGetList, "permissions", b.getPermissions) //获取权限组
 
 	//权限组-API
-	api.Reg(EApiKindSave, "permission/apis", b.setPermissionApi)
-	api.Reg(EApiKindGetList, "permission/apis", b.getPermissionApi)
+	api.Reg(EApiKindSave, "permission/apis", b.setPermissionApi)    //设置权限所有的
+	api.Reg(EApiKindGetList, "permission/apis", b.getPermissionApi) //获取权限拥有的API
 }
 
 //
@@ -195,12 +195,12 @@ func (b *userBll) getPermissions(_ *Context) (interface{}, IError) {
 func (b *userBll) setPermissionApi(ctx *Context) (interface{}, IError) {
 	params := struct {
 		PermissionId uint64
-		ApiIds       []string
+		Apis         []ApiInfo
 	}{}
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
-	return nil, b.permissionApiDal.SetPermissionApis(params.PermissionId, params.ApiIds)
+	return nil, b.permissionApiDal.SetPermissionApis(params.PermissionId, params.Apis)
 }
 
 //
@@ -232,13 +232,13 @@ func (b *userBll) getUserAllApis(roleIds ...uint64) map[string]byte {
 
 		// 再获取权限包含的所有Api
 		for _, permission := range permissions {
-			apiIds, err := b.permissionApiDal.GetApisByPermissionId(permission.Id)
+			list, err := b.permissionApiDal.GetApisByPermissionId(permission.Id)
 			if err != nil {
 				continue
 			}
-			for _, apiId := range apiIds {
-				if _, ok := apis[apiId]; !ok {
-					apis[apiId] = 1
+			for _, v := range list {
+				if _, ok := apis[v.ApiId]; !ok {
+					apis[v.ApiId] = 1
 				}
 			}
 		}
