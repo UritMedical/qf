@@ -27,7 +27,7 @@ func (b *userBll) regDptApi(api ApiMap) {
 	api.Reg(EApiKindGetModel, "dpt/tree", b.getDptTree) //获取部门组织树
 
 	//部门-用户
-	api.Reg(EApiKindSave, "dpt/users", b.addDptUsers)    //批量添加用户
+	api.Reg(EApiKindSave, "dpt/users", b.setDptUsers)    //批量添加用户
 	api.Reg(EApiKindDelete, "dpt/user", b.deleteDptUser) //从部门中删除单个用户
 	api.Reg(EApiKindGetList, "dpt/users", b.getDptUsers) //获取指定部门的所有用户
 
@@ -108,13 +108,13 @@ func (b *userBll) buildTree() []*DepartNode {
 }
 
 //
-// addDptUsers
+// setDptUsers
 //  @Description: 向指定部门批量添加用户
 //  @param ctx
 //  @return interface{}
 //  @return error
 //
-func (b *userBll) addDptUsers(ctx *Context) (interface{}, IError) {
+func (b *userBll) setDptUsers(ctx *Context) (interface{}, IError) {
 	params := struct {
 		DepartId uint64
 		UserIds  []uint64
@@ -122,7 +122,7 @@ func (b *userBll) addDptUsers(ctx *Context) (interface{}, IError) {
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
-	return nil, b.dptUserDal.AddUsers(params.DepartId, params.UserIds)
+	return nil, b.dptUserDal.SetDptUsers(params.DepartId, params.UserIds)
 }
 
 //

@@ -82,29 +82,42 @@ type dptUserDal struct {
 }
 
 //
-// AddUsers
+// SetDptUsers
 //  @Description: 向指定部门添加用户
 //  @param departId
 //  @param userIds
 //  @return error
 //
-func (d dptUserDal) AddUsers(departId uint64, userIds []uint64) IError {
+func (d dptUserDal) SetDptUsers(departId uint64, userIds []uint64) IError {
 	oldUserIds, err := d.GetUsersByDptId(departId)
 	if err != nil {
 		return err
 	}
-
-	//过滤出部门中已经存在的账号
 	newUsers := diffIntSet(userIds, oldUserIds)
+	removeUsers := diffIntSet(oldUserIds, userIds)
 
-	list := make([]DepartUser, 0)
-	for _, id := range newUsers {
-		list = append(list, DepartUser{
-			DepartId: departId,
-			UserId:   id,
-		})
+	tx := d.DB().Begin()
+	//新增关系
+	if len(newUsers) > 0 {
+		addList := make([]DepartUser, 0)
+		for _, id := range newUsers {
+			addList = append(addList, DepartUser{
+				DepartId: departId,
+				UserId:   id,
+			})
+		}
+		if err := tx.Create(&addList).Error; err != nil {
+			tx.Rollback()
+			return Error(ErrorCodeSaveFailure, err.Error())
+		}
 	}
-	e := d.DB().Create(list).Error
+
+	//删除关系
+	if err := tx.Where("DepartId = ? and UserId IN (?)", departId, removeUsers).Delete(DepartUser{}).Error; err != nil {
+		tx.Rollback()
+		return Error(ErrorCodeDeleteFailure, err.Error())
+	}
+	e := tx.Commit().Error
 	if e != nil {
 		return Error(ErrorCodeSaveFailure, e.Error())
 	}
@@ -325,7 +338,7 @@ func (u *userDal) CheckOldPassword(id uint64, password string) bool {
 //
 func (u *userDal) GetAllUsers() ([]User, IError) {
 	list := make([]User, 0)
-	err := u.DB().Where("Id > 0").Order("Id DESC").Find(&list).Error
+	err := u.DB().Where("Id > 0").Order("Id ASC").Find(&list).Error
 	if err != nil {
 		return nil, Error(ErrorCodeRecordNotFound, err.Error())
 	}
