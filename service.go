@@ -297,6 +297,8 @@ func (s *Service) init() error {
 }
 
 func (s *Service) context(ctx *gin.Context) {
+	defer qerror.Recover(nil)
+
 	url := fmt.Sprintf("%s:%s", ctx.Request.Method, ctx.FullPath())
 	if handler, ok := s.apiHandler[url]; ok {
 		// 获取Token值
@@ -388,9 +390,11 @@ func (s *Service) context(ctx *gin.Context) {
 }
 
 func (s *Service) returnError(ctx *gin.Context, err IError) {
+	// 记录日志
+	qerror.Write(fmt.Sprintf("%s %d %s %s\n", ctx.Request.URL, err.Code(), s.errCodes[err.Code()], err.Error()))
+
 	msg := map[string]interface{}{}
 	msg["code"] = err.Code()
-	//msg["error"] = err.Error()
 	msg["error"] = s.errCodes[err.Code()]
 	ctx.JSON(http.StatusBadRequest, gin.H{
 		"status": http.StatusBadRequest,
