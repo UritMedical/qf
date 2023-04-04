@@ -404,8 +404,14 @@ const (
 	ErrorCodeParamInvalid     = iota + 100 // 传入参数无效
 	ErrorCodePermissionDenied              // 权限不足，拒绝访问
 	ErrorCodeRecordNotFound                // 未找到记录
+	ErrorCodeRecordExist                   // 记录已经存在
 	ErrorCodeSaveFailure                   // 保存失败
 	ErrorCodeDeleteFailure                 // 删除失败
+)
+
+const (
+	ErrorCodeOSError = 900 // 系统故障
+	ErrorCodeUnknown = 999 // 未知异常
 )
 
 type errorInfo struct {

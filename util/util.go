@@ -38,6 +38,18 @@ func ToMaps(list interface{}) []map[string]interface{} {
 }
 
 //
+// Bind
+//  @Description: 将source结构体中的数据绑定到target结构体中
+//  @param targetPtr vm结构体, 必须是指针
+//  @param source 原始结构体
+//  @return error
+//
+func Bind(targetPtr interface{}, source interface{}) error {
+	r := qreflect.New(source)
+	return SetModel(targetPtr, r.ToMapExpandAll())
+}
+
+//
 // SetModel
 //  @Description: 修改结构体内的字段值
 //  @param objectPtr

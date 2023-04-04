@@ -86,8 +86,11 @@ func newService() *Service {
 	s.errCodes[ErrorCodeParamInvalid] = "无效的参数"
 	s.errCodes[ErrorCodePermissionDenied] = "权限不足，拒绝访问"
 	s.errCodes[ErrorCodeRecordNotFound] = "未找到记录"
+	s.errCodes[ErrorCodeRecordExist] = "记录已经存在"
 	s.errCodes[ErrorCodeSaveFailure] = "保存失败"
 	s.errCodes[ErrorCodeDeleteFailure] = "删除失败"
+	s.errCodes[ErrorCodeOSError] = "系统故障"
+	s.errCodes[ErrorCodeUnknown] = "未知故障"
 	// 默认文件夹路径
 	s.folder = "."
 	// 加载配置
@@ -297,15 +300,15 @@ func (s *Service) context(ctx *gin.Context) {
 	url := fmt.Sprintf("%s:%s", ctx.Request.Method, ctx.FullPath())
 	if handler, ok := s.apiHandler[url]; ok {
 		// 获取Token值
-		token := ctx.GetHeader("Token")
+		tkn := ctx.GetHeader("Token")
 		bt := ctx.Query("Bi")
 		if bt != "" {
-			token = bt
+			tkn = bt
 		}
 
 		// 验证token和权限，返回登陆用户信息
 		// 白名单跳过
-		login, err := s.verify(token, url)
+		login, err := s.verify(tkn, url)
 		if err != nil && s.tokenWhiteList[url] == 0 {
 			s.returnError(ctx, err)
 			return
@@ -374,8 +377,8 @@ func (s *Service) context(ctx *gin.Context) {
 			}
 			// 截取登陆接口，获取登陆信息
 			if url == fmt.Sprintf("POST:/%s/login", s.setting.WebConfig.DefGroup) {
-				token = result.(map[string]interface{})["Token"].(string)
-				_, _ = s.verify(token, "")
+				tkn = result.(map[string]interface{})["Token"].(string)
+				_, _ = s.verify(tkn, "")
 			}
 			// TODO：记录日志
 
@@ -531,7 +534,7 @@ func buildTableName(model interface{}) string {
 	per := ""
 	// 如果是框架内部业务，则直接增加Qf前缀
 	// 反之直接使用实体名称
-	if strings.HasPrefix(t.PkgPath(), "github.com/UritMedical/qf") {
+	if strings.HasPrefix(strings.ToLower(t.PkgPath()), "github.com/uritmedical/qf") {
 		per = "Qf"
 	}
 	return fmt.Sprintf("%s%s", per, t.Name())

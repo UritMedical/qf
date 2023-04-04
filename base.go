@@ -92,7 +92,11 @@ func (bll *BaseBll) regRef(getApi func(key string) ApiHandler) {
 }
 
 func (bll *BaseBll) buildPathKey(kind EApiKind, relative string) string {
-	path := fmt.Sprintf("%s/%s/%s", bll.qfGroup, bll.subGroup, relative)
+	gp := bll.qfGroup
+	if strings.HasPrefix(strings.ToLower(bll.pkg), "github.com/uritmedical/qf") {
+		gp = bll.qfGroup + "/qf"
+	}
+	path := fmt.Sprintf("%s/%s/%s", gp, bll.subGroup, relative)
 	path = strings.Replace(path, "//", "/", -1)
 	path = strings.TrimRight(path, "/")
 	return fmt.Sprintf("%s:/%s", kind.HttpMethod(), path)
