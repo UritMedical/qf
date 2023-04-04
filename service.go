@@ -312,7 +312,7 @@ func (s *Service) context(ctx *gin.Context) {
 		// 白名单跳过
 		login, err := s.verify(tkn, url)
 		if err != nil && s.tokenWhiteList[url] == 0 {
-			s.returnError(ctx, err)
+			s.returnInvalid(ctx, err)
 			return
 		}
 
@@ -378,15 +378,29 @@ func (s *Service) context(ctx *gin.Context) {
 				}()
 			}
 			// 截取登陆接口，获取登陆信息
-			if url == fmt.Sprintf("POST:/%s/login", s.setting.WebConfig.DefGroup) {
+			if url == fmt.Sprintf("POST:/%s/qf/login", s.setting.WebConfig.DefGroup) {
 				tkn = result.(map[string]interface{})["Token"].(string)
-				_, _ = s.verify(tkn, "")
+				_, err = s.verify(tkn, "")
+				if err != nil {
+					s.returnInvalid(ctx, err)
+					return
+				}
 			}
 			// TODO：记录日志
 
 			s.returnOk(ctx, result)
 		}
 	}
+}
+
+func (s *Service) returnInvalid(ctx *gin.Context, err IError) {
+	msg := map[string]interface{}{}
+	msg["code"] = err.Code()
+	msg["error"] = s.errCodes[err.Code()]
+	ctx.JSON(http.StatusUnauthorized, gin.H{
+		"status": http.StatusUnauthorized,
+		"msg":    msg,
+	})
 }
 
 func (s *Service) returnError(ctx *gin.Context, err IError) {

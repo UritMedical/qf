@@ -13,7 +13,7 @@ var devUser = User{BaseModel: BaseModel{Id: 1, FullInfo: "{\"Name\":\"Developer\
 	LoginId: "developer", Password: convertToMD5([]byte("lisurit"))}
 
 const (
-	ErrorCodeTokenInvalid = iota + 400
+	ErrorCodeTokenInvalid = iota + 401
 	ErrorCodeTokenExpires
 	ErrorCodeLoginInvalid
 )
