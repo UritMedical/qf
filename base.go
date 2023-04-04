@@ -92,7 +92,11 @@ func (bll *BaseBll) regRef(getApi func(key string) ApiHandler) {
 }
 
 func (bll *BaseBll) buildPathKey(kind EApiKind, relative string) string {
-	path := fmt.Sprintf("%s/%s/%s", bll.qfGroup, bll.subGroup, relative)
+	gp := bll.qfGroup
+	if strings.HasPrefix(strings.ToLower(bll.pkg), "github.com/uritmedical/qf") {
+		gp = bll.qfGroup + "/qf"
+	}
+	path := fmt.Sprintf("%s/%s/%s", gp, bll.subGroup, relative)
 	path = strings.Replace(path, "//", "/", -1)
 	path = strings.TrimRight(path, "/")
 	return fmt.Sprintf("%s:/%s", kind.HttpMethod(), path)
@@ -147,11 +151,15 @@ type BaseDal struct {
 func (b *BaseDal) init(db *gorm.DB, model interface{}) {
 	b.db = db
 	// 根据实体名称，生成数据库
-	b.tableName = buildTableName(model)
-	// 自动生成表
-	err := db.Table(b.tableName).AutoMigrate(model)
-	if err != nil {
-		panic(fmt.Sprintf("【Gorm】 AutoMigrate %s failed: %s", b.tableName, err.Error()))
+	if model != nil {
+		b.tableName = buildTableName(model)
+		// 自动生成表
+		if db.Migrator().HasTable(b.tableName) == false {
+			err := db.Table(b.tableName).AutoMigrate(model)
+			if err != nil {
+				panic(fmt.Sprintf("AutoMigrate %s failed: %s", b.tableName, err.Error()))
+			}
+		}
 	}
 }
 
@@ -161,6 +169,9 @@ func (b *BaseDal) init(db *gorm.DB, model interface{}) {
 //  @return *gorm.DB
 //
 func (b *BaseDal) DB() *gorm.DB {
+	if b.tableName == "" {
+		return b.db
+	}
 	return b.db.Table(b.tableName)
 }
 

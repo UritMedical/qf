@@ -1,16 +1,19 @@
 package qf
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"github.com/UritMedical/qf/util"
+	"github.com/UritMedical/qf/util/token"
 	"strings"
 )
 
 //TODO 开发者密码要可以配置
 var devUser = User{BaseModel: BaseModel{Id: 1, FullInfo: "{\"Name\":\"Developer\"}"},
-	LoginId: "developer", Password: util.ConvertToMD5([]byte("lisurit"))}
+	LoginId: "developer", Password: convertToMD5([]byte("lisurit"))}
 
 const (
-	ErrorCodeTokenInvalid = iota + 400
+	ErrorCodeTokenInvalid = iota + 401
 	ErrorCodeTokenExpires
 	ErrorCodeLoginInvalid
 )
@@ -92,7 +95,7 @@ func (b *userBll) RegRef(_ RefMap) {
 
 func (b *userBll) Init() error {
 	b.initDefUser()
-	util.InitJwtSecret()
+	token.InitJwtSecret()
 	return nil
 }
 
@@ -116,14 +119,7 @@ func (b *userBll) initDefUser() {
 		_ = b.userDal.Save(&User{
 			BaseModel: BaseModel{Id: adminId, FullInfo: "{\"Name\":\"Admin\"}"},
 			LoginId:   "admin",
-			Password:  util.ConvertToMD5([]byte("admin123"))})
-
-		//创建默认角色
-		_ = b.roleDal.Save(&Role{BaseModel: BaseModel{Id: adminId, FullInfo: "{\"Name\":\"administrator\"}"}, Name: "administrator"})
-
-		//分配角色
-		_ = b.userRoleDal.SetRoleUsers(adminId, []uint64{adminId}) //admin 分配 administrator角色
-
+			Password:  convertToMD5([]byte("admin123"))})
 	}
 }
 
@@ -134,10 +130,10 @@ func (b *userBll) initDefUser() {
 //  @return IError
 //
 func (b *userBll) resetJwtSecret(_ *Context) (interface{}, IError) {
-	jwtStr := util.RandomString(32)
-	util.JwtSecret = []byte(jwtStr)
+	jwtStr := token.RandomString(32)
+	token.JwtSecret = []byte(jwtStr)
 	//将密钥进行AES加密后存入文件
-	err := util.EncryptAndWriteToFile(jwtStr, util.JwtSecretFile, []byte(util.AESKey), []byte(util.IV))
+	err := token.EncryptAndWriteToFile(jwtStr, token.JwtSecretFile, []byte(token.AESKey), []byte(token.IV))
 	return jwtStr, Error(ErrorCodeTokenInvalid, err.Error())
 }
 
@@ -160,7 +156,7 @@ func (b *userBll) login(ctx *Context) (interface{}, IError) {
 	params.LoginId = strings.Replace(params.LoginId, " ", "", -1)
 	if user, ok := b.userDal.CheckLogin(params.LoginId, params.Password); ok {
 		role, _ := b.userRoleDal.GetUsersByRoleId(user.Id)
-		token, _ := util.GenerateToken(user.Id, role)
+		token, _ := token.GenerateToken(user.Id, role)
 
 		//获取用户所在部门
 		departs, _ := b.getDepartsByUserId(user.Id)
@@ -176,7 +172,7 @@ func (b *userBll) login(ctx *Context) (interface{}, IError) {
 		}, nil
 	} else if params.LoginId == devUser.LoginId && params.Password == devUser.Password {
 		//开发者账号
-		token, _ := util.GenerateToken(devUser.Id, []uint64{})
+		token, _ := token.GenerateToken(devUser.Id, []uint64{})
 		return map[string]interface{}{
 			"Token":    token,
 			"UserInfo": util.ToMap(devUser),
@@ -192,7 +188,7 @@ func (b *userBll) saveUser(ctx *Context) (interface{}, IError) {
 		return nil, err
 	}
 	if !b.userDal.CheckExists(user.Id) {
-		user.Password = util.ConvertToMD5([]byte(defPassword))
+		user.Password = convertToMD5([]byte(defPassword))
 	}
 	if user.Id == 0 {
 		user.Id = ctx.NewId(user)
@@ -217,6 +213,9 @@ func (b *userBll) getUserModel(ctx *Context) (interface{}, IError) {
 	roles, _ := b.getRolesByUserId(userId)
 
 	err := b.userDal.GetModel(userId, &user)
+	if user.Id == 0 {
+		return nil, Error(ErrorCodeRecordNotFound, "not found")
+	}
 	ret := map[string]interface{}{
 		"Info":        util.ToMap(user),
 		"Roles":       util.ToMaps(roles),
@@ -262,7 +261,7 @@ func (b *userBll) getAllUsers(_ *Context) (interface{}, IError) {
 //
 func (b *userBll) resetPassword(ctx *Context) (interface{}, IError) {
 	uId := ctx.GetId()
-	return nil, b.userDal.SetPassword(uId, util.ConvertToMD5([]byte(defPassword)))
+	return nil, b.userDal.SetPassword(uId, convertToMD5([]byte(defPassword)))
 }
 
 //
@@ -297,4 +296,30 @@ func (b *userBll) changePassword(ctx *Context) (interface{}, IError) {
 func (b *userBll) getUserOrg(ctx *Context) (interface{}, IError) {
 	userId := ctx.LoginUser().UserId
 	return b.getOrg(userId)
+}
+
+// 计算a数组元素不在b数组之中的所有元素
+func diffIntSet(a []uint64, b []uint64) []uint64 {
+	c := make([]uint64, 0)
+	temp := map[uint64]struct{}{}
+	//把b所有的值作为key存入temp
+	for _, val := range b {
+		if _, ok := temp[val]; !ok {
+			temp[val] = struct{}{}
+		}
+	}
+	//如果a中的值作为key在temp中找不到，说明它不在b中
+	for _, val := range a {
+		if _, ok := temp[val]; !ok {
+			c = append(c, val)
+		}
+	}
+	return c
+}
+
+// 转换成MD5加密
+func convertToMD5(str []byte) string {
+	h := md5.New()
+	h.Write(str)
+	return hex.EncodeToString(h.Sum(nil))
 }

@@ -11,9 +11,10 @@ import (
 )
 
 type Reflect struct {
-	t  reflect.Type
-	v  reflect.Value
-	kv map[string]interface{}
+	t   reflect.Type
+	v   reflect.Value
+	obj interface{}
+	kv  map[string]interface{}
 }
 
 //
@@ -24,8 +25,9 @@ type Reflect struct {
 //
 func New(object interface{}) *Reflect {
 	r := &Reflect{
-		t: reflect.TypeOf(object),
-		v: reflect.ValueOf(object),
+		t:   reflect.TypeOf(object),
+		v:   reflect.ValueOf(object),
+		obj: object,
 	}
 	// 通过json反转为字典
 	r.kv = make(map[string]interface{})
@@ -63,15 +65,83 @@ func (r *Reflect) IsMap() bool {
 }
 
 //
+// IsSlice
+//  @Description: 是否是切片
+//  @return bool
+//
+func (r *Reflect) IsSlice() bool {
+	if r.v.Kind() == reflect.Slice {
+		return true
+	}
+	if r.v.Kind() == reflect.Ptr {
+		if r.v.Elem().Kind() == reflect.Slice {
+			return true
+		}
+	}
+	return false
+}
+
+//
+// Interface
+//  @Description: 返回对象
+//  @return interface{}
+//
+func (r *Reflect) Interface() interface{} {
+	return r.obj
+}
+
+//
+// InterfaceArray
+//  @Description: 返回对象
+//  @return interface{}
+//
+func (r *Reflect) InterfaceArray() []interface{} {
+	if r.IsSlice() {
+		v := r.v
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		list := make([]interface{}, 0)
+		for i := 0; i < v.Len(); i++ {
+			tp := reflect.TypeOf(v.Index(i).Interface())
+			nv := reflect.New(tp)
+			nv.Elem().Set(v.Index(i))
+			list = append(list, nv.Interface())
+		}
+		return list
+	}
+	return nil
+}
+
+//
+// Clear
+//  @Description: 清空切片
+//
+func (r *Reflect) Clear() {
+	if r.IsSlice() {
+		r.v.Elem().Set(reflect.MakeSlice(r.t.Elem(), 0, 0))
+	}
+}
+
+//
 // ToMap
 //  @Description: 转为字典
 //  @return map[string]interface{}
 //
 func (r *Reflect) ToMap() map[string]interface{} {
-	//if r.kv == nil {
-	//	r.getMap(r.t, r.v)
-	//}
 	return r.kv
+}
+
+//
+// ToMaps
+//  @Description: 转为字典列表
+//  @return []map[string]interface{}
+//
+func (r *Reflect) ToMaps() []map[string]interface{} {
+	finals := make([]map[string]interface{}, 0)
+	js, _ := json.Marshal(r.obj)
+	_ = json.Unmarshal(js, &finals)
+	return finals
 }
 
 //
@@ -190,14 +260,31 @@ func (r *Reflect) setStruct(sub interface{}) error {
 		subT = subV.Index(0).Type()
 		subV = subV.Index(0)
 	}
+	// 先通过json反转一次
+	js, _ := json.Marshal(subV.Interface())
+	_ = json.Unmarshal(js, r.obj)
+	// 再进行一次赋值
 	v := r.v.Elem()
 	return r.set(v, subT, subV)
 }
 
 func (r *Reflect) setSlice(v reflect.Value, sub reflect.Value) error {
 	for i := 0; i < sub.Len(); i++ {
-		vv := v.Index(i)
-		st := sub.Index(i).Type()
+		// 先通过json反转一次
+		tp := reflect.TypeOf(v.Index(i).Interface())
+		obj := reflect.New(tp).Interface()
+		js, _ := json.Marshal(sub.Index(i).Interface())
+		_ = json.Unmarshal(js, &obj)
+		vv := reflect.ValueOf(obj)
+		if vv.Kind() == reflect.Ptr {
+			vv = vv.Elem()
+		}
+		v.Index(i).Set(vv)
+
+		// 再补上其他的
+		vv = v.Index(i)
+		//st := sub.Index(i).Type()
+		st := reflect.TypeOf(sub.Index(i).Interface())
 		sv := sub.Index(i)
 		e := r.set(vv, st, sv)
 		if e != nil {
@@ -210,10 +297,12 @@ func (r *Reflect) setSlice(v reflect.Value, sub reflect.Value) error {
 func (r *Reflect) set(v reflect.Value, subT reflect.Type, subV reflect.Value) error {
 	if subT.Kind() == reflect.Map {
 		for _, m := range subV.MapKeys() {
-			if m.String() == "Kind" {
-				fmt.Println("")
-			}
 			f := v.FieldByName(m.String())
+			if f.IsValid() {
+				if f.Kind() == reflect.Ptr && !f.IsNil() {
+					f = f.Elem()
+				}
+			}
 			if f.CanSet() {
 				r.inField(f, subV.MapIndex(m).Interface())
 			}
@@ -222,9 +311,17 @@ func (r *Reflect) set(v reflect.Value, subT reflect.Type, subV reflect.Value) er
 		if subT.Kind() == reflect.Ptr {
 			subT = subT.Elem()
 			subV = subV.Elem()
+			if subV.Kind() == reflect.Ptr {
+				subV = subV.Elem()
+			}
 		}
-		for i := 0; i < subV.NumField(); i++ {
+		for i := 0; i < subT.NumField(); i++ {
 			f := v.FieldByName(subT.Field(i).Name)
+			if f.IsValid() {
+				if f.Kind() == reflect.Ptr && !f.IsNil() {
+					f = f.Elem()
+				}
+			}
 			if f.CanSet() {
 				r.inField(f, subV.Field(i).Interface())
 			}
@@ -235,10 +332,14 @@ func (r *Reflect) set(v reflect.Value, subT reflect.Type, subV reflect.Value) er
 
 func (r *Reflect) inField(field reflect.Value, value interface{}) {
 	tp := strings.ToLower(field.Type().Kind().String())
-	vv, err := r.convert(tp, value)
+	vv, err := r.convert(field.Type(), value)
 	if err == nil {
 		// 如果是自定义类型包原生类型，则特殊处理
-		if tp != field.Type().String() {
+		if tp == "ptr" {
+			ptr := reflect.New(field.Type().Elem())
+			ptr.Elem().Set(reflect.ValueOf(vv))
+			field.Set(ptr)
+		} else if tp != field.Type().String() {
 			switch tp {
 			case "uint", "uint8", "uint32", "uint64":
 				u, e := strconv.ParseUint(fmt.Sprintf("%v", vv), 10, 64)
@@ -273,7 +374,11 @@ func (r *Reflect) inField(field reflect.Value, value interface{}) {
 }
 
 // 类型转换
-func (r *Reflect) convert(typeName string, value interface{}) (interface{}, error) {
+func (r *Reflect) convert(tp reflect.Type, value interface{}) (interface{}, error) {
+	typeName := strings.ToLower(tp.Kind().String())
+	if tp.Kind() == reflect.Ptr {
+		typeName = strings.ToLower(tp.Elem().Kind().String())
+	}
 	str := fmt.Sprintf("%v", value)
 	switch typeName {
 	case "string":

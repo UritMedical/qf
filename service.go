@@ -2,10 +2,11 @@ package qf
 
 import (
 	"fmt"
-	"github.com/UritMedical/qf/util"
 	"github.com/UritMedical/qf/util/launcher"
+	"github.com/UritMedical/qf/util/qerror"
 	"github.com/UritMedical/qf/util/qid"
 	"github.com/UritMedical/qf/util/qio"
+	"github.com/UritMedical/qf/util/token"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/driver/sqlserver"
@@ -26,18 +27,6 @@ var (
 	regBllFunc func(s *Service)
 	stopFunc   func()
 )
-
-//
-// Run
-//  @Description: 启动
-//  @param regBll 注册业务（必须）
-//  @param stop 自定义释放
-//
-func Run(regBll func(s *Service), stop func()) {
-	regBllFunc = regBll
-	stopFunc = stop
-	launcher.Run(doStart, doStop)
-}
 
 func doStart() {
 	// 创建服务
@@ -97,8 +86,11 @@ func newService() *Service {
 	s.errCodes[ErrorCodeParamInvalid] = "无效的参数"
 	s.errCodes[ErrorCodePermissionDenied] = "权限不足，拒绝访问"
 	s.errCodes[ErrorCodeRecordNotFound] = "未找到记录"
+	s.errCodes[ErrorCodeRecordExist] = "记录已经存在"
 	s.errCodes[ErrorCodeSaveFailure] = "保存失败"
 	s.errCodes[ErrorCodeDeleteFailure] = "删除失败"
+	s.errCodes[ErrorCodeOSError] = "系统故障"
+	s.errCodes[ErrorCodeUnknown] = "未知故障"
 	// 默认文件夹路径
 	s.folder = "."
 	// 加载配置
@@ -107,8 +99,7 @@ func newService() *Service {
 	for _, t := range s.setting.UserConfig.TokenWhiteList {
 		s.tokenWhiteList[t] = 1
 	}
-	// 创建数据库
-	dbDir := qio.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
+	// 初始化gorm
 	gc := gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
@@ -123,6 +114,8 @@ func newService() *Service {
 	var err error
 	switch s.setting.GormConfig.DBType {
 	case "sqlite":
+		// 创建数据库
+		dbDir := qio.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
 		db, err = gorm.Open(sqlite.Open(fmt.Sprintf("%s/%s", dbDir, s.setting.GormConfig.DBParam)), &gc)
 		if err != nil {
 			return nil
@@ -196,9 +189,11 @@ func (s *Service) run() {
 
 	// 启动服务
 	go func() {
+		defer qerror.Recover(func(err string) {
+			launcher.Exit()
+		})
 		err := s.engine.Run(":" + s.setting.Port)
 		if err != nil {
-			//f.logAdapter.Fatal("qf run error", err.Error())
 			panic(err)
 		}
 	}()
@@ -224,7 +219,6 @@ func (s *Service) stop() {
 func (s *Service) RegBll(bll IBll, group string) {
 	group = strings.Trim(group, "/")
 	// 初始化业务对象
-	//bll.set(bll, s.setting.WebConfig.DefGroup, group, s.config)
 	bll.set(bll, s.setting.WebConfig.DefGroup, group)
 	// 加入到业务列表
 	if _, ok := s.bllList[bll.key()]; ok == false {
@@ -303,20 +297,22 @@ func (s *Service) init() error {
 }
 
 func (s *Service) context(ctx *gin.Context) {
+	defer qerror.Recover(nil)
+
 	url := fmt.Sprintf("%s:%s", ctx.Request.Method, ctx.FullPath())
 	if handler, ok := s.apiHandler[url]; ok {
 		// 获取Token值
-		token := ctx.GetHeader("Token")
+		tkn := ctx.GetHeader("Token")
 		bt := ctx.Query("Bi")
 		if bt != "" {
-			token = bt
+			tkn = bt
 		}
 
 		// 验证token和权限，返回登陆用户信息
 		// 白名单跳过
-		login, err := s.verify(token, url)
+		login, err := s.verify(tkn, url)
 		if err != nil && s.tokenWhiteList[url] == 0 {
-			s.returnError(ctx, err)
+			s.returnInvalid(ctx, err)
 			return
 		}
 
@@ -382,9 +378,13 @@ func (s *Service) context(ctx *gin.Context) {
 				}()
 			}
 			// 截取登陆接口，获取登陆信息
-			if url == fmt.Sprintf("POST:/%s/login", s.setting.WebConfig.DefGroup) {
-				token = result.(map[string]interface{})["Token"].(string)
-				_, _ = s.verify(token, "")
+			if url == fmt.Sprintf("POST:/%s/qf/login", s.setting.WebConfig.DefGroup) {
+				tkn = result.(map[string]interface{})["Token"].(string)
+				_, err = s.verify(tkn, "")
+				if err != nil {
+					s.returnInvalid(ctx, err)
+					return
+				}
 			}
 			// TODO：记录日志
 
@@ -393,10 +393,22 @@ func (s *Service) context(ctx *gin.Context) {
 	}
 }
 
-func (s *Service) returnError(ctx *gin.Context, err IError) {
+func (s *Service) returnInvalid(ctx *gin.Context, err IError) {
 	msg := map[string]interface{}{}
 	msg["code"] = err.Code()
-	//msg["error"] = err.Error()
+	msg["error"] = s.errCodes[err.Code()]
+	ctx.JSON(http.StatusUnauthorized, gin.H{
+		"status": http.StatusUnauthorized,
+		"msg":    msg,
+	})
+}
+
+func (s *Service) returnError(ctx *gin.Context, err IError) {
+	// 记录日志
+	qerror.Write(fmt.Sprintf("%s %d %s %s\n", ctx.Request.URL, err.Code(), s.errCodes[err.Code()], err.Error()))
+
+	msg := map[string]interface{}{}
+	msg["code"] = err.Code()
 	msg["error"] = s.errCodes[err.Code()]
 	ctx.JSON(http.StatusBadRequest, gin.H{
 		"status": http.StatusBadRequest,
@@ -412,12 +424,12 @@ func (s *Service) returnOk(ctx *gin.Context, data interface{}) {
 	})
 }
 
-func (s *Service) verify(token string, url string) (LoginUser, IError) {
-	if s.userBll == nil || token == s.setting.UserConfig.TokenVerify {
+func (s *Service) verify(tokenStr string, url string) (LoginUser, IError) {
+	if s.userBll == nil || tokenStr == s.setting.UserConfig.TokenVerify {
 		return LoginUser{}, nil
 	}
 	// 解析token
-	claims, err := util.ParseToken(token)
+	claims, err := token.ParseToken(tokenStr)
 	if err != nil {
 		return LoginUser{}, Error(ErrorCodeTokenInvalid, err.Error())
 	}
@@ -426,8 +438,8 @@ func (s *Service) verify(token string, url string) (LoginUser, IError) {
 		return LoginUser{}, Error(ErrorCodeTokenExpires, err.Error())
 	}
 	// 如果缓存存在，则通过缓存
-	if _, ok := s.loginUser[token]; ok {
-		return s.loginUser[token], nil
+	if _, ok := s.loginUser[tokenStr]; ok {
+		return s.loginUser[tokenStr], nil
 	}
 	// 获取用户信息
 	user, err := s.userBll.getUserModel(&Context{loginUser: LoginUser{UserId: claims.Id}})
@@ -458,8 +470,8 @@ func (s *Service) verify(token string, url string) (LoginUser, IError) {
 		return LoginUser{}, Error(ErrorCodeTokenInvalid, err.Error())
 	}
 	login.Departments = dps
-	if token != "" {
-		s.loginUser[token] = login
+	if tokenStr != "" {
+		s.loginUser[tokenStr] = login
 	}
 
 	// 获取api
@@ -497,7 +509,8 @@ func (s *Service) getCors() gin.HandlerFunc {
 }
 
 func (s *Service) initApiRouter() {
-	s.engine.GET("/apis", func(ctx *gin.Context) {
+	router := s.engine.Group(s.setting.WebConfig.DefGroup)
+	router.GET("/qf/allApis", func(ctx *gin.Context) {
 		apis := map[string][]string{}
 		for k, v := range s.allApis {
 			name := filepath.Base(k)
@@ -539,7 +552,7 @@ func buildTableName(model interface{}) string {
 	per := ""
 	// 如果是框架内部业务，则直接增加Qf前缀
 	// 反之直接使用实体名称
-	if strings.HasPrefix(t.PkgPath(), "github.com/UritMedical/qf") {
+	if strings.HasPrefix(strings.ToLower(t.PkgPath()), "github.com/uritmedical/qf") {
 		per = "Qf"
 	}
 	return fmt.Sprintf("%s%s", per, t.Name())

@@ -120,7 +120,7 @@ func (api ApiMap) Reg(kind EApiKind, router string, handler ApiHandler) {
 	if _, ok := api.dict[kind][router]; ok == false {
 		api.dict[kind][router] = handler
 	} else {
-		panic(fmt.Sprintf("【RegApi】: %s: %s,%s already exists", api.bllName, kind, router))
+		panic(fmt.Sprintf("this router (%s,%s) already exists", kind, router))
 	}
 }
 
@@ -133,17 +133,17 @@ func (api ApiMap) Reg(kind EApiKind, router string, handler ApiHandler) {
 func (d DalMap) Reg(iDal IDal, model interface{}) {
 	t := reflect.TypeOf(iDal)
 	if t.Kind() != reflect.Ptr {
-		panic(fmt.Sprintf("【RegDal】: %s: %s/%s this model must be of type pointer", d.bllName, t.PkgPath(), t.Name()))
+		panic(fmt.Sprintf("this dal (%s) must be of type pointer", t.String()))
 	}
 	t = t.Elem()
 	v := reflect.ValueOf(iDal)
 	if v.IsNil() {
-		panic(fmt.Sprintf("【RegDal】: %s: %s/%s has not been initialized", d.bllName, t.PkgPath(), t.Name()))
+		panic(fmt.Sprintf("this dal (%s) has not been initialized", t.String()))
 	}
 	if _, ok := d.dict[iDal]; ok == false {
 		d.dict[iDal] = model
 	} else {
-		panic(fmt.Sprintf("【RegDal】: %s: %s/%s already exists", d.bllName, t.PkgPath(), t.Name()))
+		panic(fmt.Sprintf("this dal (%s) already exists", t.String()))
 	}
 }
 
@@ -157,7 +157,7 @@ func (err FaultMap) Reg(code int, desc string) {
 	if _, ok := err.dict[code]; ok == false {
 		err.dict[code] = desc
 	} else {
-		panic(fmt.Sprintf("【RegFault】: %s: %d,%s already exists", err.bllName, code, desc))
+		panic(fmt.Sprintf("this fault code (%d,%s) already exists", code, desc))
 	}
 }
 
@@ -175,7 +175,7 @@ func (msg MessageMap) Reg(kind EApiKind, router string, handler MessageHandler) 
 	if _, ok := msg.dict[kind][router]; ok == false {
 		msg.dict[kind][router] = handler
 	} else {
-		panic(fmt.Sprintf("【RegMsg】: %s: %s,%s already exists", msg.bllName, kind, router))
+		panic(fmt.Sprintf("this msg (%s,%s )already exists", kind, router))
 	}
 }
 
@@ -404,8 +404,14 @@ const (
 	ErrorCodeParamInvalid     = iota + 100 // 传入参数无效
 	ErrorCodePermissionDenied              // 权限不足，拒绝访问
 	ErrorCodeRecordNotFound                // 未找到记录
+	ErrorCodeRecordExist                   // 记录已经存在
 	ErrorCodeSaveFailure                   // 保存失败
 	ErrorCodeDeleteFailure                 // 删除失败
+)
+
+const (
+	ErrorCodeOSError = 900 // 系统故障
+	ErrorCodeUnknown = 999 // 未知异常
 )
 
 type errorInfo struct {

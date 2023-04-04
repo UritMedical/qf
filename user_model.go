@@ -50,7 +50,13 @@ type Permission struct {
 type PermissionApi struct {
 	BaseModel
 	PermissionId uint64 `gorm:"index"`
+	Group        string // api 所属模块
 	ApiId        string //API key
+}
+
+type ApiInfo struct {
+	ApiId string
+	Group string
 }
 
 //

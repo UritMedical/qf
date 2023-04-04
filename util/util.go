@@ -1,65 +1,12 @@
 package util
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/UritMedical/qf/util/qreflect"
-	"math/rand"
 	"reflect"
-	"time"
 )
-
-//ConvertToMD5 转换成MD5加密
-func ConvertToMD5(str []byte) string {
-	h := md5.New()
-	h.Write(str)
-	return hex.EncodeToString(h.Sum(nil))
-}
-
-//
-// DiffIntSet
-//  @Description: 计算a数组元素不在b数组之中的所有元素
-//  @param a
-//  @param b
-//  @return []uint64
-//
-func DiffIntSet(a []uint64, b []uint64) []uint64 {
-	c := make([]uint64, 0)
-	temp := map[uint64]struct{}{}
-	//把b所有的值作为key存入temp
-	for _, val := range b {
-		if _, ok := temp[val]; !ok {
-			temp[val] = struct{}{}
-		}
-	}
-	//如果a中的值作为key在temp中找不到，说明它不在b中
-	for _, val := range a {
-		if _, ok := temp[val]; !ok {
-			c = append(c, val)
-		}
-	}
-	return c
-}
-
-// RandomString
-//  @Description: 生成随机字符串
-//  @param length
-//  @return string
-//
-func RandomString(length int) string {
-	rand.Seed(time.Now().UnixNano())
-
-	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-	result := make([]rune, length)
-	for i := range result {
-		result[i] = letters[rand.Intn(len(letters))]
-	}
-
-	return string(result)
-}
 
 //
 // ToMap
@@ -91,8 +38,20 @@ func ToMaps(list interface{}) []map[string]interface{} {
 }
 
 //
+// Bind
+//  @Description: 将source结构体中的数据绑定到target结构体中
+//  @param targetPtr vm结构体, 必须是指针
+//  @param source 原始结构体
+//  @return error
+//
+func Bind(targetPtr interface{}, source interface{}) error {
+	r := qreflect.New(source)
+	return SetModel(targetPtr, r.ToMapExpandAll())
+}
+
+//
 // SetModel
-//  @Description: 修改结构体内的方法
+//  @Description: 修改结构体内的字段值
 //  @param objectPtr
 //  @param value
 //
@@ -113,7 +72,47 @@ func SetModel(objectPtr interface{}, value map[string]interface{}) error {
 			return e
 		}
 	}
-	// 修改FullInfo值
+	// 修改FullInfo
+	return setFullInfo(ref, value)
+}
+
+//
+// SetList
+//  @Description: 修改列表
+//  @param objectPtr
+//  @param values
+//  @return error
+//
+func SetList(objectPtr interface{}, values []map[string]interface{}) error {
+	if objectPtr == nil {
+		return errors.New("the objectPtr cannot be empty")
+	}
+	ref := qreflect.New(objectPtr)
+	// 必须为指针
+	if ref.IsSlice() == false {
+		return errors.New("the objectPtr must be slice")
+	}
+
+	// 修改外部值
+	if values != nil {
+		e := ref.Set(values)
+		if e != nil {
+			return e
+		}
+	}
+	// 修改FullInfo
+	objs := ref.InterfaceArray()
+	for i, obj := range objs {
+		e := setFullInfo(qreflect.New(obj), values[i])
+		if e != nil {
+			return e
+		}
+	}
+	ref.Clear()
+	return ref.Set(objs)
+}
+
+func setFullInfo(ref *qreflect.Reflect, value map[string]interface{}) error {
 	all := ref.ToMap()
 	if info, ok := all["FullInfo"]; ok {
 		str := info.(string)

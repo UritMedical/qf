@@ -57,6 +57,9 @@ func ToNumber(valueStr, formatStr string) (uint64, error) {
 		}
 	}
 	// 最后返回数值
+	if final == "00010101" {
+		return 0, nil
+	}
 	return strconv.ParseUint(final, 10, 64)
 }
 
