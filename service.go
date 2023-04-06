@@ -381,7 +381,7 @@ func (s *Service) context(ctx *gin.Context) {
 			if url == fmt.Sprintf("POST:/%s/qf/login", s.setting.WebConfig.DefGroup) {
 				tkn = result.(map[string]interface{})["Token"].(string)
 				_, err = s.verify(tkn, "")
-				if err != nil {
+				if err != nil && s.tokenWhiteList[url] == 0 {
 					s.returnInvalid(ctx, err)
 					return
 				}
