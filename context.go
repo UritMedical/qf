@@ -27,6 +27,23 @@ type Context struct {
 }
 
 //
+// CtxData
+//  @Description: 文件下载
+//
+type CtxData struct {
+	//
+	// ContentType
+	//  @Description: 如application/vnd.ms-excel
+	//
+	ContentType string
+	//
+	// Data
+	//  @Description: 文件二进制流
+	//
+	Data []byte
+}
+
+//
 // NewContext
 //  @Description: 生成一个新的上下文
 //  @receiver ctx
@@ -129,6 +146,20 @@ func (ctx *Context) LoadFile(key string) []*multipart.FileHeader {
 		return nil
 	}
 	return ctx.inputFiles[key]
+}
+
+//
+// BuildFile
+//  @Description: 生成文件下载结构体
+//  @param contentType
+//  @param data
+//  @return CtxData
+//
+func (ctx *Context) BuildFile(contentType string, data []byte) CtxData {
+	return CtxData{
+		ContentType: contentType,
+		Data:        data,
+	}
 }
 
 //

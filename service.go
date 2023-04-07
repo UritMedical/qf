@@ -118,17 +118,16 @@ func newService() *Service {
 		dbDir := qio.CreateDirectory(fmt.Sprintf("%s/db", s.folder))
 		db, err = gorm.Open(sqlite.Open(fmt.Sprintf("%s/%s", dbDir, s.setting.GormConfig.DBParam)), &gc)
 		if err != nil {
-			return nil
+			panic(err)
 		}
 		if s.setting.GormConfig.JournalMode != "" {
 			db.Exec(fmt.Sprintf("PRAGMA journal_mode = %s;", s.setting.GormConfig.JournalMode))
 		}
 	case "sqlserver":
-		sp := strings.Split(s.setting.GormConfig.DBParam, ",")
-		dsn := fmt.Sprintf("sqlserver://%s:%s@%s?database=%s", sp[2], sp[3], sp[0], sp[1])
+		dsn := fmt.Sprintf("sqlserver://%s", s.setting.GormConfig.DBParam)
 		db, err = gorm.Open(sqlserver.Open(dsn), &gc)
 		if err != nil {
-			return nil
+			panic(err)
 		}
 	}
 	if db == nil {
@@ -388,7 +387,14 @@ func (s *Service) context(ctx *gin.Context) {
 			}
 			// TODO：记录日志
 
-			s.returnOk(ctx, result)
+			if f, isFile := result.(CtxData); isFile {
+				// 下载文件, 必须设置响应类型为blob
+				ctx.Header("response-type", "blob")
+				ctx.Data(http.StatusOK, f.ContentType, f.Data)
+			} else {
+				// 常规返回
+				s.returnOk(ctx, result)
+			}
 		}
 	}
 }

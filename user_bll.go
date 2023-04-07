@@ -37,6 +37,7 @@ type userBll struct {
 func (b *userBll) RegApi(api ApiMap) {
 	//登录
 	api.Reg(EApiKindSave, "login", b.login)
+	api.Reg(EApiKindSave, "logout", b.logout)
 	api.Reg(EApiKindSave, "user/jwt/reset", b.resetJwtSecret) //刷新jwt密钥
 
 	//用户增删改查
@@ -156,7 +157,7 @@ func (b *userBll) login(ctx *Context) (interface{}, IError) {
 	params.LoginId = strings.Replace(params.LoginId, " ", "", -1)
 	if user, ok := b.userDal.CheckLogin(params.LoginId, params.Password); ok {
 		role, _ := b.userRoleDal.GetUsersByRoleId(user.Id)
-		token, _ := token.GenerateToken(user.Id, role)
+		tkn, _ := token.GenerateToken(user.Id, role)
 
 		//获取用户所在部门
 		departs, _ := b.getDepartsByUserId(user.Id)
@@ -165,21 +166,25 @@ func (b *userBll) login(ctx *Context) (interface{}, IError) {
 		roles, _ := b.getRolesByUserId(user.Id)
 
 		return map[string]interface{}{
-			"Token":    token,
+			"Token":    tkn,
 			"Departs":  util.ToMaps(departs),
 			"Roles":    util.ToMaps(roles),
 			"UserInfo": util.ToMap(user),
 		}, nil
 	} else if params.LoginId == devUser.LoginId && params.Password == devUser.Password {
 		//开发者账号
-		token, _ := token.GenerateToken(devUser.Id, []uint64{})
+		tkn, _ := token.GenerateToken(devUser.Id, []uint64{})
 		return map[string]interface{}{
-			"Token":    token,
+			"Token":    tkn,
 			"UserInfo": util.ToMap(devUser),
 		}, nil
 	} else {
 		return nil, Error(ErrorCodeLoginInvalid, "loginId not exist or password error")
 	}
+}
+
+func (b *userBll) logout(ctx *Context) (interface{}, IError) {
+	return nil, nil
 }
 
 func (b *userBll) saveUser(ctx *Context) (interface{}, IError) {
