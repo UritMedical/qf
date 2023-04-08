@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/UritMedical/qf/util"
 	"github.com/UritMedical/qf/util/qid"
+	"github.com/UritMedical/qf/util/qio"
 	"github.com/UritMedical/qf/util/qreflect"
 	"mime/multipart"
 	"reflect"
@@ -27,20 +28,12 @@ type Context struct {
 }
 
 //
-// CtxData
+// CtxFile
 //  @Description: 文件下载
 //
-type CtxData struct {
-	//
-	// ContentType
-	//  @Description: 如application/vnd.ms-excel
-	//
-	ContentType string
-	//
-	// Data
-	//  @Description: 文件二进制流
-	//
-	Data []byte
+type CtxFile struct {
+	FileName string
+	Data     []byte
 }
 
 //
@@ -149,17 +142,36 @@ func (ctx *Context) LoadFile(key string) []*multipart.FileHeader {
 }
 
 //
-// BuildFile
-//  @Description: 生成文件下载结构体
+// BuildFileByPath
+//  @Description: 通过文件路径生成下载文件
 //  @param contentType
 //  @param data
 //  @return CtxData
 //
-func (ctx *Context) BuildFile(contentType string, data []byte) CtxData {
-	return CtxData{
-		ContentType: contentType,
-		Data:        data,
+func (ctx *Context) BuildFileByPath(filePath string) (CtxFile, IError) {
+	data, err := qio.ReadAllBytes(filePath)
+	if err != nil {
+		return CtxFile{}, Error(ErrorCodeFileNotFound, err.Error())
 	}
+	return CtxFile{
+		FileName: qio.GetFileName(filePath),
+		Data:     data,
+	}, nil
+}
+
+//
+// BuildFileByStream
+//  @Description: 通过二进制流生成下载文件
+//  @param fileName 文件名
+//  @param buff 文件二进制
+//  @return CtxFile
+//  @return IError
+//
+func (ctx *Context) BuildFileByStream(fileName string, buff []byte) (CtxFile, IError) {
+	return CtxFile{
+		FileName: fileName,
+		Data:     buff,
+	}, nil
 }
 
 //

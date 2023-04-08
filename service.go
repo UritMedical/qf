@@ -89,6 +89,7 @@ func newService() *Service {
 	s.errCodes[ErrorCodeRecordExist] = "记录已经存在"
 	s.errCodes[ErrorCodeSaveFailure] = "保存失败"
 	s.errCodes[ErrorCodeDeleteFailure] = "删除失败"
+	s.errCodes[ErrorCodeFileNotFound] = "指定文件不存在"
 	s.errCodes[ErrorCodeOSError] = "系统故障"
 	s.errCodes[ErrorCodeUnknown] = "未知故障"
 	// 默认文件夹路径
@@ -387,10 +388,12 @@ func (s *Service) context(ctx *gin.Context) {
 			}
 			// TODO：记录日志
 
-			if f, isFile := result.(CtxData); isFile {
-				// 下载文件, 必须设置响应类型为blob
-				ctx.Header("response-type", "blob")
-				ctx.Data(http.StatusOK, f.ContentType, f.Data)
+			if f, isFile := result.(CtxFile); isFile {
+				// 下载文件
+				ctx.Header("Content-Disposition", "attachment;filename="+qio.GetFileName(f.FileName))
+				ctx.Header("Content-Transfer-Encoding", "binary")
+				ctx.Header("Content-Type", "application/octet-stream")
+				ctx.Data(http.StatusOK, "application/octet-stream", f.Data)
 			} else {
 				// 常规返回
 				s.returnOk(ctx, result)

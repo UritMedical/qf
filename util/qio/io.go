@@ -11,7 +11,12 @@ import (
 	"strings"
 )
 
-// PathExists 判断文件或文件夹是否存在
+//
+// PathExists
+//  @Description: 判断文件或文件夹是否存在
+//  @param path 路径
+//  @return bool
+//
 func PathExists(path string) bool {
 	var exist = true
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -20,7 +25,12 @@ func PathExists(path string) bool {
 	return exist
 }
 
-// GetCurrentDirectory 获取程序的当前工作目录
+//
+// GetCurrentDirectory
+//  @Description: 获取程序的当前工作目录
+//  @return string
+//  @return error
+//
 func GetCurrentDirectory() (string, error) {
 	if runtime.GOOS == "windows" {
 		file, err := exec.LookPath(os.Args[0])
@@ -32,16 +42,56 @@ func GetCurrentDirectory() (string, error) {
 	return filepath.Abs(os.Args[0])
 }
 
-// GetFullPath 获取完整路径
+//
+// GetFullPath
+//  @Description: 获取完整路径
+//  @param path 相对路径
+//  @return string
+//
 func GetFullPath(path string) string {
 	// 将\\转为/
-	path = strings.Replace(path, "\\", "/", -1)
-	path = strings.Replace(path, "//", "/", -1)
-	full, _ := filepath.Abs(path)
+	full, _ := filepath.Abs(formatPath(path))
 	return full
 }
 
-// CreateDirectory 创建文件夹
+//
+// GetFileName
+//  @Description: 获取文件名
+//  @param path
+//  @return string
+//
+func GetFileName(path string) string {
+	return filepath.Base(formatPath(path))
+}
+
+//
+// GetFileExt
+//  @Description: 获取文件的后缀名
+//  @param path
+//  @return string
+//
+func GetFileExt(path string) string {
+	return filepath.Ext(formatPath(path))
+}
+
+//
+// GetFileNameWithoutExt
+//  @Description: 获取没有后缀名的文件名
+//  @param path
+//  @return string
+//
+func GetFileNameWithoutExt(path string) string {
+	fileName := filepath.Base(formatPath(path))
+	fileExt := filepath.Ext(fileName)
+	return fileName[0 : len(fileName)-len(fileExt)]
+}
+
+//
+// CreateDirectory
+//  @Description: 创建文件夹
+//  @param path
+//  @return string
+//
 func CreateDirectory(path string) string {
 	path = GetFullPath(path)
 	if PathExists(path) == false {
@@ -50,12 +100,22 @@ func CreateDirectory(path string) string {
 	return path
 }
 
-// DeleteFile 删除文件
+//
+// DeleteFile
+//  @Description: 删除文件
+//  @param filename
+//  @return error
+//
 func DeleteFile(filename string) error {
 	return os.Remove(filename)
 }
 
-// IsDirectory 判断所给路径是否为文件夹
+//
+// IsDirectory
+//  @Description: 判断所给路径是否为文件夹
+//  @param path
+//  @return bool
+//
 func IsDirectory(path string) bool {
 	s, err := os.Stat(path)
 	if err != nil {
@@ -64,7 +124,12 @@ func IsDirectory(path string) bool {
 	return s.IsDir()
 }
 
-// IsFile 判断所给路径是否为文件
+//
+// IsFile
+//  @Description: 判断所给路径是否为文件
+//  @param path
+//  @return bool
+//
 func IsFile(path string) bool {
 	return !IsDirectory(path)
 }
@@ -152,4 +217,11 @@ func readyToWrite(filename string, isAppend bool) (f *os.File, e error) {
 		}
 	}
 	return os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+}
+
+func formatPath(path string) string {
+	path = filepath.Clean(path)
+	path = strings.Replace(path, "\\", "/", -1)
+	path = strings.Replace(path, "//", "/", -1)
+	return path
 }

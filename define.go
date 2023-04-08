@@ -407,6 +407,7 @@ const (
 	ErrorCodeRecordExist                   // 记录已经存在
 	ErrorCodeSaveFailure                   // 保存失败
 	ErrorCodeDeleteFailure                 // 删除失败
+	ErrorCodeFileNotFound                  // 文件不存在
 )
 
 const (
