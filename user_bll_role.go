@@ -220,11 +220,11 @@ func (b *userBll) getPermissionApi(ctx *Context) (interface{}, IError) {
 //  @Description: 获取全部用户可以访问的Api列表
 //  @param roleIds
 //
-func (b *userBll) getUserAllApis(roleIds ...uint64) map[string]byte {
+func (b *userBll) getUserAllApis(roles []RoleInfo) map[string]byte {
 	apis := map[string]byte{}
-	for _, roleId := range roleIds {
+	for _, r := range roles {
 		// 获取角色全部的权限列表
-		permissionId, _ := b.rolePermissionDal.GetRolePermission(roleId)
+		permissionId, _ := b.rolePermissionDal.GetRolePermission(r.Id)
 		permissions, err := b.permissionDal.GetPermissionsByIds(permissionId)
 		if err != nil {
 			continue

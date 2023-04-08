@@ -54,6 +54,19 @@ func ParseToken(token string) (*Claims, error) {
 	return nil, err
 }
 
+func IsExpires(token string) (*Claims, bool) {
+	claims, err := ParseToken(token)
+	if err != nil {
+		return nil, true
+	}
+	// 判断是否过期
+	t := time.Unix(claims.ExpiresAt, 0)
+	if time.Now().After(t) {
+		return claims, true
+	}
+	return claims, false
+}
+
 func InitJwtSecret() {
 	//初始化token密钥
 	jwt, err := DecodeJwtFromFile(JwtSecretFile, []byte(AESKey), []byte(IV))

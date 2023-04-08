@@ -24,14 +24,17 @@ const (
 
 type userBll struct {
 	BaseBll
-	userDal           *userDal           //用户dal
-	userRoleDal       *userRoleDal       //用户-角色
-	roleDal           *roleDal           //角色dal
-	rolePermissionDal *rolePermissionDal //角色-权限
-	permissionDal     *permissionDal     //权限dal
-	permissionApiDal  *permissionApiDal  //权限-api
-	dptDal            *departmentDal     //部门dal
-	dptUserDal        *dptUserDal        //部门-用户
+	userDal           *userDal             //用户dal
+	userRoleDal       *userRoleDal         //用户-角色
+	roleDal           *roleDal             //角色dal
+	rolePermissionDal *rolePermissionDal   //角色-权限
+	permissionDal     *permissionDal       //权限dal
+	permissionApiDal  *permissionApiDal    //权限-api
+	dptDal            *departmentDal       //部门dal
+	dptUserDal        *dptUserDal          //部门-用户
+	tokenLoginUser    map[string]LoginUser // token登陆用户缓存
+	tokenWhiteList    map[string]byte      // token白名单
+	tokenSkipVerify   string               // 特殊token
 }
 
 func (b *userBll) RegApi(api ApiMap) {
@@ -95,6 +98,7 @@ func (b *userBll) RegRef(_ RefMap) {
 }
 
 func (b *userBll) Init() error {
+	b.tokenLoginUser = map[string]LoginUser{}
 	b.initDefUser()
 	token.InitJwtSecret()
 	return nil
@@ -102,6 +106,14 @@ func (b *userBll) Init() error {
 
 func (b *userBll) Stop() {
 
+}
+
+func (b *userBll) setTokenConfig(list []string, skip string) {
+	b.tokenWhiteList = map[string]byte{}
+	for _, t := range list {
+		b.tokenWhiteList[t] = 1
+	}
+	b.tokenSkipVerify = skip
 }
 
 //
@@ -165,6 +177,9 @@ func (b *userBll) login(ctx *Context) (interface{}, IError) {
 		//获取用户所拥有的角色
 		roles, _ := b.getRolesByUserId(user.Id)
 
+		//保存token信息
+		b.saveToken(user.Id, tkn)
+
 		return map[string]interface{}{
 			"Token":    tkn,
 			"Departs":  util.ToMaps(departs),
@@ -174,6 +189,8 @@ func (b *userBll) login(ctx *Context) (interface{}, IError) {
 	} else if params.LoginId == devUser.LoginId && params.Password == devUser.Password {
 		//开发者账号
 		tkn, _ := token.GenerateToken(devUser.Id, []uint64{})
+		//保存token信息
+		b.saveToken(devUser.Id, tkn)
 		return map[string]interface{}{
 			"Token":    tkn,
 			"UserInfo": util.ToMap(devUser),
@@ -184,6 +201,7 @@ func (b *userBll) login(ctx *Context) (interface{}, IError) {
 }
 
 func (b *userBll) logout(ctx *Context) (interface{}, IError) {
+	b.removeToken(ctx.GetStringValue("Token"))
 	return nil, nil
 }
 
@@ -228,6 +246,57 @@ func (b *userBll) getUserModel(ctx *Context) (interface{}, IError) {
 	}
 
 	return ret, err
+}
+
+type UserInfo struct {
+	Id          uint64
+	Name        string
+	LoginId     string
+	Roles       []RoleInfo
+	Departments []DepartmentInfo
+}
+
+type RoleInfo struct {
+	Id   uint64
+	Name string
+}
+
+type DepartmentInfo struct {
+	Id       uint64
+	Name     string
+	ParentId uint64
+}
+
+func (b *userBll) getFullUser(id uint64) (UserInfo, error) {
+	userInfo := UserInfo{}
+
+	user := &User{}
+	err := b.userDal.GetModel(id, user)
+	if err != nil {
+		return userInfo, err
+	}
+
+	// 基本信息
+	info := util.ToMap(user)
+	userInfo.Id = user.Id
+	userInfo.Name = info["Name"].(string)
+	userInfo.LoginId = info["LoginId"].(string)
+
+	// 角色列表
+	userInfo.Roles = make([]RoleInfo, 0)
+	roles, _ := b.getRolesByUserId(user.Id)
+	for _, role := range roles {
+		userInfo.Roles = append(userInfo.Roles, RoleInfo{Id: role.Id, Name: role.Name})
+	}
+
+	// 机构列表
+	userInfo.Departments = make([]DepartmentInfo, 0)
+	departs, _ := b.getDepartsByUserId(user.Id)
+	for _, depart := range departs {
+		userInfo.Departments = append(userInfo.Departments, DepartmentInfo{Id: depart.Id, Name: depart.Name, ParentId: depart.ParentId})
+	}
+
+	return userInfo, nil
 }
 
 //

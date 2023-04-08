@@ -6,7 +6,6 @@ import (
 	"github.com/UritMedical/qf/util/qerror"
 	"github.com/UritMedical/qf/util/qid"
 	"github.com/UritMedical/qf/util/qio"
-	"github.com/UritMedical/qf/util/token"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/driver/sqlserver"
@@ -35,6 +34,7 @@ func doStart() {
 	if serv.setting.UserConfig.Enabled == 1 {
 		serv.userBll = &userBll{}
 		serv.RegBll(serv.userBll, "")
+		serv.userBll.setTokenConfig(serv.setting.UserConfig.TokenWhiteList, serv.setting.UserConfig.TokenVerify)
 	}
 	// 注册外部业务
 	regBllFunc(serv)
@@ -52,19 +52,17 @@ func doStop() {
 }
 
 type Service struct {
-	folder         string                    // 框架的文件夹路径
-	db             *gorm.DB                  // 数据库
-	engine         *gin.Engine               // gin
-	bllList        map[string]IBll           // 所有创建的业务层对象
-	apiHandler     map[string]ApiHandler     // 所有注册的业务API函数指针
-	allApis        map[string][]string       // 所有业务包含的API路由
-	msgHandler     map[string]MessageHandler // 所有消息执行的函数指针
-	errCodes       map[int]string            // 所有故障码字典
-	setting        setting                   // 框架配置
-	idAllocator    qid.IIdAllocator          // id分配器接口
-	loginUser      map[string]LoginUser      // 登陆用户信息
-	tokenWhiteList map[string]byte           // token白名单
-	userBll        *userBll                  // 用户业务模块
+	folder      string                    // 框架的文件夹路径
+	db          *gorm.DB                  // 数据库
+	engine      *gin.Engine               // gin
+	bllList     map[string]IBll           // 所有创建的业务层对象
+	apiHandler  map[string]ApiHandler     // 所有注册的业务API函数指针
+	allApis     map[string][]string       // 所有业务包含的API路由
+	msgHandler  map[string]MessageHandler // 所有消息执行的函数指针
+	errCodes    map[int]string            // 所有故障码字典
+	setting     setting                   // 框架配置
+	idAllocator qid.IIdAllocator          // id分配器接口
+	userBll     *userBll                  // 用户业务模块
 }
 
 //
@@ -78,7 +76,6 @@ func newService() *Service {
 		allApis:    map[string][]string{},
 		apiHandler: map[string]ApiHandler{},
 		msgHandler: map[string]MessageHandler{},
-		loginUser:  map[string]LoginUser{},
 		errCodes:   map[int]string{},
 		setting:    setting{},
 	}
@@ -96,10 +93,6 @@ func newService() *Service {
 	s.folder = "."
 	// 加载配置
 	s.setting.Load(fmt.Sprintf("%s/config/config.toml", s.folder))
-	s.tokenWhiteList = map[string]byte{}
-	for _, t := range s.setting.UserConfig.TokenWhiteList {
-		s.tokenWhiteList[t] = 1
-	}
 	// 初始化gorm
 	gc := gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
@@ -301,17 +294,10 @@ func (s *Service) context(ctx *gin.Context) {
 
 	url := fmt.Sprintf("%s:%s", ctx.Request.Method, ctx.FullPath())
 	if handler, ok := s.apiHandler[url]; ok {
-		// 获取Token值
-		tkn := ctx.GetHeader("Token")
-		bt := ctx.Query("Bi")
-		if bt != "" {
-			tkn = bt
-		}
 
 		// 验证token和权限，返回登陆用户信息
-		// 白名单跳过
-		login, err := s.verify(tkn, url)
-		if err != nil && s.tokenWhiteList[url] == 0 {
+		login, err := s.userBll.verifyToken(ctx, url)
+		if err != nil {
 			s.returnInvalid(ctx, err)
 			return
 		}
@@ -377,15 +363,6 @@ func (s *Service) context(ctx *gin.Context) {
 					}
 				}()
 			}
-			// 截取登陆接口，获取登陆信息
-			if url == fmt.Sprintf("POST:/%s/qf/login", s.setting.WebConfig.DefGroup) {
-				tkn = result.(map[string]interface{})["Token"].(string)
-				_, err = s.verify(tkn, "")
-				if err != nil && s.tokenWhiteList[url] == 0 {
-					s.returnInvalid(ctx, err)
-					return
-				}
-			}
 			// TODO：记录日志
 
 			if f, isFile := result.(CtxFile); isFile {
@@ -431,71 +408,6 @@ func (s *Service) returnOk(ctx *gin.Context, data interface{}) {
 		"msg":    "success",
 		"data":   data,
 	})
-}
-
-func (s *Service) verify(tokenStr string, url string) (LoginUser, IError) {
-	if s.userBll == nil || tokenStr == s.setting.UserConfig.TokenVerify {
-		return LoginUser{}, nil
-	}
-	// 解析token
-	claims, err := token.ParseToken(tokenStr)
-	if err != nil {
-		return LoginUser{}, Error(ErrorCodeTokenInvalid, err.Error())
-	}
-	t := time.Unix(claims.ExpiresAt, 0)
-	if time.Now().After(t) {
-		return LoginUser{}, Error(ErrorCodeTokenExpires, err.Error())
-	}
-	// 如果缓存存在，则通过缓存
-	if _, ok := s.loginUser[tokenStr]; ok {
-		return s.loginUser[tokenStr], nil
-	}
-	// 获取用户信息
-	user, err := s.userBll.getUserModel(&Context{loginUser: LoginUser{UserId: claims.Id}})
-	if err != nil {
-		return LoginUser{}, Error(ErrorCodeTokenInvalid, err.Error())
-	}
-
-	value := user.(map[string]interface{})
-	info := value["Info"].(map[string]interface{})
-	login := LoginUser{
-		UserId:   uint64(info["Id"].(float64)),
-		UserName: info["Name"].(string),
-		LoginId:  info["LoginId"].(string),
-		roles:    map[uint64]struct{ Name string }{},
-	}
-	rlist := make([]uint64, 0)
-	for _, role := range value["Roles"].([]map[string]interface{}) {
-		rid := uint64(role["Id"].(float64))
-		login.roles[rid] = struct{ Name string }{
-			Name: role["Name"].(string),
-		}
-		rlist = append(rlist, rid)
-	}
-
-	// 获取组织机构
-	dps, err := s.userBll.getOrg(login.UserId)
-	if err != nil {
-		return LoginUser{}, Error(ErrorCodeTokenInvalid, err.Error())
-	}
-	login.Departments = dps
-	if tokenStr != "" {
-		s.loginUser[tokenStr] = login
-	}
-
-	// 获取api
-	login.apis = s.userBll.getUserAllApis(rlist...)
-
-	// 权限验证
-	if login.UserId > 2 {
-		// 获取用户权限
-		if _, exist := login.apis[url]; exist == false {
-			e := fmt.Sprintf("the user does not have %s permission", url)
-			return login, Error(ErrorCodePermissionDenied, e)
-		}
-	}
-
-	return login, nil
 }
 
 func (s *Service) getCors() gin.HandlerFunc {
