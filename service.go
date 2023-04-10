@@ -296,10 +296,14 @@ func (s *Service) context(ctx *gin.Context) {
 	if handler, ok := s.apiHandler[url]; ok {
 
 		// 验证token和权限，返回登陆用户信息
-		login, err := s.userBll.verifyToken(ctx, url)
-		if err != nil {
-			s.returnInvalid(ctx, err)
-			return
+		login := LoginUser{}
+		if s.userBll != nil {
+			l, err := s.userBll.verifyToken(ctx, url)
+			if err != nil {
+				s.returnInvalid(ctx, err)
+				return
+			}
+			login = l
 		}
 
 		// 生成上下文

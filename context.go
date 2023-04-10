@@ -77,6 +77,88 @@ func (ctx *Context) LoginUser() LoginUser {
 }
 
 //
+// GetUserInfo
+//  @Description: 获取用户完整信息
+//  @param userId 用户编号
+//  @return User
+//  @return error
+//
+func (ctx *Context) GetUserInfo(userId uint64) (User, IError) {
+	if serv != nil && serv.userBll != nil {
+		return serv.userBll.getUserModelById(userId)
+	}
+	return User{}, nil
+}
+
+//
+// GetUserList
+//  @Description: 获取所有用户列表
+//  @return []User
+//  @return IError
+//
+func (ctx *Context) GetUserList() ([]User, IError) {
+	if serv != nil && serv.userBll != nil {
+		return serv.userBll.getUserList()
+	}
+	return nil, nil
+}
+
+//
+// GetUserDepartments
+//  @Description: 获取患者机构列表
+//  @param userId
+//  @return []Department
+//  @return error
+//
+func (ctx *Context) GetUserDepartments(userId uint64) ([]Department, IError) {
+	if serv != nil && serv.userBll != nil {
+		return serv.userBll.getDepartsByUserId(userId)
+	}
+	return make([]Department, 0), nil
+}
+
+//
+// GetDepartmentInfo
+//  @Description: 获取机构信息
+//  @param dpId
+//  @return Department
+//  @return error
+//
+func (ctx *Context) GetDepartmentInfo(dpId uint64) (Department, IError) {
+	if serv != nil && serv.userBll != nil {
+		return serv.userBll.getDptInfo(dpId)
+	}
+	return Department{}, nil
+}
+
+//
+// GetDepartmentList
+//  @Description: 获取机构列表
+//  @param parentId 父级
+//  @return []Department
+//  @return error
+//
+func (ctx *Context) GetDepartmentList(parentId uint64) ([]DepartNode, IError) {
+	final := make([]DepartNode, 0)
+	if serv != nil && serv.userBll != nil {
+		tree := serv.userBll.buildTree()
+		if parentId == 0 {
+			for _, t := range tree {
+				final = append(final, *t)
+			}
+		} else {
+			for _, t := range tree {
+				if t.Id == parentId {
+					final = append(final, *t)
+				}
+			}
+		}
+		return final, nil
+	}
+	return final, nil
+}
+
+//
 // IsNull
 //  @Description: 判断提交的内容是否为空
 //  @return bool

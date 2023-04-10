@@ -33,8 +33,8 @@ func (b *userBll) verifyToken(ctx *gin.Context, url string) (LoginUser, IError) 
 		// 获取用户基本信息
 		if user, err := b.getFullUser(claims.Id); err == nil {
 			b.setMap(tokenStr, LoginUser{
-				UserId:      claims.Id,
-				UserName:    user.Name,
+				UserId:      user.UserId,
+				UserName:    user.UserName,
 				LoginId:     user.LoginId,
 				Roles:       user.Roles,
 				Departments: user.Departments,
@@ -61,7 +61,7 @@ func (b *userBll) saveToken(id uint64, tokenStr string) {
 	if user, err := b.getFullUser(id); err == nil {
 		b.setMap(tokenStr, LoginUser{
 			UserId:      id,
-			UserName:    user.Name,
+			UserName:    user.UserName,
 			LoginId:     user.LoginId,
 			Roles:       user.Roles,
 			Departments: user.Departments,

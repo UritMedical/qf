@@ -248,27 +248,18 @@ func (b *userBll) getUserModel(ctx *Context) (interface{}, IError) {
 	return ret, err
 }
 
-type UserInfo struct {
-	Id          uint64
-	Name        string
-	LoginId     string
-	Roles       []RoleInfo
-	Departments []DepartmentInfo
+func (b *userBll) getUserModelById(userId uint64) (User, IError) {
+	user := User{}
+	err := b.userDal.GetModel(userId, &user)
+	return user, err
 }
 
-type RoleInfo struct {
-	Id   uint64
-	Name string
+func (b *userBll) getUserList() ([]User, IError) {
+	return b.userDal.GetAllUsers()
 }
 
-type DepartmentInfo struct {
-	Id       uint64
-	Name     string
-	ParentId uint64
-}
-
-func (b *userBll) getFullUser(id uint64) (UserInfo, error) {
-	userInfo := UserInfo{}
+func (b *userBll) getFullUser(id uint64) (LoginUser, error) {
+	userInfo := LoginUser{}
 
 	user := &User{}
 	err := b.userDal.GetModel(id, user)
@@ -278,8 +269,8 @@ func (b *userBll) getFullUser(id uint64) (UserInfo, error) {
 
 	// 基本信息
 	info := util.ToMap(user)
-	userInfo.Id = user.Id
-	userInfo.Name = info["Name"].(string)
+	userInfo.UserId = user.Id
+	userInfo.UserName = info["Name"].(string)
 	userInfo.LoginId = info["LoginId"].(string)
 
 	// 角色列表

@@ -213,6 +213,17 @@ type LoginUser struct {
 	apis        map[string]byte  // 允许操作的api列表
 }
 
+type RoleInfo struct {
+	Id   uint64
+	Name string
+}
+
+type DepartmentInfo struct {
+	Id       uint64
+	Name     string
+	ParentId uint64
+}
+
 func (u LoginUser) copyTo() LoginUser {
 	user := LoginUser{
 		UserId:      u.UserId,

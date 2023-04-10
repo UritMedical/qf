@@ -151,6 +151,32 @@ func (b *userBll) getDpts(ctx *Context) (interface{}, IError) {
 	return util.ToMaps(list), err
 }
 
+func (b *userBll) getDptInfo(id uint64) (Department, IError) {
+	dpt := Department{}
+	err := b.dptDal.GetModel(id, &dpt)
+	if err != nil {
+		return Department{}, err
+	}
+	return dpt, nil
+}
+
+func (b *userBll) getDptList(pId uint64) ([]Department, IError) {
+	list, err := b.dptDal.GetAll()
+	if err != nil {
+		return make([]Department, 0), err
+	}
+	if pId == 0 {
+		return list, nil
+	}
+	finals := make([]Department, 0)
+	for _, l := range list {
+		if l.ParentId == pId {
+			finals = append(finals, l)
+		}
+	}
+	return finals, nil
+}
+
 //
 // getDptUsers
 //  @Description: 获取部门的用户
@@ -253,7 +279,7 @@ func (b *userBll) findChildrenDpt(departId uint64, dptNodes []*DepartNode) *Depa
 //  @return []Department
 //  @return error
 //
-func (b *userBll) getDepartsByUserId(userId uint64) ([]Department, error) {
+func (b *userBll) getDepartsByUserId(userId uint64) ([]Department, IError) {
 	dptIds, _ := b.dptUserDal.GetDptsByUserId(userId)
 	return b.dptDal.GetDptsByIds(dptIds)
 }
