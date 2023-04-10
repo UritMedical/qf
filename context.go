@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/UritMedical/qf/util"
 	"github.com/UritMedical/qf/util/qid"
+	"github.com/UritMedical/qf/util/qio"
 	"github.com/UritMedical/qf/util/qreflect"
 	"mime/multipart"
 	"reflect"
@@ -24,6 +25,15 @@ type Context struct {
 	inputFiles  map[string][]*multipart.FileHeader
 	// id分配器
 	idAllocator qid.IIdAllocator
+}
+
+//
+// CtxFile
+//  @Description: 文件下载
+//
+type CtxFile struct {
+	FileName string
+	Data     []byte
 }
 
 //
@@ -64,6 +74,88 @@ func (ctx *Context) NewId(object interface{}) uint64 {
 //
 func (ctx *Context) LoginUser() LoginUser {
 	return ctx.loginUser.copyTo()
+}
+
+//
+// GetUserInfo
+//  @Description: 获取用户完整信息
+//  @param userId 用户编号
+//  @return User
+//  @return error
+//
+func (ctx *Context) GetUserInfo(userId uint64) (User, IError) {
+	if serv != nil && serv.userBll != nil {
+		return serv.userBll.getUserModelById(userId)
+	}
+	return User{}, nil
+}
+
+//
+// GetUserList
+//  @Description: 获取所有用户列表
+//  @return []User
+//  @return IError
+//
+func (ctx *Context) GetUserList() ([]User, IError) {
+	if serv != nil && serv.userBll != nil {
+		return serv.userBll.getUserList()
+	}
+	return nil, nil
+}
+
+//
+// GetUserDepartments
+//  @Description: 获取患者机构列表
+//  @param userId
+//  @return []Department
+//  @return error
+//
+func (ctx *Context) GetUserDepartments(userId uint64) ([]Department, IError) {
+	if serv != nil && serv.userBll != nil {
+		return serv.userBll.getDepartsByUserId(userId)
+	}
+	return make([]Department, 0), nil
+}
+
+//
+// GetDepartmentInfo
+//  @Description: 获取机构信息
+//  @param dpId
+//  @return Department
+//  @return error
+//
+func (ctx *Context) GetDepartmentInfo(dpId uint64) (Department, IError) {
+	if serv != nil && serv.userBll != nil {
+		return serv.userBll.getDptInfo(dpId)
+	}
+	return Department{}, nil
+}
+
+//
+// GetDepartmentList
+//  @Description: 获取机构列表
+//  @param parentId 父级
+//  @return []Department
+//  @return error
+//
+func (ctx *Context) GetDepartmentList(parentId uint64) ([]DepartNode, IError) {
+	final := make([]DepartNode, 0)
+	if serv != nil && serv.userBll != nil {
+		tree := serv.userBll.buildTree()
+		if parentId == 0 {
+			for _, t := range tree {
+				final = append(final, *t)
+			}
+		} else {
+			for _, t := range tree {
+				if t.Id == parentId {
+					final = append(final, *t)
+				}
+			}
+		}
+		return final, nil
+	}
+	return final, nil
 }
 
 //
@@ -129,6 +221,39 @@ func (ctx *Context) LoadFile(key string) []*multipart.FileHeader {
 		return nil
 	}
 	return ctx.inputFiles[key]
+}
+
+//
+// BuildFileByPath
+//  @Description: 通过文件路径生成下载文件
+//  @param contentType
+//  @param data
+//  @return CtxData
+//
+func (ctx *Context) BuildFileByPath(filePath string) (CtxFile, IError) {
+	data, err := qio.ReadAllBytes(filePath)
+	if err != nil {
+		return CtxFile{}, Error(ErrorCodeFileNotFound, err.Error())
+	}
+	return CtxFile{
+		FileName: qio.GetFileName(filePath),
+		Data:     data,
+	}, nil
+}
+
+//
+// BuildFileByStream
+//  @Description: 通过二进制流生成下载文件
+//  @param fileName 文件名
+//  @param buff 文件二进制
+//  @return CtxFile
+//  @return IError
+//
+func (ctx *Context) BuildFileByStream(fileName string, buff []byte) (CtxFile, IError) {
+	return CtxFile{
+		FileName: fileName,
+		Data:     buff,
+	}, nil
 }
 
 //

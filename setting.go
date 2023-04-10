@@ -31,7 +31,7 @@ type webConfig struct {
 }
 
 type gormConfig struct {
-	DBType                 string `comment:"数据库类型：sqlite, sqlserver\n 参数\n sqlite：xxx.db\n sqlserver：ip,db,user,pwd"`
+	DBType                 string `comment:"数据库类型：sqlite, sqlserver\n 参数\n sqlite：xxx.db\n sqlserver：用户名:密码@地址?database=数据库&encrypt=disable"`
 	DBParam                string
 	OpenLog                byte   `comment:"是否输出脚本日志 0否 1是"`
 	SkipDefaultTransaction byte   `comment:"跳过默认事务 0否 1是"`

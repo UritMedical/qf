@@ -205,15 +205,23 @@ type BaseModel struct {
 //  @Description: 登陆用户信息
 //
 type LoginUser struct {
-	UserId      uint64       // 登陆用户唯一号
-	UserName    string       // 登陆用户名字
-	LoginId     string       // 登陆用户账号
-	Departments []Department // 所属部门列表
-	roles       map[uint64]struct {
-		Name string
-	} // 角色列表
-	// 允许操作的api列表
-	apis map[string]byte
+	UserId      uint64           // 登陆用户唯一号
+	UserName    string           // 登陆用户名字
+	LoginId     string           // 登陆用户账号
+	Roles       []RoleInfo       // 所属的角色列表
+	Departments []DepartmentInfo // 所属部门列表
+	apis        map[string]byte  // 允许操作的api列表
+}
+
+type RoleInfo struct {
+	Id   uint64
+	Name string
+}
+
+type DepartmentInfo struct {
+	Id       uint64
+	Name     string
+	ParentId uint64
 }
 
 func (u LoginUser) copyTo() LoginUser {
@@ -221,16 +229,18 @@ func (u LoginUser) copyTo() LoginUser {
 		UserId:      u.UserId,
 		UserName:    u.UserName,
 		LoginId:     u.LoginId,
-		Departments: make([]Department, len(u.Departments)),
-		roles:       map[uint64]struct{ Name string }{},
+		Roles:       make([]RoleInfo, len(u.Roles)),
+		Departments: make([]DepartmentInfo, len(u.Departments)),
+		apis:        map[string]byte{},
+	}
+	for i, r := range u.Roles {
+		user.Roles[i] = r
 	}
 	for i, d := range u.Departments {
 		user.Departments[i] = d
 	}
-	for id, info := range u.roles {
-		user.roles[id] = struct{ Name string }{
-			Name: info.Name,
-		}
+	for k, v := range u.apis {
+		user.apis[k] = v
 	}
 	return user
 }
@@ -407,6 +417,7 @@ const (
 	ErrorCodeRecordExist                   // 记录已经存在
 	ErrorCodeSaveFailure                   // 保存失败
 	ErrorCodeDeleteFailure                 // 删除失败
+	ErrorCodeFileNotFound                  // 文件不存在
 )
 
 const (

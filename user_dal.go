@@ -24,6 +24,15 @@ func (d departmentDal) GetDptsByIds(dptIds []uint64) ([]Department, IError) {
 	return list, nil
 }
 
+func (d departmentDal) GetAll() ([]Department, IError) {
+	list := make([]Department, 0)
+	err := d.DB().Find(&list).Error
+	if err != nil {
+		return nil, Error(ErrorCodeRecordNotFound, err.Error())
+	}
+	return list, nil
+}
+
 //---------------------------------------------------------------------------------------------------
 
 //
