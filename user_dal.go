@@ -201,18 +201,20 @@ func (r permissionApiDal) SetPermissionApis(permissionId uint64, apiList []ApiIn
 		return Error(ErrorCodeDeleteFailure, err.Error())
 	}
 
-	apis := make([]PermissionApi, 0)
-	for _, api := range apiList {
-		apis = append(apis, PermissionApi{
-			PermissionId: permissionId,
-			Group:        api.Group,
-			ApiId:        api.ApiId,
-		})
-	}
+	if len(apiList) > 0 {
+		apis := make([]PermissionApi, 0)
+		for _, api := range apiList {
+			apis = append(apis, PermissionApi{
+				PermissionId: permissionId,
+				Group:        api.Group,
+				ApiId:        api.ApiId,
+			})
+		}
 
-	if err := tx.Create(&apis).Error; err != nil {
-		tx.Rollback()
-		return Error(ErrorCodeSaveFailure, err.Error())
+		if err := tx.Create(&apis).Error; err != nil {
+			tx.Rollback()
+			return Error(ErrorCodeSaveFailure, err.Error())
+		}
 	}
 	e := tx.Commit().Error
 	if e != nil {
@@ -259,17 +261,19 @@ func (r rolePermissionDal) SetRolePermission(roleId uint64, permissionIds []uint
 	}
 
 	//再将权限添加到数据库
-	list := make([]RolePermission, 0)
-	for _, id := range permissionIds {
-		list = append(list, RolePermission{
-			RoleId:       roleId,
-			PermissionId: id,
-		})
-	}
+	if len(permissionIds) > 0 {
+		list := make([]RolePermission, 0)
+		for _, id := range permissionIds {
+			list = append(list, RolePermission{
+				RoleId:       roleId,
+				PermissionId: id,
+			})
+		}
 
-	if err := tx.Create(&list).Error; err != nil {
-		tx.Rollback()
-		return Error(ErrorCodeSaveFailure, err.Error())
+		if err := tx.Create(&list).Error; err != nil {
+			tx.Rollback()
+			return Error(ErrorCodeSaveFailure, err.Error())
+		}
 	}
 
 	e := tx.Commit().Error
