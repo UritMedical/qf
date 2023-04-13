@@ -213,15 +213,34 @@ type LoginUser struct {
 	apis        map[string]byte  // 允许操作的api列表
 }
 
+//
+// RoleInfo
+//  @Description: 角色信息
+//
 type RoleInfo struct {
 	Id   uint64
 	Name string
 }
 
+//
+// DepartmentInfo
+//  @Description: 机构信息
+//
 type DepartmentInfo struct {
 	Id       uint64
 	Name     string
 	ParentId uint64
+}
+
+//
+// DepartNode
+//  @Description: 部门树节点
+//
+type DepartNode struct {
+	Id       uint64
+	Name     string
+	ParentId uint64
+	Children []*DepartNode
 }
 
 func (u LoginUser) copyTo() LoginUser {

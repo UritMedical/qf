@@ -6,16 +6,6 @@ import (
 	"sort"
 )
 
-// DepartNode
-// @Description: 部门树节点
-//
-type DepartNode struct {
-	Id       uint64
-	Name     string
-	ParentId uint64
-	Children []*DepartNode
-}
-
 const maxCount = 100
 
 //注册部门相关API

@@ -27,6 +27,21 @@ var (
 	stopFunc   func()
 )
 
+//
+// Run
+//  @Description: 启动
+//  @param regBll 注册业务（必须）
+//  @param stop 自定义释放
+//
+func Run(regBll func(s *Service), stop func()) {
+	// 收集异常
+	defer qerror.Recover(nil)
+
+	regBllFunc = regBll
+	stopFunc = stop
+	launcher.Run(doStart, doStop)
+}
+
 func doStart() {
 	// 创建服务
 	serv = newService()
@@ -51,6 +66,10 @@ func doStop() {
 	serv.stop()
 }
 
+//
+// Service
+//  @Description: qf服务
+//
 type Service struct {
 	folder      string                    // 框架的文件夹路径
 	db          *gorm.DB                  // 数据库

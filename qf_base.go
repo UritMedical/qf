@@ -236,7 +236,7 @@ func (b *BaseDal) Delete(id uint64) IError {
 //  @return IError 返回异常
 //
 func (b *BaseDal) GetModel(id uint64, dest interface{}) IError {
-	result := b.DB().Where("id = ?", id).Find(dest)
+	result := b.DB().Where("Id = ?", id).Find(dest)
 	// 如果异常或者未查询到任何数据
 	if result.Error != nil {
 		return Error(ErrorCodeRecordNotFound, result.Error.Error())
@@ -254,6 +254,21 @@ func (b *BaseDal) GetModel(id uint64, dest interface{}) IError {
 //
 func (b *BaseDal) GetList(startId uint64, maxCount uint, dest interface{}) IError {
 	result := b.DB().Limit(int(maxCount)).Offset(int(startId)).Find(dest)
+	if result.Error != nil {
+		return Error(ErrorCodeRecordNotFound, result.Error.Error())
+	}
+	return nil
+}
+
+//
+// GetListByIN
+//  @Description: 获取指定Id列表的一组数据列表
+//  @param ids Id列表
+//  @param dest
+//  @return IError
+//
+func (b *BaseDal) GetListByIN(ids []uint64, dest interface{}) IError {
+	result := b.DB().Where("Id IN (?)", ids).Find(dest)
 	if result.Error != nil {
 		return Error(ErrorCodeRecordNotFound, result.Error.Error())
 	}
@@ -297,7 +312,7 @@ func (b *BaseDal) GetCount(query interface{}, args ...interface{}) int64 {
 //
 func (b *BaseDal) CheckExists(id uint64) bool {
 	count := int64(0)
-	result := b.DB().Where("id = ?", id).Count(&count)
+	result := b.DB().Where("Id = ?", id).Count(&count)
 	if count > 0 && result.Error == nil {
 		return true
 	}
