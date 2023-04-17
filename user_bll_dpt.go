@@ -17,9 +17,10 @@ func (b *userBll) regDptApi(api ApiMap) {
 	api.Reg(EApiKindGetModel, "dpt/tree", b.getDptTree) //获取部门组织树
 
 	//部门-用户
-	api.Reg(EApiKindSave, "dpt/users", b.setDptUsers)    //批量添加用户
-	api.Reg(EApiKindDelete, "dpt/user", b.deleteDptUser) //从部门中删除单个用户
-	api.Reg(EApiKindGetList, "dpt/users", b.getDptUsers) //获取指定部门的所有用户
+	api.Reg(EApiKindSave, "dpt/users", b.setDptUsers)               //批量添加用户
+	api.Reg(EApiKindDelete, "dpt/user", b.deleteDptUser)            //从部门中删除单个用户
+	api.Reg(EApiKindGetList, "dpt/users", b.getDptAndChildDptUsers) //获取指定部门以及子部门的所有用户
+	api.Reg(EApiKindGetList, "dpt/cur/users", b.getCurDptUsersOnly) //仅获取当前部门的用户
 
 }
 
@@ -167,14 +168,37 @@ func (b *userBll) getDptList(pId uint64) ([]Department, IError) {
 	return finals, nil
 }
 
+func (b *userBll) getCurDptUsersOnly(ctx *Context) (interface{}, IError) {
+	departId := ctx.GetUIntValue("DepartId")
+	uIds, _ := b.dptUserDal.GetUsersByDptId(departId)
+	list, _ := b.userDal.GetUsersByIds(uIds)
+
+	result := make([]map[string]interface{}, 0)
+	for _, user := range list {
+		//获取用户所在部门
+		departs, _ := b.getDepartsByUserId(user.Id)
+
+		//获取用户所拥有的角色
+		roles, _ := b.getRolesByUserId(user.Id)
+
+		ret := map[string]interface{}{
+			"UserInfo":    util.ToMap(user),
+			"Roles":       util.ToMaps(roles),
+			"Departments": util.ToMaps(departs),
+		}
+		result = append(result, ret)
+	}
+	return result, nil
+}
+
 //
-// getDptUsers
+// getDptAndChildDptUsers
 //  @Description: 获取部门的用户
 //  @param ctx
 //  @return interface{}
 //  @return error
 //
-func (b *userBll) getDptUsers(ctx *Context) (interface{}, IError) {
+func (b *userBll) getDptAndChildDptUsers(ctx *Context) (interface{}, IError) {
 	departId := ctx.GetUIntValue("DepartId")
 	list, err := b.getDptAndSubDptUsers(departId)
 	result := make([]map[string]interface{}, 0)

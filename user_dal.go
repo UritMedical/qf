@@ -1,5 +1,7 @@
 package qf
 
+import "strings"
+
 //
 // departmentDal
 //  @Description:
@@ -34,30 +36,6 @@ func (d departmentDal) GetAll() ([]Department, IError) {
 }
 
 //---------------------------------------------------------------------------------------------------
-
-//
-// permissionDal
-//  @Description:
-//
-type permissionDal struct {
-	BaseDal
-}
-
-//
-// GetPermissionsByIds
-//  @Description: 获取权限组列表
-//  @param ids
-//  @return []Permission
-//  @return error
-//
-func (p permissionDal) GetPermissionsByIds(ids []uint64) ([]Permission, IError) {
-	list := make([]Permission, 0)
-	err := p.DB().Where("Id IN (?)", ids).Find(&list).Error
-	if err != nil {
-		return nil, Error(ErrorCodeRecordNotFound, err.Error())
-	}
-	return list, nil
-}
 
 //---------------------------------------------------------------------------------------------------
 
@@ -182,36 +160,36 @@ func (d dptUserDal) GetDptsByUserId(userId uint64) ([]uint64, IError) {
 
 //---------------------------------------------------------------------------------------------------
 
-type permissionApiDal struct {
+type roleApiDal struct {
 	BaseDal
 }
 
 //
-// SetPermissionApis
-//  @Description: 向指定权限组添加，删除API
-//  @param permissionId
+// SetRoleApis
+//  @Description: 向指定角色添加，删除API
+//  @param roleId
 //  @param apiKeys
 //  @return error
 //
-func (r permissionApiDal) SetPermissionApis(permissionId uint64, apiList []ApiInfo) IError {
+func (r roleApiDal) SetRoleApis(roleId uint64, apiList []string) IError {
 	tx := r.DB().Begin()
-	//先删除此权限组所有的API
-	if err := tx.Where("PermissionId = ?", permissionId).Delete(&PermissionApi{}).Error; err != nil {
+	//先删除此角色组所有的API
+	if err := tx.Where("RoleId = ?", roleId).Delete(&RoleApi{}).Error; err != nil {
 		tx.Rollback()
 		return Error(ErrorCodeDeleteFailure, err.Error())
 	}
 
 	if len(apiList) > 0 {
-		apis := make([]PermissionApi, 0)
-		for _, api := range apiList {
-			apis = append(apis, PermissionApi{
-				PermissionId: permissionId,
-				Group:        api.Group,
-				ApiId:        api.ApiId,
+		addList := make([]RoleApi, 0)
+		for _, v := range apiList {
+			ret := strings.Split(v, ":")
+			addList = append(addList, RoleApi{
+				RoleId:     roleId,
+				Permission: ret[0],
+				Url:        ret[1],
 			})
 		}
-
-		if err := tx.Create(&apis).Error; err != nil {
+		if err := tx.Create(&addList).Error; err != nil {
 			tx.Rollback()
 			return Error(ErrorCodeSaveFailure, err.Error())
 		}
@@ -224,80 +202,20 @@ func (r permissionApiDal) SetPermissionApis(permissionId uint64, apiList []ApiIn
 }
 
 //
-// GetApisByPermissionId
-//  @Description: 获取指定权限组的API
-//  @param permissionId
+// GetApisByRoleId
+//  @Description: 获取指定角色的API
+//  @param roleId
 //  @return []string
 //  @return error
 //
-func (r permissionApiDal) GetApisByPermissionId(permissionId uint64) ([]PermissionApi, IError) {
-	apis := make([]PermissionApi, 0)
-	err := r.DB().Where("PermissionId = ?", permissionId).Find(&apis).Error
+func (r roleApiDal) GetApisByRoleId(roleIds []uint64) ([]RoleApi, IError) {
+	apis := make([]RoleApi, 0)
+	err := r.DB().Where("RoleId IN ?", roleIds).Find(&apis).Error
 	if err != nil {
 		return nil, Error(ErrorCodeRecordNotFound, err.Error())
 	}
 	return apis, nil
 }
-
-//---------------------------------------------------------------------------------------------------
-
-type rolePermissionDal struct {
-	BaseDal
-}
-
-//
-// SetRolePermission
-//  @Description: 给指定角色分配权限。先删除roleId所有的权限，然后再重新添加
-//  @param roleId
-//  @param permissionIds
-//  @return error
-//
-func (r rolePermissionDal) SetRolePermission(roleId uint64, permissionIds []uint64) IError {
-	tx := r.DB().Begin()
-	//先删除原来的权限
-	if err := tx.Where("RoleId = ?", roleId).Delete(&RolePermission{}).Error; err != nil {
-		tx.Rollback()
-		return Error(ErrorCodeDeleteFailure, err.Error())
-	}
-
-	//再将权限添加到数据库
-	if len(permissionIds) > 0 {
-		list := make([]RolePermission, 0)
-		for _, id := range permissionIds {
-			list = append(list, RolePermission{
-				RoleId:       roleId,
-				PermissionId: id,
-			})
-		}
-
-		if err := tx.Create(&list).Error; err != nil {
-			tx.Rollback()
-			return Error(ErrorCodeSaveFailure, err.Error())
-		}
-	}
-
-	e := tx.Commit().Error
-	if e != nil {
-		return Error(ErrorCodeSaveFailure, e.Error())
-	}
-	return nil
-}
-
-//
-// GetRolePermission
-//  @Description: 获取指定角色拥有的权限
-//  @param roleId
-//
-func (r rolePermissionDal) GetRolePermission(roleId uint64) ([]uint64, IError) {
-	permissions := make([]uint64, 0)
-	err := r.DB().Where("RoleId = ?", roleId).Select("PermissionId").Find(&permissions).Error
-	if err != nil {
-		return nil, Error(ErrorCodeRecordNotFound, err.Error())
-	}
-	return permissions, nil
-}
-
-//---------------------------------------------------------------------------------------------------
 
 type userDal struct {
 	BaseDal

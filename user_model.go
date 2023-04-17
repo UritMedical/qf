@@ -27,36 +27,14 @@ type Role struct {
 	Name string `gorm:"unique"` // 角色名称
 }
 
-// RolePermission
-//  @Description: 角色权限组关系
+// RoleApi
+//  @Description: 角色Api关系
 //
-type RolePermission struct {
+type RoleApi struct {
 	BaseModel
-	RoleId       uint64 `gorm:"index"`
-	PermissionId uint64 `gorm:"index"`
-}
-
-// Permission
-//  @Description: 权限组
-//
-type Permission struct {
-	BaseModel
-	Name string `gorm:"unique"` //权限组名称
-}
-
-// PermissionApi
-//  @Description: 权限组与API的关系
-//
-type PermissionApi struct {
-	BaseModel
-	PermissionId uint64 `gorm:"index"`
-	Group        string // api 所属模块
-	ApiId        string //API key
-}
-
-type ApiInfo struct {
-	ApiId string
-	Group string
+	RoleId     uint64 `gorm:"index"`
+	Url        string //API路由
+	Permission string //API权限，r-只读，rw-读写
 }
 
 //
