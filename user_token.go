@@ -20,6 +20,7 @@ var mutex = &sync.Mutex{}
 //  @return IError
 //
 func (b *userBll) verifyToken(ctx *gin.Context, url string) (LoginUser, IError) {
+	// 验证登陆
 	login, err := b.doVerify(ctx, url)
 	// 如果在白名单，则跳过验证
 	if b.tokenWhiteList[url] == 1 {
@@ -52,23 +53,12 @@ func (b *userBll) doVerify(ctx *gin.Context, url string) (LoginUser, IError) {
 	}
 	// 判断是否过期
 	if time.Now().After(time.Unix(claims.ExpiresAt, 0)) {
-		return LoginUser{}, Error(ErrorCodeTokenExpires, err.Error())
+		return login, Error(ErrorCodeTokenExpires, err.Error())
 	}
 	// 生成用户
 	u, exist := b.getMap(tokenStr)
 	if exist == false {
-		// 获取用户基本信息
-		if user, err := b.getFullUser(claims.Id); err == nil {
-			login = LoginUser{
-				UserId:      user.UserId,
-				UserName:    user.UserName,
-				LoginId:     user.LoginId,
-				Roles:       user.Roles,
-				Departments: user.Departments,
-				apis:        b.getUserAllApis(user.Roles),
-			}
-			b.setMap(tokenStr, login)
-		}
+		login = b.saveToken(claims.Id, tokenStr)
 	} else {
 		login = u
 	}
@@ -92,17 +82,20 @@ func (b *userBll) doVerify(ctx *gin.Context, url string) (LoginUser, IError) {
 //  @param id
 //  @param tokenStr
 //
-func (b *userBll) saveToken(id uint64, tokenStr string) {
+func (b *userBll) saveToken(id uint64, tokenStr string) LoginUser {
+	login := LoginUser{}
 	if user, err := b.getFullUser(id); err == nil {
-		b.setMap(tokenStr, LoginUser{
-			UserId:      id,
-			UserName:    user.UserName,
-			LoginId:     user.LoginId,
-			Roles:       user.Roles,
-			Departments: user.Departments,
-			apis:        b.getUserAllApis(user.Roles),
-		})
+		login = LoginUser{
+			UserId:   user.UserId,
+			UserName: user.UserName,
+			LoginId:  user.LoginId,
+			roles:    user.roles,
+			deptTree: user.deptTree,
+			apis:     b.getUserAllApis(user.roles),
+		}
+		b.setMap(tokenStr, login)
 	}
+	return login
 }
 
 //

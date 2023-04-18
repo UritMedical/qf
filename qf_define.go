@@ -205,55 +205,13 @@ type BaseModel struct {
 //  @Description: 登陆用户信息
 //
 type LoginUser struct {
-	UserId         uint64           // 登陆用户唯一号
-	UserName       string           // 登陆用户名字
-	LoginId        string           // 登陆用户账号
-	Roles          []RoleInfo       // 所属的角色列表
-	Departments    []DepartmentInfo // 所属部门列表
-	DepartmentTree []DepartNode     // 所属部门树
-	apis           map[string]byte  // 允许操作的api列表
-	userBll        *userBll
-}
-
-func (u LoginUser) GetDps() {
-
-	if u.userBll == nil {
-		return
-	}
-
-	// 获取完整部门树
-	tree := u.userBll.buildTree()
-
-	// 获取当前用户所属部门
-	dps, _ := u.userBll.getDepartsByUserId(u.UserId)
-
-	fmt.Println(tree, dps)
-}
-
-func (u LoginUser) copyTo() LoginUser {
-	user := LoginUser{
-		UserId:         u.UserId,
-		UserName:       u.UserName,
-		LoginId:        u.LoginId,
-		userBll:        u.userBll,
-		Roles:          make([]RoleInfo, len(u.Roles)),
-		Departments:    make([]DepartmentInfo, len(u.Departments)),
-		DepartmentTree: make([]DepartNode, len(u.DepartmentTree)),
-		apis:           map[string]byte{},
-	}
-	for i, r := range u.Roles {
-		user.Roles[i] = r
-	}
-	for i, d := range u.Departments {
-		user.Departments[i] = d
-	}
-	for i, d := range u.DepartmentTree {
-		user.DepartmentTree[i] = d
-	}
-	for k, v := range u.apis {
-		user.apis[k] = v
-	}
-	return user
+	UserId   uint64          // 登陆用户唯一号
+	UserName string          // 登陆用户名字
+	LoginId  string          // 登陆用户账号
+	roles    []RoleInfo      // 所属的角色列表
+	deptTree DeptTree        // 所属部门列表
+	apis     map[string]byte // 允许操作的api列表
+	userBll  *userBll
 }
 
 //
@@ -266,24 +224,86 @@ type RoleInfo struct {
 }
 
 //
-// DepartmentInfo
-//  @Description: 机构信息
+// DeptTree
+//  @Description: 部门树
 //
-type DepartmentInfo struct {
-	Id       uint64
-	Name     string
-	ParentId uint64
+type DeptTree []*DeptNode
+
+//
+// GetOrgList
+//  @Description: 返回所在机构列表
+//  @return int
+//
+func (tree DeptTree) GetOrgList() []*DeptNode {
+	nodes := make([]*DeptNode, 0)
+	for _, node := range tree.GetNodes() {
+		if node.ParentId == 0 {
+			nodes = append(nodes, node)
+		}
+	}
+	return nodes
 }
 
 //
-// DepartNode
+// GetDeptList
+//  @Description: 返回所在部门列表
+//  @return []DeptNode
+//
+func (tree DeptTree) GetDeptList() []*DeptNode {
+	nodes := make([]*DeptNode, 0)
+	for _, node := range tree.GetNodes() {
+		if node.ParentId != 0 {
+			nodes = append(nodes, node)
+		}
+	}
+	return nodes
+}
+
+//
+// GetNodes
+//  @Description: 返回全部节点列表
+//  @return []DeptNode
+//
+func (tree DeptTree) GetNodes() []*DeptNode {
+	nodes := make([]*DeptNode, 0)
+	tree.addNode(&nodes, tree)
+	return nodes
+}
+
+//
+// FindDept
+//  @Description: 查找部门
+//  @param deptId
+//  @return *DeptNode
+//
+func (tree DeptTree) FindDept(deptId uint64) *DeptNode {
+	for _, node := range tree.GetNodes() {
+		if node.Id == deptId {
+			return node
+		}
+	}
+	return nil
+}
+
+// 递归展开树
+func (tree DeptTree) addNode(source *[]*DeptNode, nodes []*DeptNode) {
+	for _, node := range nodes {
+		*source = append(*source, node)
+		if node.Children != nil {
+			tree.addNode(source, node.Children)
+		}
+	}
+}
+
+//
+// DeptNode
 //  @Description: 部门树节点
 //
-type DepartNode struct {
+type DeptNode struct {
 	Id       uint64
 	Name     string
 	ParentId uint64
-	Children []*DepartNode
+	Children []*DeptNode
 }
 
 var (

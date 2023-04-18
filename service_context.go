@@ -64,7 +64,7 @@ func (ctx *Context) NewId(object interface{}) uint64 {
 //  @return LoginUser
 //
 func (ctx *Context) LoginUser() LoginUser {
-	return ctx.loginUser.copyTo()
+	return ctx.loginUser
 }
 
 //
@@ -82,44 +82,18 @@ func (ctx *Context) GetUserInfo(userId uint64) (User, IError) {
 }
 
 //
-// GetUserDepartments
-//  @Description: 获取患者机构列表
+// GetUserDeptTree
+//  @Description: 获取用户组织树
 //  @param userId
-//  @return []Department
+//  @return []Dept
 //  @return error
 //
-func (ctx *Context) GetUserDepartments(userId uint64) ([]Department, IError) {
+func (ctx *Context) GetUserDeptTree(userId uint64) (DeptTree, IError) {
 	if serv != nil && serv.userBll != nil {
-		return serv.userBll.getDepartsByUserId(userId)
+		user, err := serv.userBll.getFullUser(userId)
+		return user.deptTree, err
 	}
-	return make([]Department, 0), nil
-}
-
-//
-// GetDepartmentList
-//  @Description: 获取机构列表
-//  @param parentId 父级
-//  @return []Department
-//  @return error
-//
-func (ctx *Context) GetDepartmentList(parentId uint64) ([]DepartNode, IError) {
-	final := make([]DepartNode, 0)
-	if serv != nil && serv.userBll != nil {
-		tree := serv.userBll.buildTree()
-		if parentId == 0 {
-			for _, t := range tree {
-				final = append(final, *t)
-			}
-		} else {
-			for _, t := range tree {
-				if t.Id == parentId {
-					final = append(final, *t)
-				}
-			}
-		}
-		return final, nil
-	}
-	return final, nil
+	return DeptTree{}, nil
 }
 
 //

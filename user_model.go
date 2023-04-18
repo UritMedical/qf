@@ -6,8 +6,8 @@ package qf
 //
 type User struct {
 	BaseModel
-	LoginId  string `gorm:"unique"` //登录Id
-	Password string `json:"-"`      //密码
+	LoginId  string `gorm:"unique"` // 登录Id
+	Password string `json:"-"`      // 密码
 }
 
 // UserRole
@@ -19,13 +19,13 @@ type UserRole struct {
 	RoleId uint64 `gorm:"index"`
 }
 
-// UserDP
+// UserDept
 //  @Description: 用户组织关系表
 //
-type UserDP struct {
+type UserDept struct {
 	BaseModel
-	DpId   uint64 `gorm:"index"`
 	UserId uint64 `gorm:"index"`
+	DeptId uint64 `gorm:"index"`
 }
 
 // Role
@@ -47,10 +47,10 @@ type RoleApi struct {
 }
 
 //
-// Department
+// Dept
 //  @Description: 部门
 //
-type Department struct {
+type Dept struct {
 	BaseModel
 	Name     string `gorm:"unique"` // 部门名称
 	ParentId uint64 `gorm:"index"`  // 父级部门Id

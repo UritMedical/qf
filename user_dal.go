@@ -15,11 +15,11 @@ type departmentDal struct {
 //
 // GetAll
 //  @Description: 获取所有部门列表
-//  @return []Department
+//  @return []Dept
 //  @return IError
 //
-func (d departmentDal) GetAll() ([]Department, IError) {
-	list := make([]Department, 0)
+func (d departmentDal) GetAll() ([]Dept, IError) {
+	list := make([]Dept, 0)
 	err := d.DB().Find(&list).Error
 	if err != nil {
 		return nil, Error(ErrorCodeRecordNotFound, err.Error())
@@ -300,10 +300,10 @@ func (d userDpDal) SetDptUsers(departId uint64, userIds []uint64) IError {
 	tx := d.DB().Begin()
 	//新增关系
 	if len(newUsers) > 0 {
-		addList := make([]UserDP, 0)
+		addList := make([]UserDept, 0)
 		for _, id := range newUsers {
-			addList = append(addList, UserDP{
-				DpId:   departId,
+			addList = append(addList, UserDept{
+				DeptId: departId,
 				UserId: id,
 			})
 		}
@@ -314,7 +314,7 @@ func (d userDpDal) SetDptUsers(departId uint64, userIds []uint64) IError {
 	}
 
 	//删除关系
-	if err := tx.Where("DpId = ? and UserId IN (?)", departId, removeUsers).Delete(UserDP{}).Error; err != nil {
+	if err := tx.Where("DeptId = ? and UserId IN (?)", departId, removeUsers).Delete(UserDept{}).Error; err != nil {
 		tx.Rollback()
 		return Error(ErrorCodeDeleteFailure, err.Error())
 	}
@@ -333,7 +333,7 @@ func (d userDpDal) SetDptUsers(departId uint64, userIds []uint64) IError {
 //  @return error
 //
 func (d userDpDal) RemoveUser(departId uint64, userId uint64) IError {
-	err := d.DB().Where("DpId = ? AND UserId = ?", departId, userId).Delete(&UserDP{}).Error
+	err := d.DB().Where("DeptId = ? AND UserId = ?", departId, userId).Delete(&UserDept{}).Error
 	if err != nil {
 		return Error(ErrorCodeDeleteFailure, err.Error())
 	}
@@ -349,7 +349,7 @@ func (d userDpDal) RemoveUser(departId uint64, userId uint64) IError {
 //
 func (d userDpDal) GetUsersByDptId(departId uint64) ([]uint64, IError) {
 	userIds := make([]uint64, 0)
-	err := d.DB().Where("DpId = ?", departId).Select("UserId").Find(&userIds).Error
+	err := d.DB().Where("DeptId = ?", departId).Select("UserId").Find(&userIds).Error
 	if err != nil {
 		return nil, Error(ErrorCodeRecordNotFound, err.Error())
 	}
@@ -365,7 +365,7 @@ func (d userDpDal) GetUsersByDptId(departId uint64) ([]uint64, IError) {
 //
 func (d userDpDal) GetDptsByUserId(userId uint64) ([]uint64, IError) {
 	dptIds := make([]uint64, 0)
-	err := d.DB().Where("UserId = ?", userId).Select("DpId").Find(&dptIds).Error
+	err := d.DB().Where("UserId = ?", userId).Select("DeptId").Find(&dptIds).Error
 	if err != nil {
 		return nil, Error(ErrorCodeRecordNotFound, err.Error())
 	}

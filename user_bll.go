@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"github.com/UritMedical/qf/util"
 	"github.com/UritMedical/qf/util/token"
+	"sort"
 	"strings"
 )
 
@@ -70,10 +71,10 @@ func (b *userBll) RegDal(regDal DalMap) {
 	regDal.Reg(b.roleApiDal, RoleApi{})
 
 	b.dptDal = &departmentDal{}
-	regDal.Reg(b.dptDal, Department{})
+	regDal.Reg(b.dptDal, Dept{})
 
 	b.userDpDal = &userDpDal{}
-	regDal.Reg(b.userDpDal, UserDP{})
+	regDal.Reg(b.userDpDal, UserDept{})
 }
 
 func (b *userBll) RegFault(f FaultMap) {
@@ -250,7 +251,7 @@ func (b *userBll) getUserList() ([]User, IError) {
 	return b.userDal.GetAllUsers()
 }
 
-func (b *userBll) getFullUser(id uint64) (LoginUser, error) {
+func (b *userBll) getFullUser(id uint64) (LoginUser, IError) {
 	userInfo := LoginUser{}
 
 	user := &User{}
@@ -266,20 +267,62 @@ func (b *userBll) getFullUser(id uint64) (LoginUser, error) {
 	userInfo.LoginId = info["LoginId"].(string)
 
 	// 角色列表
-	userInfo.Roles = make([]RoleInfo, 0)
+	userInfo.roles = make([]RoleInfo, 0)
 	roles, _ := b.getRolesByUserId(user.Id)
 	for _, role := range roles {
-		userInfo.Roles = append(userInfo.Roles, RoleInfo{Id: role.Id, Name: role.Name})
+		userInfo.roles = append(userInfo.roles, RoleInfo{Id: role.Id, Name: role.Name})
 	}
 
-	// 机构列表
-	userInfo.Departments = make([]DepartmentInfo, 0)
-	departs, _ := b.getDepartsByUserId(user.Id)
-	for _, depart := range departs {
-		userInfo.Departments = append(userInfo.Departments, DepartmentInfo{Id: depart.Id, Name: depart.Name, ParentId: depart.ParentId})
-	}
+	// 获取该用户的所有部门
+	dps := make([]Dept, 0)
+	ids, _ := b.userDpDal.GetDptsByUserId(user.Id)
+	_ = b.dptDal.GetListByIN(ids, &dps)
+	userInfo.deptTree = b.buildDpTree(dps)
 
 	return userInfo, nil
+}
+
+func (b *userBll) buildDpTree(list []Dept) DeptTree {
+	// 先按父类排序
+	sort.Slice(list, func(i, j int) bool {
+		if list[i].ParentId < list[j].ParentId {
+			return true
+		}
+		if list[i].Id < list[j].Id {
+			return true
+		}
+		return false
+	})
+	nodeMap := make(map[uint64]*DeptNode)
+	// 将所有节点存储到哈希表中
+	for _, l := range list {
+		nodeMap[l.Id] = &DeptNode{
+			Id:       l.Id,
+			Name:     l.Name,
+			ParentId: l.ParentId,
+			Children: nil,
+		}
+	}
+	// 构建树
+	tree := DeptTree{}
+	for _, l := range list {
+		node := nodeMap[l.Id]
+		if isRoot(node.ParentId, list) {
+			tree = append(tree, node)
+		} else if parentNode, ok := nodeMap[node.ParentId]; ok {
+			parentNode.Children = append(parentNode.Children, node)
+		}
+	}
+	return tree
+}
+
+func isRoot(id uint64, list []Dept) bool {
+	for _, l := range list {
+		if l.Id == id {
+			return false
+		}
+	}
+	return true
 }
 
 //
