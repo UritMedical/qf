@@ -124,7 +124,7 @@ func (b *userBll) setDptUsers(ctx *Context) (interface{}, IError) {
 //  @return error
 //
 func (b *userBll) deleteDptUser(ctx *Context) (interface{}, IError) {
-	DepartId := ctx.GetUIntValue("DepartId")
+	DepartId := ctx.GetUIntValue("DpId")
 	UserId := ctx.GetUIntValue("UserId")
 	return nil, b.dptUserDal.RemoveUser(DepartId, UserId)
 }
@@ -169,7 +169,7 @@ func (b *userBll) getDptList(pId uint64) ([]Department, IError) {
 }
 
 func (b *userBll) getCurDptUsersOnly(ctx *Context) (interface{}, IError) {
-	departId := ctx.GetUIntValue("DepartId")
+	departId := ctx.GetUIntValue("DpId")
 	uIds, _ := b.dptUserDal.GetUsersByDptId(departId)
 	list, _ := b.userDal.GetUsersByIds(uIds)
 
@@ -199,7 +199,7 @@ func (b *userBll) getCurDptUsersOnly(ctx *Context) (interface{}, IError) {
 //  @return error
 //
 func (b *userBll) getDptAndChildDptUsers(ctx *Context) (interface{}, IError) {
-	departId := ctx.GetUIntValue("DepartId")
+	departId := ctx.GetUIntValue("DpId")
 	list, err := b.getDptAndSubDptUsers(departId)
 	result := make([]map[string]interface{}, 0)
 	for _, user := range list {

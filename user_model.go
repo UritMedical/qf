@@ -19,6 +19,15 @@ type UserRole struct {
 	RoleId uint64 `gorm:"index"`
 }
 
+// UserDP
+//  @Description: 用户组织关系表
+//
+type UserDP struct {
+	BaseModel
+	DpId   uint64 `gorm:"index"`
+	UserId uint64 `gorm:"index"`
+}
+
 // Role
 //  @Description: 角色
 //
@@ -33,8 +42,8 @@ type Role struct {
 type RoleApi struct {
 	BaseModel
 	RoleId     uint64 `gorm:"index"`
-	Url        string //API路由
-	Permission string //API权限，r-只读，rw-读写
+	Url        string // API路由
+	Permission string // API权限，r-只读，rw-读写
 }
 
 //
@@ -44,14 +53,5 @@ type RoleApi struct {
 type Department struct {
 	BaseModel
 	Name     string `gorm:"unique"` // 部门名称
-	ParentId uint64 `gorm:"index"`  //父级部门Id
-}
-
-// DepartUser
-//  @Description: 用户组织关系表
-//
-type DepartUser struct {
-	BaseModel
-	DepartId uint64 `gorm:"index"`
-	UserId   uint64 `gorm:"index"`
+	ParentId uint64 `gorm:"index"`  // 父级部门Id
 }

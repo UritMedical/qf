@@ -205,12 +205,55 @@ type BaseModel struct {
 //  @Description: 登陆用户信息
 //
 type LoginUser struct {
-	UserId      uint64           // 登陆用户唯一号
-	UserName    string           // 登陆用户名字
-	LoginId     string           // 登陆用户账号
-	Roles       []RoleInfo       // 所属的角色列表
-	Departments []DepartmentInfo // 所属部门列表
-	apis        map[string]byte  // 允许操作的api列表
+	UserId         uint64           // 登陆用户唯一号
+	UserName       string           // 登陆用户名字
+	LoginId        string           // 登陆用户账号
+	Roles          []RoleInfo       // 所属的角色列表
+	Departments    []DepartmentInfo // 所属部门列表
+	DepartmentTree []DepartNode     // 所属部门树
+	apis           map[string]byte  // 允许操作的api列表
+	userBll        *userBll
+}
+
+func (u LoginUser) GetDps() {
+
+	if u.userBll == nil {
+		return
+	}
+
+	// 获取完整部门树
+	tree := u.userBll.buildTree()
+
+	// 获取当前用户所属部门
+	dps, _ := u.userBll.getDepartsByUserId(u.UserId)
+
+	fmt.Println(tree, dps)
+}
+
+func (u LoginUser) copyTo() LoginUser {
+	user := LoginUser{
+		UserId:         u.UserId,
+		UserName:       u.UserName,
+		LoginId:        u.LoginId,
+		userBll:        u.userBll,
+		Roles:          make([]RoleInfo, len(u.Roles)),
+		Departments:    make([]DepartmentInfo, len(u.Departments)),
+		DepartmentTree: make([]DepartNode, len(u.DepartmentTree)),
+		apis:           map[string]byte{},
+	}
+	for i, r := range u.Roles {
+		user.Roles[i] = r
+	}
+	for i, d := range u.Departments {
+		user.Departments[i] = d
+	}
+	for i, d := range u.DepartmentTree {
+		user.DepartmentTree[i] = d
+	}
+	for k, v := range u.apis {
+		user.apis[k] = v
+	}
+	return user
 }
 
 //
@@ -241,27 +284,6 @@ type DepartNode struct {
 	Name     string
 	ParentId uint64
 	Children []*DepartNode
-}
-
-func (u LoginUser) copyTo() LoginUser {
-	user := LoginUser{
-		UserId:      u.UserId,
-		UserName:    u.UserName,
-		LoginId:     u.LoginId,
-		Roles:       make([]RoleInfo, len(u.Roles)),
-		Departments: make([]DepartmentInfo, len(u.Departments)),
-		apis:        map[string]byte{},
-	}
-	for i, r := range u.Roles {
-		user.Roles[i] = r
-	}
-	for i, d := range u.Departments {
-		user.Departments[i] = d
-	}
-	for k, v := range u.apis {
-		user.apis[k] = v
-	}
-	return user
 }
 
 var (
@@ -430,19 +452,35 @@ type IError interface {
 }
 
 const (
-	ErrorCodeParamInvalid     = iota + 100 // 传入参数无效
-	ErrorCodePermissionDenied              // 权限不足，拒绝访问
-	ErrorCodeRecordNotFound                // 未找到记录
-	ErrorCodeRecordExist                   // 记录已经存在
-	ErrorCodeSaveFailure                   // 保存失败
-	ErrorCodeDeleteFailure                 // 删除失败
-	ErrorCodeFileNotFound                  // 文件不存在
+	ErrorCodeParamInvalid        = iota + 100 // 传入参数无效
+	ErrorCodePermissionDenied                 // 权限不足，拒绝访问
+	ErrorCodeRecordNotFound                   // 未找到记录
+	ErrorCodeRecordExist                      // 记录已经存在
+	ErrorCodeSaveFailure                      // 保存失败
+	ErrorCodeDeleteFailure                    // 删除失败
+	ErrorCodeFileNotFound                     // 文件不存在
+	ErrorCodeUploadedFileNull                 // 未上传任何文件
+	ErrorCodeUploadedFileInvalid              // 上传文件解析失败
 )
 
 const (
 	ErrorCodeOSError = 900 // 系统故障
 	ErrorCodeUnknown = 999 // 未知异常
 )
+
+var errorCodeTextMap = map[int]string{
+	ErrorCodeParamInvalid:        "无效的参数",
+	ErrorCodePermissionDenied:    "权限不足，拒绝访问",
+	ErrorCodeRecordNotFound:      "未找到记录",
+	ErrorCodeRecordExist:         "记录已经存在",
+	ErrorCodeSaveFailure:         "保存失败",
+	ErrorCodeDeleteFailure:       "删除失败",
+	ErrorCodeFileNotFound:        "指定文件不存在",
+	ErrorCodeUploadedFileNull:    "未上传任何文件",
+	ErrorCodeUploadedFileInvalid: "上传文件解析失败",
+	ErrorCodeOSError:             "系统运行故障",
+	ErrorCodeUnknown:             "其他未知故障",
+}
 
 type errorInfo struct {
 	code  int
@@ -455,4 +493,14 @@ func (e errorInfo) Code() int {
 
 func (e errorInfo) Error() string {
 	return e.error
+}
+
+//
+// File
+//  @Description: 文件
+//
+type File struct {
+	Name string // 文件名
+	Size int64  // 文件大小
+	Data []byte // 内容
 }

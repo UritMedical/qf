@@ -28,15 +28,6 @@ type Context struct {
 }
 
 //
-// CtxFile
-//  @Description: 文件下载
-//
-type CtxFile struct {
-	FileName string
-	Data     []byte
-}
-
-//
 // NewContext
 //  @Description: 生成一个新的上下文
 //  @receiver ctx
@@ -211,33 +202,49 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) IEr
 }
 
 //
-// LoadFile
+// GetFile
 //  @Description: 获取前端上传的文件列表
 //  @param key form表单的参数名称
-//  @return []*multipart.FileHeader
+//  @return []File
+//  @return IError
 //
-func (ctx *Context) LoadFile(key string) []*multipart.FileHeader {
+func (ctx *Context) GetFile(key string) ([]File, IError) {
 	if ctx.inputFiles == nil {
-		return nil
+		return nil, Error(ErrorCodeUploadedFileNull, "no file has been uploaded")
 	}
-	return ctx.inputFiles[key]
+	files := make([]File, 0)
+	for i := 0; i < len(ctx.inputFiles[key]); i++ {
+		input := ctx.inputFiles[key][i]
+		// 读取文件
+		buffs, err := readFile(input)
+		if err != nil {
+			return nil, err
+		}
+		// 添加到列表
+		files = append(files, File{
+			Name: input.Filename,
+			Size: input.Size,
+			Data: buffs,
+		})
+	}
+	return files, nil
 }
 
 //
-// BuildFileByPath
+// BuildFile
 //  @Description: 通过文件路径生成下载文件
 //  @param contentType
 //  @param data
 //  @return CtxData
 //
-func (ctx *Context) BuildFileByPath(filePath string) (CtxFile, IError) {
+func (ctx *Context) BuildFile(filePath string) (File, IError) {
 	data, err := qio.ReadAllBytes(filePath)
 	if err != nil {
-		return CtxFile{}, Error(ErrorCodeFileNotFound, err.Error())
+		return File{}, Error(ErrorCodeFileNotFound, err.Error())
 	}
-	return CtxFile{
-		FileName: qio.GetFileName(filePath),
-		Data:     data,
+	return File{
+		Name: qio.GetFileName(filePath),
+		Data: data,
 	}, nil
 }
 
@@ -245,14 +252,14 @@ func (ctx *Context) BuildFileByPath(filePath string) (CtxFile, IError) {
 // BuildFileByStream
 //  @Description: 通过二进制流生成下载文件
 //  @param fileName 文件名
-//  @param buff 文件二进制
+//  @param fileData 文件二进制
 //  @return CtxFile
 //  @return IError
 //
-func (ctx *Context) BuildFileByStream(fileName string, buff []byte) (CtxFile, IError) {
-	return CtxFile{
-		FileName: fileName,
-		Data:     buff,
+func (ctx *Context) BuildFileByStream(fileName string, fileData []byte) (File, IError) {
+	return File{
+		Name: fileName,
+		Data: fileData,
 	}, nil
 }
 
@@ -379,4 +386,20 @@ func (ctx *Context) build(source map[string]interface{}, exclude map[string]inte
 		LastTime: ctx.time,
 		FullInfo: info,
 	}
+}
+
+func readFile(file *multipart.FileHeader) ([]byte, IError) {
+	f, err := file.Open()
+	defer func(f multipart.File) {
+		_ = f.Close()
+	}(f)
+	if err != nil {
+		return nil, Error(ErrorCodeUploadedFileInvalid, err.Error())
+	}
+	buffs := make([]byte, file.Size)
+	_, err = f.Read(buffs)
+	if err != nil {
+		return nil, Error(ErrorCodeUploadedFileInvalid, err.Error())
+	}
+	return buffs, nil
 }

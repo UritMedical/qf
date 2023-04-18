@@ -73,7 +73,7 @@ func (b *userBll) RegDal(regDal DalMap) {
 	regDal.Reg(b.dptDal, Department{})
 
 	b.dptUserDal = &dptUserDal{}
-	regDal.Reg(b.dptUserDal, DepartUser{})
+	regDal.Reg(b.dptUserDal, UserDP{})
 }
 
 func (b *userBll) RegFault(f FaultMap) {

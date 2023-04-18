@@ -37,9 +37,12 @@ func (b *userBll) verifyToken(ctx *gin.Context, url string) (LoginUser, IError) 
 //  @return IError
 //
 func (b *userBll) doVerify(ctx *gin.Context, url string) (LoginUser, IError) {
+	login := LoginUser{
+		userBll: b,
+	}
 	// 如果是登陆，则跳过
 	if strings.Contains(url, "/qf/login") {
-		return LoginUser{}, nil
+		return login, nil
 	}
 	// 获取Token值
 	tokenStr := ctx.GetHeader("Token")
@@ -47,26 +50,30 @@ func (b *userBll) doVerify(ctx *gin.Context, url string) (LoginUser, IError) {
 	claims, err := token.ParseToken(tokenStr)
 	// 判断token是否有效
 	if err != nil {
-		return LoginUser{}, Error(ErrorCodeTokenInvalid, err.Error())
+		return login, Error(ErrorCodeTokenInvalid, err.Error())
 	}
 	// 判断是否过期
 	if time.Now().After(time.Unix(claims.ExpiresAt, 0)) {
 		return LoginUser{}, Error(ErrorCodeTokenExpires, err.Error())
 	}
 	// 生成用户
-	login, exist := b.getMap(tokenStr)
+	u, exist := b.getMap(tokenStr)
 	if exist == false {
 		// 获取用户基本信息
 		if user, err := b.getFullUser(claims.Id); err == nil {
-			b.setMap(tokenStr, LoginUser{
+			login = LoginUser{
 				UserId:      user.UserId,
 				UserName:    user.UserName,
 				LoginId:     user.LoginId,
 				Roles:       user.Roles,
 				Departments: user.Departments,
 				apis:        b.getUserAllApis(user.Roles),
-			})
+				userBll:     b,
+			}
+			b.setMap(tokenStr, login)
 		}
+	} else {
+		login = u
 	}
 	// 特殊放行
 	if tokenStr == b.tokenSkipVerify || ctx.Query("Bi") == b.tokenSkipVerify {

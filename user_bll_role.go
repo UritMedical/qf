@@ -1,7 +1,9 @@
 package qf
 
 import (
+	"fmt"
 	"github.com/UritMedical/qf/util"
+	"strings"
 )
 
 func (b *userBll) regRoleApi(api ApiMap) {
@@ -123,29 +125,28 @@ func (b *userBll) getRolesByUserId(userId uint64) ([]Role, IError) {
 //  @param roleIds
 //
 func (b *userBll) getUserAllApis(roles []RoleInfo) map[string]byte {
-	apis := map[string]byte{}
-	//for _, r := range roles {
-	//	// 获取角色全部的权限列表
-	//	permissionId, _ := b.rolePermissionDal.GetRolePermission(r.Id)
-	//	permissions, err := b.permissionDal.GetPermissionsByIds(permissionId)
-	//	if err != nil {
-	//		continue
-	//	}
-	//
-	//	// 再获取权限包含的所有Api
-	//	for _, permission := range permissions {
-	//		list, err := b.roleApiDal.GetApisByPermissionId(permission.Id)
-	//		if err != nil {
-	//			continue
-	//		}
-	//		for _, v := range list {
-	//			if _, ok := apis[v.ApiId]; !ok {
-	//				apis[v.ApiId] = 1
-	//			}
-	//		}
-	//	}
-	//}
-	return apis
+	//apis := map[string]byte{}
+	rids := make([]uint64, 0)
+	for _, r := range roles {
+		rids = append(rids, r.Id)
+	}
+	apis, err := b.roleApiDal.GetApisByRoleId(rids)
+	if err != nil {
+		return map[string]byte{}
+	}
+	finals := map[string]byte{}
+	for _, api := range apis {
+		url := strings.TrimLeft(api.Url, "/")
+		for _, p := range api.Permission {
+			switch string(p) {
+			case "r":
+				finals[fmt.Sprintf("GET:/%s", url)] = 1
+			case "w":
+				finals[fmt.Sprintf("POST:/%s", url)] = 1
+			}
+		}
+	}
+	return finals
 }
 
 //设置角色所拥有的api
