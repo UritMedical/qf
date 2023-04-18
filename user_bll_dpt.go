@@ -113,7 +113,7 @@ func (b *userBll) setDptUsers(ctx *Context) (interface{}, IError) {
 	if err := ctx.Bind(&params); err != nil {
 		return nil, err
 	}
-	return nil, b.dptUserDal.SetDptUsers(params.DepartId, params.UserIds)
+	return nil, b.userDpDal.SetDptUsers(params.DepartId, params.UserIds)
 }
 
 //
@@ -126,7 +126,7 @@ func (b *userBll) setDptUsers(ctx *Context) (interface{}, IError) {
 func (b *userBll) deleteDptUser(ctx *Context) (interface{}, IError) {
 	DepartId := ctx.GetUIntValue("DpId")
 	UserId := ctx.GetUIntValue("UserId")
-	return nil, b.dptUserDal.RemoveUser(DepartId, UserId)
+	return nil, b.userDpDal.RemoveUser(DepartId, UserId)
 }
 
 //
@@ -170,7 +170,7 @@ func (b *userBll) getDptList(pId uint64) ([]Department, IError) {
 
 func (b *userBll) getCurDptUsersOnly(ctx *Context) (interface{}, IError) {
 	departId := ctx.GetUIntValue("DpId")
-	uIds, _ := b.dptUserDal.GetUsersByDptId(departId)
+	uIds, _ := b.userDpDal.GetUsersByDptId(departId)
 	list, _ := b.userDal.GetUsersByIds(uIds)
 
 	result := make([]map[string]interface{}, 0)
@@ -256,7 +256,7 @@ func (b *userBll) getDptAndSubDptUsers(departId uint64) ([]User, IError) {
 
 //递归查找用户
 func (b *userBll) findChildrenUserIds(uIdMap map[uint64]string, dptNode *DepartNode) {
-	ids, _ := b.dptUserDal.GetUsersByDptId(dptNode.Id)
+	ids, _ := b.userDpDal.GetUsersByDptId(dptNode.Id)
 	for _, id := range ids {
 		uIdMap[id] = ""
 	}
@@ -294,8 +294,16 @@ func (b *userBll) findChildrenDpt(departId uint64, dptNodes []*DepartNode) *Depa
 //  @return error
 //
 func (b *userBll) getDepartsByUserId(userId uint64) ([]Department, IError) {
-	dptIds, _ := b.dptUserDal.GetDptsByUserId(userId)
-	return b.dptDal.GetDptsByIds(dptIds)
+	dptIds, err := b.userDpDal.GetDptsByUserId(userId)
+	if err != nil {
+		return nil, err
+	}
+	list := make([]Department, 0)
+	err = b.dptDal.GetListByIN(dptIds, &list)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
 }
 
 //
@@ -308,7 +316,7 @@ func (b *userBll) getDepartsByUserId(userId uint64) ([]Department, IError) {
 //
 func (b *userBll) getOrg(userId uint64) ([]Department, IError) {
 	//获取用户的所在部门
-	dptIds, err := b.dptUserDal.GetDptsByUserId(userId)
+	dptIds, err := b.userDpDal.GetDptsByUserId(userId)
 	if err != nil {
 		return nil, err
 	}

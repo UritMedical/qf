@@ -2,6 +2,8 @@ package qf
 
 import "strings"
 
+//region base dict dal
+
 //
 // departmentDal
 //  @Description:
@@ -11,21 +13,11 @@ type departmentDal struct {
 }
 
 //
-// GetDptsByIds
-//  @Description: 获取部门列表
-//  @param dptIds
-//  @return []uDepartment
-//  @return error
+// GetAll
+//  @Description: 获取所有部门列表
+//  @return []Department
+//  @return IError
 //
-func (d departmentDal) GetDptsByIds(dptIds []uint64) ([]Department, IError) {
-	list := make([]Department, 0)
-	err := d.DB().Where("Id IN (?)", dptIds).Find(&list).Error
-	if err != nil {
-		return nil, Error(ErrorCodeRecordNotFound, err.Error())
-	}
-	return list, nil
-}
-
 func (d departmentDal) GetAll() ([]Department, IError) {
 	list := make([]Department, 0)
 	err := d.DB().Find(&list).Error
@@ -34,10 +26,6 @@ func (d departmentDal) GetAll() ([]Department, IError) {
 	}
 	return list, nil
 }
-
-//---------------------------------------------------------------------------------------------------
-
-//---------------------------------------------------------------------------------------------------
 
 // roleDal
 //  @Description: 角色
@@ -62,103 +50,9 @@ func (role roleDal) GetRolesByIds(ids []uint64) ([]Role, IError) {
 	return list, nil
 }
 
-//---------------------------------------------------------------------------------------------------
+//endregion
 
-type dptUserDal struct {
-	BaseDal
-}
-
-//
-// SetDptUsers
-//  @Description: 向指定部门添加用户
-//  @param departId
-//  @param userIds
-//  @return error
-//
-func (d dptUserDal) SetDptUsers(departId uint64, userIds []uint64) IError {
-	oldUserIds, err := d.GetUsersByDptId(departId)
-	if err != nil {
-		return err
-	}
-	newUsers := diffIntSet(userIds, oldUserIds)
-	removeUsers := diffIntSet(oldUserIds, userIds)
-
-	tx := d.DB().Begin()
-	//新增关系
-	if len(newUsers) > 0 {
-		addList := make([]UserDP, 0)
-		for _, id := range newUsers {
-			addList = append(addList, UserDP{
-				DpId:   departId,
-				UserId: id,
-			})
-		}
-		if err := tx.Create(&addList).Error; err != nil {
-			tx.Rollback()
-			return Error(ErrorCodeSaveFailure, err.Error())
-		}
-	}
-
-	//删除关系
-	if err := tx.Where("DpId = ? and UserId IN (?)", departId, removeUsers).Delete(UserDP{}).Error; err != nil {
-		tx.Rollback()
-		return Error(ErrorCodeDeleteFailure, err.Error())
-	}
-	e := tx.Commit().Error
-	if e != nil {
-		return Error(ErrorCodeSaveFailure, e.Error())
-	}
-	return nil
-}
-
-//
-// RemoveUser
-//  @Description: 从指定部门移除用户
-//  @param departId
-//  @param userIds
-//  @return error
-//
-func (d dptUserDal) RemoveUser(departId uint64, userId uint64) IError {
-	err := d.DB().Where("DpId = ? AND UserId = ?", departId, userId).Delete(&UserDP{}).Error
-	if err != nil {
-		return Error(ErrorCodeDeleteFailure, err.Error())
-	}
-	return nil
-}
-
-//
-// GetUsersByDptId
-//  @Description: 获取部门中所有用户
-//  @param departId
-//  @return []uint64
-//  @return error
-//
-func (d dptUserDal) GetUsersByDptId(departId uint64) ([]uint64, IError) {
-	userIds := make([]uint64, 0)
-	err := d.DB().Where("DpId = ?", departId).Select("UserId").Find(&userIds).Error
-	if err != nil {
-		return nil, Error(ErrorCodeRecordNotFound, err.Error())
-	}
-	return userIds, nil
-}
-
-//
-// GetDptsByUserId
-//  @Description: 获取用户所属部门
-//  @param userId
-//  @return []uint64
-//  @return error
-//
-func (d dptUserDal) GetDptsByUserId(userId uint64) ([]uint64, IError) {
-	dptIds := make([]uint64, 0)
-	err := d.DB().Where("UserId = ?", userId).Select("DpId").Find(&dptIds).Error
-	if err != nil {
-		return nil, Error(ErrorCodeRecordNotFound, err.Error())
-	}
-	return dptIds, nil
-}
-
-//---------------------------------------------------------------------------------------------------
+//region role api dal
 
 type roleApiDal struct {
 	BaseDal
@@ -216,6 +110,10 @@ func (r roleApiDal) GetApisByRoleId(roleIds []uint64) ([]RoleApi, IError) {
 	}
 	return apis, nil
 }
+
+//endregion
+
+//region user dal
 
 type userDal struct {
 	BaseDal
@@ -293,7 +191,9 @@ func (u *userDal) GetUsersByIds(userIds []uint64) ([]User, IError) {
 	return list, nil
 }
 
-//---------------------------------------------------------------------------------------------------
+//endregion
+
+//region user role dal
 
 type userRoleDal struct {
 	BaseDal
@@ -373,3 +273,103 @@ func (u *userRoleDal) GetRolesByUserId(userId uint64) ([]uint64, IError) {
 	}
 	return roleIds, nil
 }
+
+//endregion
+
+//region user dp dal
+
+type userDpDal struct {
+	BaseDal
+}
+
+//
+// SetDptUsers
+//  @Description: 向指定部门添加用户
+//  @param departId
+//  @param userIds
+//  @return error
+//
+func (d userDpDal) SetDptUsers(departId uint64, userIds []uint64) IError {
+	oldUserIds, err := d.GetUsersByDptId(departId)
+	if err != nil {
+		return err
+	}
+	newUsers := diffIntSet(userIds, oldUserIds)
+	removeUsers := diffIntSet(oldUserIds, userIds)
+
+	tx := d.DB().Begin()
+	//新增关系
+	if len(newUsers) > 0 {
+		addList := make([]UserDP, 0)
+		for _, id := range newUsers {
+			addList = append(addList, UserDP{
+				DpId:   departId,
+				UserId: id,
+			})
+		}
+		if err := tx.Create(&addList).Error; err != nil {
+			tx.Rollback()
+			return Error(ErrorCodeSaveFailure, err.Error())
+		}
+	}
+
+	//删除关系
+	if err := tx.Where("DpId = ? and UserId IN (?)", departId, removeUsers).Delete(UserDP{}).Error; err != nil {
+		tx.Rollback()
+		return Error(ErrorCodeDeleteFailure, err.Error())
+	}
+	e := tx.Commit().Error
+	if e != nil {
+		return Error(ErrorCodeSaveFailure, e.Error())
+	}
+	return nil
+}
+
+//
+// RemoveUser
+//  @Description: 从指定部门移除用户
+//  @param departId
+//  @param userIds
+//  @return error
+//
+func (d userDpDal) RemoveUser(departId uint64, userId uint64) IError {
+	err := d.DB().Where("DpId = ? AND UserId = ?", departId, userId).Delete(&UserDP{}).Error
+	if err != nil {
+		return Error(ErrorCodeDeleteFailure, err.Error())
+	}
+	return nil
+}
+
+//
+// GetUsersByDptId
+//  @Description: 获取部门中所有用户
+//  @param departId
+//  @return []uint64
+//  @return error
+//
+func (d userDpDal) GetUsersByDptId(departId uint64) ([]uint64, IError) {
+	userIds := make([]uint64, 0)
+	err := d.DB().Where("DpId = ?", departId).Select("UserId").Find(&userIds).Error
+	if err != nil {
+		return nil, Error(ErrorCodeRecordNotFound, err.Error())
+	}
+	return userIds, nil
+}
+
+//
+// GetDptsByUserId
+//  @Description: 获取用户所属部门
+//  @param userId
+//  @return []uint64
+//  @return error
+//
+func (d userDpDal) GetDptsByUserId(userId uint64) ([]uint64, IError) {
+	dptIds := make([]uint64, 0)
+	err := d.DB().Where("UserId = ?", userId).Select("DpId").Find(&dptIds).Error
+	if err != nil {
+		return nil, Error(ErrorCodeRecordNotFound, err.Error())
+	}
+	return dptIds, nil
+}
+
+//endregion

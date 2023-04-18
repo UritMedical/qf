@@ -37,9 +37,7 @@ func (b *userBll) verifyToken(ctx *gin.Context, url string) (LoginUser, IError) 
 //  @return IError
 //
 func (b *userBll) doVerify(ctx *gin.Context, url string) (LoginUser, IError) {
-	login := LoginUser{
-		userBll: b,
-	}
+	login := LoginUser{}
 	// 如果是登陆，则跳过
 	if strings.Contains(url, "/qf/login") {
 		return login, nil
@@ -68,7 +66,6 @@ func (b *userBll) doVerify(ctx *gin.Context, url string) (LoginUser, IError) {
 				Roles:       user.Roles,
 				Departments: user.Departments,
 				apis:        b.getUserAllApis(user.Roles),
-				userBll:     b,
 			}
 			b.setMap(tokenStr, login)
 		}

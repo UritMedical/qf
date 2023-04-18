@@ -24,12 +24,12 @@ const (
 
 type userBll struct {
 	BaseBll
-	userDal         *userDal             //用户dal
-	userRoleDal     *userRoleDal         //用户-角色
-	roleDal         *roleDal             //角色dal
-	roleApiDal      *roleApiDal          //角色-Url
-	dptDal          *departmentDal       //部门dal
-	dptUserDal      *dptUserDal          //部门-用户
+	userDal         *userDal             // 用户dal
+	userRoleDal     *userRoleDal         //  用户-角色
+	userDpDal       *userDpDal           //  部门-用户
+	roleDal         *roleDal             // 角色dal
+	roleApiDal      *roleApiDal          //  角色-Url
+	dptDal          *departmentDal       // 部门dal
 	tokenLoginUser  map[string]LoginUser // token登陆用户缓存
 	tokenWhiteList  map[string]byte      // token白名单
 	tokenSkipVerify string               // 特殊token
@@ -72,8 +72,8 @@ func (b *userBll) RegDal(regDal DalMap) {
 	b.dptDal = &departmentDal{}
 	regDal.Reg(b.dptDal, Department{})
 
-	b.dptUserDal = &dptUserDal{}
-	regDal.Reg(b.dptUserDal, UserDP{})
+	b.userDpDal = &userDpDal{}
+	regDal.Reg(b.userDpDal, UserDP{})
 }
 
 func (b *userBll) RegFault(f FaultMap) {

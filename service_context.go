@@ -82,19 +82,6 @@ func (ctx *Context) GetUserInfo(userId uint64) (User, IError) {
 }
 
 //
-// GetUserList
-//  @Description: 获取所有用户列表
-//  @return []User
-//  @return IError
-//
-func (ctx *Context) GetUserList() ([]User, IError) {
-	if serv != nil && serv.userBll != nil {
-		return serv.userBll.getUserList()
-	}
-	return nil, nil
-}
-
-//
 // GetUserDepartments
 //  @Description: 获取患者机构列表
 //  @param userId
@@ -106,20 +93,6 @@ func (ctx *Context) GetUserDepartments(userId uint64) ([]Department, IError) {
 		return serv.userBll.getDepartsByUserId(userId)
 	}
 	return make([]Department, 0), nil
-}
-
-//
-// GetDepartmentInfo
-//  @Description: 获取机构信息
-//  @param dpId
-//  @return Department
-//  @return error
-//
-func (ctx *Context) GetDepartmentInfo(dpId uint64) (Department, IError) {
-	if serv != nil && serv.userBll != nil {
-		return serv.userBll.getDptInfo(dpId)
-	}
-	return Department{}, nil
 }
 
 //

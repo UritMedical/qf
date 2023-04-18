@@ -317,6 +317,7 @@ func (s *Service) context(ctx *gin.Context) {
 				return
 			}
 			login = l
+			login.userBll = s.userBll
 		}
 
 		// 生成上下文
