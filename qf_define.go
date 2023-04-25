@@ -205,44 +205,105 @@ type BaseModel struct {
 //  @Description: 登陆用户信息
 //
 type LoginUser struct {
-	UserId      uint64           // 登陆用户唯一号
-	UserName    string           // 登陆用户名字
-	LoginId     string           // 登陆用户账号
-	Roles       []RoleInfo       // 所属的角色列表
-	Departments []DepartmentInfo // 所属部门列表
-	apis        map[string]byte  // 允许操作的api列表
+	UserId   uint64          // 登陆用户唯一号
+	UserName string          // 登陆用户名字
+	LoginId  string          // 登陆用户账号
+	roles    []RoleInfo      // 所属的角色列表
+	deptTree DeptTree        // 所属部门列表
+	apis     map[string]byte // 允许操作的api列表
+	userBll  *userBll
 }
 
+//
+// RoleInfo
+//  @Description: 角色信息
+//
 type RoleInfo struct {
 	Id   uint64
 	Name string
 }
 
-type DepartmentInfo struct {
+//
+// DeptTree
+//  @Description: 部门树
+//
+type DeptTree []*DeptNode
+
+//
+// GetOrgList
+//  @Description: 返回所在机构列表
+//  @return int
+//
+func (tree DeptTree) GetOrgList() []*DeptNode {
+	nodes := make([]*DeptNode, 0)
+	for _, node := range tree.GetNodes() {
+		if node.ParentId == 0 {
+			nodes = append(nodes, node)
+		}
+	}
+	return nodes
+}
+
+//
+// GetDeptList
+//  @Description: 返回所在部门列表
+//  @return []DeptNode
+//
+func (tree DeptTree) GetDeptList() []*DeptNode {
+	nodes := make([]*DeptNode, 0)
+	for _, node := range tree.GetNodes() {
+		if node.ParentId != 0 {
+			nodes = append(nodes, node)
+		}
+	}
+	return nodes
+}
+
+//
+// GetNodes
+//  @Description: 返回全部节点列表
+//  @return []DeptNode
+//
+func (tree DeptTree) GetNodes() []*DeptNode {
+	nodes := make([]*DeptNode, 0)
+	tree.addNode(&nodes, tree)
+	return nodes
+}
+
+//
+// FindDept
+//  @Description: 查找部门
+//  @param deptId
+//  @return *DeptNode
+//
+func (tree DeptTree) FindDept(deptId uint64) *DeptNode {
+	for _, node := range tree.GetNodes() {
+		if node.Id == deptId {
+			return node
+		}
+	}
+	return nil
+}
+
+// 递归展开树
+func (tree DeptTree) addNode(source *[]*DeptNode, nodes []*DeptNode) {
+	for _, node := range nodes {
+		*source = append(*source, node)
+		if node.Children != nil {
+			tree.addNode(source, node.Children)
+		}
+	}
+}
+
+//
+// DeptNode
+//  @Description: 部门树节点
+//
+type DeptNode struct {
 	Id       uint64
 	Name     string
 	ParentId uint64
-}
-
-func (u LoginUser) copyTo() LoginUser {
-	user := LoginUser{
-		UserId:      u.UserId,
-		UserName:    u.UserName,
-		LoginId:     u.LoginId,
-		Roles:       make([]RoleInfo, len(u.Roles)),
-		Departments: make([]DepartmentInfo, len(u.Departments)),
-		apis:        map[string]byte{},
-	}
-	for i, r := range u.Roles {
-		user.Roles[i] = r
-	}
-	for i, d := range u.Departments {
-		user.Departments[i] = d
-	}
-	for k, v := range u.apis {
-		user.apis[k] = v
-	}
-	return user
+	Children []*DeptNode
 }
 
 var (
@@ -411,19 +472,35 @@ type IError interface {
 }
 
 const (
-	ErrorCodeParamInvalid     = iota + 100 // 传入参数无效
-	ErrorCodePermissionDenied              // 权限不足，拒绝访问
-	ErrorCodeRecordNotFound                // 未找到记录
-	ErrorCodeRecordExist                   // 记录已经存在
-	ErrorCodeSaveFailure                   // 保存失败
-	ErrorCodeDeleteFailure                 // 删除失败
-	ErrorCodeFileNotFound                  // 文件不存在
+	ErrorCodeParamInvalid        = iota + 100 // 传入参数无效
+	ErrorCodePermissionDenied                 // 权限不足，拒绝访问
+	ErrorCodeRecordNotFound                   // 未找到记录
+	ErrorCodeRecordExist                      // 记录已经存在
+	ErrorCodeSaveFailure                      // 保存失败
+	ErrorCodeDeleteFailure                    // 删除失败
+	ErrorCodeFileNotFound                     // 文件不存在
+	ErrorCodeUploadedFileNull                 // 未上传任何文件
+	ErrorCodeUploadedFileInvalid              // 上传文件解析失败
 )
 
 const (
 	ErrorCodeOSError = 900 // 系统故障
 	ErrorCodeUnknown = 999 // 未知异常
 )
+
+var errorCodeTextMap = map[int]string{
+	ErrorCodeParamInvalid:        "无效的参数",
+	ErrorCodePermissionDenied:    "权限不足，拒绝访问",
+	ErrorCodeRecordNotFound:      "未找到记录",
+	ErrorCodeRecordExist:         "记录已经存在",
+	ErrorCodeSaveFailure:         "保存失败",
+	ErrorCodeDeleteFailure:       "删除失败",
+	ErrorCodeFileNotFound:        "指定文件不存在",
+	ErrorCodeUploadedFileNull:    "未上传任何文件",
+	ErrorCodeUploadedFileInvalid: "上传文件解析失败",
+	ErrorCodeOSError:             "系统运行故障",
+	ErrorCodeUnknown:             "其他未知故障",
+}
 
 type errorInfo struct {
 	code  int
@@ -436,4 +513,14 @@ func (e errorInfo) Code() int {
 
 func (e errorInfo) Error() string {
 	return e.error
+}
+
+//
+// File
+//  @Description: 文件
+//
+type File struct {
+	Name string // 文件名
+	Size int64  // 文件大小
+	Data []byte // 内容
 }

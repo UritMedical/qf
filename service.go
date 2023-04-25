@@ -27,6 +27,21 @@ var (
 	stopFunc   func()
 )
 
+//
+// Run
+//  @Description: 启动
+//  @param regBll 注册业务（必须）
+//  @param stop 自定义释放
+//
+func Run(regBll func(s *Service), stop func()) {
+	// 收集异常
+	defer qerror.Recover(nil)
+
+	regBllFunc = regBll
+	stopFunc = stop
+	launcher.Run(doStart, doStop)
+}
+
 func doStart() {
 	// 创建服务
 	serv = newService()
@@ -51,6 +66,10 @@ func doStop() {
 	serv.stop()
 }
 
+//
+// Service
+//  @Description: qf服务
+//
 type Service struct {
 	folder      string                    // 框架的文件夹路径
 	db          *gorm.DB                  // 数据库
@@ -80,15 +99,9 @@ func newService() *Service {
 		setting:    setting{},
 	}
 	// 添加通用故障码
-	s.errCodes[ErrorCodeParamInvalid] = "无效的参数"
-	s.errCodes[ErrorCodePermissionDenied] = "权限不足，拒绝访问"
-	s.errCodes[ErrorCodeRecordNotFound] = "未找到记录"
-	s.errCodes[ErrorCodeRecordExist] = "记录已经存在"
-	s.errCodes[ErrorCodeSaveFailure] = "保存失败"
-	s.errCodes[ErrorCodeDeleteFailure] = "删除失败"
-	s.errCodes[ErrorCodeFileNotFound] = "指定文件不存在"
-	s.errCodes[ErrorCodeOSError] = "系统故障"
-	s.errCodes[ErrorCodeUnknown] = "未知故障"
+	for k, v := range errorCodeTextMap {
+		s.errCodes[k] = v
+	}
 	// 默认文件夹路径
 	s.folder = "."
 	// 加载配置
@@ -304,6 +317,7 @@ func (s *Service) context(ctx *gin.Context) {
 				return
 			}
 			login = l
+			login.userBll = s.userBll
 		}
 
 		// 生成上下文
@@ -369,9 +383,9 @@ func (s *Service) context(ctx *gin.Context) {
 			}
 			// TODO：记录日志
 
-			if f, isFile := result.(CtxFile); isFile {
+			if f, isFile := result.(File); isFile {
 				// 下载文件
-				ctx.Header("Content-Disposition", "attachment;filename="+qio.GetFileName(f.FileName))
+				ctx.Header("Content-Disposition", "attachment;filename="+qio.GetFileName(f.Name))
 				ctx.Header("Content-Transfer-Encoding", "binary")
 				ctx.Header("Content-Type", "application/octet-stream")
 				ctx.Data(http.StatusOK, "application/octet-stream", f.Data)

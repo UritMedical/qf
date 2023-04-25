@@ -1,8 +1,10 @@
 package patient
 
 import (
+	"fmt"
 	"github.com/UritMedical/qf"
 	"github.com/UritMedical/qf/util"
+	"github.com/UritMedical/qf/util/qio"
 )
 
 type Bll struct {
@@ -18,13 +20,14 @@ func (b *Bll) RegApi(a qf.ApiMap) {
 	a.Reg(qf.EApiKindDelete, "patient/case", b.DeleteCase) // 删除单个病历
 	a.Reg(qf.EApiKindGetModel, "patient", b.GetFull)       // 按唯一号或HIS唯一号获取完整信息（基本信息+病历列表）
 	a.Reg(qf.EApiKindGetList, "patients", b.GetFullList)   // 按条件获取完整列表
+	a.Reg(qf.EApiKindSave, "upload", b.uploadFile)         // 上传文件
 }
 
 func (b *Bll) RegDal(d qf.DalMap) {
 	b.infoDal = &InfoDal{}
 	b.caseDal = &CaseDal{}
-	d.Reg(b.infoDal, Patient{})
-	d.Reg(b.caseDal, PatientCase{})
+	d.Reg(b.infoDal, nil)
+	d.Reg(b.caseDal, nil)
 }
 
 func (b *Bll) RegFault(_ qf.FaultMap) {
@@ -159,28 +162,31 @@ func (b *Bll) DeleteCase(ctx *qf.Context) (interface{}, qf.IError) {
 //  @return error
 //
 func (b *Bll) GetFull(ctx *qf.Context) (interface{}, qf.IError) {
-	// 通过ID检索
-	patInfo := Patient{}
-	err := b.infoDal.GetModel(ctx.GetId(), &patInfo)
-	if err != nil || patInfo.Id == 0 {
-		return nil, err
-	}
-	// 通过患者Id获取所有病历
-	caseList := make([]PatientCase, 0)
-	err = b.caseDal.GetListByPatientId(patInfo.Id, &caseList)
-	if err != nil {
-		return nil, err
-	}
+	ctx.LoginUser().GetDps()
 
-	// 返回
-	rt := struct {
-		Patient interface{}
-		Cases   interface{}
-	}{
-		Patient: util.ToMap(patInfo),
-		Cases:   util.ToMaps(caseList),
-	}
-	return rt, nil
+	return nil, nil
+	//// 通过ID检索
+	//patInfo := Patient{}
+	//err := b.infoDal.GetModel(ctx.GetId(), &patInfo)
+	//if err != nil || patInfo.Id == 0 {
+	//	return nil, err
+	//}
+	//// 通过患者Id获取所有病历
+	//caseList := make([]PatientCase, 0)
+	//err = b.caseDal.GetListByPatientId(patInfo.Id, &caseList)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//// 返回
+	//rt := struct {
+	//	Patient interface{}
+	//	Cases   interface{}
+	//}{
+	//	Patient: util.ToMap(patInfo),
+	//	Cases:   util.ToMaps(caseList),
+	//}
+	//return rt, nil
 }
 
 type Info struct {
@@ -254,4 +260,15 @@ func (b *Bll) GetFullList(ctx *qf.Context) (interface{}, qf.IError) {
 
 	}
 	return rts, nil
+}
+
+func (b *Bll) uploadFile(ctx *qf.Context) (interface{}, qf.IError) {
+	files, e := ctx.GetFile("File")
+	if e != nil {
+		return nil, e
+	}
+	for _, file := range files {
+		_ = qio.WriteAllBytes(fmt.Sprintf("D:/file/%s", file.Name), file.Data, false)
+	}
+	return nil, nil
 }

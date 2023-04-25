@@ -28,15 +28,6 @@ type Context struct {
 }
 
 //
-// CtxFile
-//  @Description: 文件下载
-//
-type CtxFile struct {
-	FileName string
-	Data     []byte
-}
-
-//
 // NewContext
 //  @Description: 生成一个新的上下文
 //  @receiver ctx
@@ -73,7 +64,7 @@ func (ctx *Context) NewId(object interface{}) uint64 {
 //  @return LoginUser
 //
 func (ctx *Context) LoginUser() LoginUser {
-	return ctx.loginUser.copyTo()
+	return ctx.loginUser
 }
 
 //
@@ -91,71 +82,18 @@ func (ctx *Context) GetUserInfo(userId uint64) (User, IError) {
 }
 
 //
-// GetUserList
-//  @Description: 获取所有用户列表
-//  @return []User
-//  @return IError
-//
-func (ctx *Context) GetUserList() ([]User, IError) {
-	if serv != nil && serv.userBll != nil {
-		return serv.userBll.getUserList()
-	}
-	return nil, nil
-}
-
-//
-// GetUserDepartments
-//  @Description: 获取患者机构列表
+// GetUserDeptTree
+//  @Description: 获取用户组织树
 //  @param userId
-//  @return []Department
+//  @return []Dept
 //  @return error
 //
-func (ctx *Context) GetUserDepartments(userId uint64) ([]Department, IError) {
+func (ctx *Context) GetUserDeptTree(userId uint64) (DeptTree, IError) {
 	if serv != nil && serv.userBll != nil {
-		return serv.userBll.getDepartsByUserId(userId)
+		user, err := serv.userBll.getFullUser(userId)
+		return user.deptTree, err
 	}
-	return make([]Department, 0), nil
-}
-
-//
-// GetDepartmentInfo
-//  @Description: 获取机构信息
-//  @param dpId
-//  @return Department
-//  @return error
-//
-func (ctx *Context) GetDepartmentInfo(dpId uint64) (Department, IError) {
-	if serv != nil && serv.userBll != nil {
-		return serv.userBll.getDptInfo(dpId)
-	}
-	return Department{}, nil
-}
-
-//
-// GetDepartmentList
-//  @Description: 获取机构列表
-//  @param parentId 父级
-//  @return []Department
-//  @return error
-//
-func (ctx *Context) GetDepartmentList(parentId uint64) ([]DepartNode, IError) {
-	final := make([]DepartNode, 0)
-	if serv != nil && serv.userBll != nil {
-		tree := serv.userBll.buildTree()
-		if parentId == 0 {
-			for _, t := range tree {
-				final = append(final, *t)
-			}
-		} else {
-			for _, t := range tree {
-				if t.Id == parentId {
-					final = append(final, *t)
-				}
-			}
-		}
-		return final, nil
-	}
-	return final, nil
+	return DeptTree{}, nil
 }
 
 //
@@ -211,33 +149,49 @@ func (ctx *Context) Bind(objectPtr interface{}, attachValues ...interface{}) IEr
 }
 
 //
-// LoadFile
+// GetFile
 //  @Description: 获取前端上传的文件列表
 //  @param key form表单的参数名称
-//  @return []*multipart.FileHeader
+//  @return []File
+//  @return IError
 //
-func (ctx *Context) LoadFile(key string) []*multipart.FileHeader {
+func (ctx *Context) GetFile(key string) ([]File, IError) {
 	if ctx.inputFiles == nil {
-		return nil
+		return nil, Error(ErrorCodeUploadedFileNull, "no file has been uploaded")
 	}
-	return ctx.inputFiles[key]
+	files := make([]File, 0)
+	for i := 0; i < len(ctx.inputFiles[key]); i++ {
+		input := ctx.inputFiles[key][i]
+		// 读取文件
+		buffs, err := readFile(input)
+		if err != nil {
+			return nil, err
+		}
+		// 添加到列表
+		files = append(files, File{
+			Name: input.Filename,
+			Size: input.Size,
+			Data: buffs,
+		})
+	}
+	return files, nil
 }
 
 //
-// BuildFileByPath
+// BuildFile
 //  @Description: 通过文件路径生成下载文件
 //  @param contentType
 //  @param data
 //  @return CtxData
 //
-func (ctx *Context) BuildFileByPath(filePath string) (CtxFile, IError) {
+func (ctx *Context) BuildFile(filePath string) (File, IError) {
 	data, err := qio.ReadAllBytes(filePath)
 	if err != nil {
-		return CtxFile{}, Error(ErrorCodeFileNotFound, err.Error())
+		return File{}, Error(ErrorCodeFileNotFound, err.Error())
 	}
-	return CtxFile{
-		FileName: qio.GetFileName(filePath),
-		Data:     data,
+	return File{
+		Name: qio.GetFileName(filePath),
+		Data: data,
 	}, nil
 }
 
@@ -245,14 +199,14 @@ func (ctx *Context) BuildFileByPath(filePath string) (CtxFile, IError) {
 // BuildFileByStream
 //  @Description: 通过二进制流生成下载文件
 //  @param fileName 文件名
-//  @param buff 文件二进制
+//  @param fileData 文件二进制
 //  @return CtxFile
 //  @return IError
 //
-func (ctx *Context) BuildFileByStream(fileName string, buff []byte) (CtxFile, IError) {
-	return CtxFile{
-		FileName: fileName,
-		Data:     buff,
+func (ctx *Context) BuildFileByStream(fileName string, fileData []byte) (File, IError) {
+	return File{
+		Name: fileName,
+		Data: fileData,
 	}, nil
 }
 
@@ -379,4 +333,20 @@ func (ctx *Context) build(source map[string]interface{}, exclude map[string]inte
 		LastTime: ctx.time,
 		FullInfo: info,
 	}
+}
+
+func readFile(file *multipart.FileHeader) ([]byte, IError) {
+	f, err := file.Open()
+	defer func(f multipart.File) {
+		_ = f.Close()
+	}(f)
+	if err != nil {
+		return nil, Error(ErrorCodeUploadedFileInvalid, err.Error())
+	}
+	buffs := make([]byte, file.Size)
+	_, err = f.Read(buffs)
+	if err != nil {
+		return nil, Error(ErrorCodeUploadedFileInvalid, err.Error())
+	}
+	return buffs, nil
 }

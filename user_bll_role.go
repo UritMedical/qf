@@ -1,7 +1,9 @@
 package qf
 
 import (
+	"fmt"
 	"github.com/UritMedical/qf/util"
+	"strings"
 )
 
 func (b *userBll) regRoleApi(api ApiMap) {
@@ -14,18 +16,9 @@ func (b *userBll) regRoleApi(api ApiMap) {
 	api.Reg(EApiKindSave, "role/users", b.setUserRoleRelation) //给角色删除或者添加用户
 	api.Reg(EApiKindGetList, "role/users", b.getRoleUsers)     //获取指定角色下的用户
 
-	//角色-权限组
-	api.Reg(EApiKindSave, "role/permission", b.setRolePermission)      //给角色配置权限
-	api.Reg(EApiKindGetList, "role/permissions", b.getRolePermissions) //获取角色拥有的权限
-
-	//权限组
-	api.Reg(EApiKindSave, "permission", b.savePermission)     //添加权限组
-	api.Reg(EApiKindDelete, "permission", b.deletePermission) //删除权限组
-	api.Reg(EApiKindGetList, "permissions", b.getPermissions) //获取权限组
-
-	//权限组-API
-	api.Reg(EApiKindSave, "permission/apis", b.setPermissionApi)    //设置权限所有的
-	api.Reg(EApiKindGetList, "permission/apis", b.getPermissionApi) //获取权限拥有的API
+	//角色-API
+	api.Reg(EApiKindSave, "role/apis", b.setRoleApi)    //设置角色所拥有的api
+	api.Reg(EApiKindGetList, "role/apis", b.getRoleApi) //获取角色拥有的API
 }
 
 //
@@ -75,14 +68,9 @@ func (b *userBll) getAllRoles(_ *Context) (interface{}, IError) {
 		userIds, _ := b.userRoleDal.GetUsersByRoleId(role.Id)
 		users, _ := b.userDal.GetUsersByIds(userIds)
 
-		//获取此角色拥有的权限
-		permissionId, _ := b.rolePermissionDal.GetRolePermission(role.Id)
-		permissions, _ := b.permissionDal.GetPermissionsByIds(permissionId)
-
 		roleDict := make(map[string]interface{})
 		roleDict["RoleInfo"] = util.ToMap(role)
 		roleDict["Users"] = util.ToMaps(users)
-		roleDict["Permissions"] = util.ToMaps(permissions)
 
 		result = append(result, roleDict)
 	}
@@ -108,24 +96,6 @@ func (b *userBll) setUserRoleRelation(ctx *Context) (interface{}, IError) {
 }
 
 //
-// setRolePermission
-//  @Description: 设置角色-权限关系
-//  @param ctx
-//  @return interface{}
-//  @return error
-//
-func (b *userBll) setRolePermission(ctx *Context) (interface{}, IError) {
-	var params = struct {
-		RoleId        uint64
-		PermissionIds []uint64
-	}{}
-	if err := ctx.Bind(&params); err != nil {
-		return nil, err
-	}
-	return nil, b.rolePermissionDal.SetRolePermission(params.RoleId, params.PermissionIds)
-}
-
-//
 // getRoleUsers
 //  @Description: 获取此角色下的用户
 //  @param ctx
@@ -140,20 +110,6 @@ func (b *userBll) getRoleUsers(ctx *Context) (interface{}, IError) {
 }
 
 //
-// getRolePermissions
-//  @Description: 获取此角色的权限
-//  @param ctx
-//  @return interface{}
-//  @return error
-//
-func (b *userBll) getRolePermissions(ctx *Context) (interface{}, IError) {
-	roleId := ctx.GetId()
-	permissionId, _ := b.rolePermissionDal.GetRolePermission(roleId)
-	permissions, err := b.permissionDal.GetPermissionsByIds(permissionId)
-	return util.ToMaps(permissions), err
-}
-
-//
 // getRolesByUserId
 //  @Description: 获取用户所拥有的角色
 //  @receiver b
@@ -163,85 +119,54 @@ func (b *userBll) getRolesByUserId(userId uint64) ([]Role, IError) {
 	return b.roleDal.GetRolesByIds(roleIds)
 }
 
-func (b *userBll) savePermission(ctx *Context) (interface{}, IError) {
-	permission := &Permission{}
-	if err := ctx.Bind(permission); err != nil {
-		return nil, err
-	}
-	if permission.Id == 0 {
-		permission.Id = ctx.NewId(permission)
-	}
-	return nil, b.permissionDal.Save(permission)
-}
-
-func (b *userBll) deletePermission(ctx *Context) (interface{}, IError) {
-	uId := ctx.GetId()
-	return nil, b.permissionDal.Delete(uId)
-}
-
-func (b *userBll) getPermissions(_ *Context) (interface{}, IError) {
-	permissions := make([]Permission, 0)
-	err := b.permissionDal.GetList(0, 100, &permissions)
-	return util.ToMaps(permissions), err
-}
-
-//
-// setPermissionApi
-//  @Description: 批量设置权限组能访问的API
-//  @param ctx
-//  @return interface{}
-//  @return error
-//
-func (b *userBll) setPermissionApi(ctx *Context) (interface{}, IError) {
-	params := struct {
-		PermissionId uint64
-		Apis         []ApiInfo
-	}{}
-	if err := ctx.Bind(&params); err != nil {
-		return nil, err
-	}
-	return nil, b.permissionApiDal.SetPermissionApis(params.PermissionId, params.Apis)
-}
-
-//
-// getPermissionApi
-//  @Description: 获取指定权限组能访问的API
-//  @param ctx
-//  @return interface{}
-//  @return error
-//
-func (b *userBll) getPermissionApi(ctx *Context) (interface{}, IError) {
-	permissionId := ctx.GetUIntValue("PermissionId")
-	return b.permissionApiDal.GetApisByPermissionId(permissionId)
-}
-
 //
 // getUserAllApis
 //  @Description: 获取全部用户可以访问的Api列表
 //  @param roleIds
 //
 func (b *userBll) getUserAllApis(roles []RoleInfo) map[string]byte {
-	apis := map[string]byte{}
+	//apis := map[string]byte{}
+	rids := make([]uint64, 0)
 	for _, r := range roles {
-		// 获取角色全部的权限列表
-		permissionId, _ := b.rolePermissionDal.GetRolePermission(r.Id)
-		permissions, err := b.permissionDal.GetPermissionsByIds(permissionId)
-		if err != nil {
-			continue
-		}
-
-		// 再获取权限包含的所有Api
-		for _, permission := range permissions {
-			list, err := b.permissionApiDal.GetApisByPermissionId(permission.Id)
-			if err != nil {
-				continue
-			}
-			for _, v := range list {
-				if _, ok := apis[v.ApiId]; !ok {
-					apis[v.ApiId] = 1
-				}
+		rids = append(rids, r.Id)
+	}
+	apis, err := b.roleApiDal.GetApisByRoleId(rids)
+	if err != nil {
+		return map[string]byte{}
+	}
+	finals := map[string]byte{}
+	for _, api := range apis {
+		url := strings.TrimLeft(api.Url, "/")
+		for _, p := range api.Permission {
+			switch string(p) {
+			case "r":
+				finals[fmt.Sprintf("GET:/%s", url)] = 1
+			case "w":
+				finals[fmt.Sprintf("POST:/%s", url)] = 1
 			}
 		}
 	}
-	return apis
+	return finals
+}
+
+//设置角色所拥有的api
+func (b *userBll) setRoleApi(ctx *Context) (interface{}, IError) {
+	params := struct {
+		RoleId uint64
+		Apis   []string
+	}{}
+	if err := ctx.Bind(&params); err != nil {
+		return nil, err
+	}
+	return nil, b.roleApiDal.SetRoleApis(params.RoleId, params.Apis)
+}
+
+//获取角色所拥有的api
+func (b *userBll) getRoleApi(ctx *Context) (interface{}, IError) {
+	roleId := ctx.GetId()
+	ret, err := b.roleApiDal.GetApisByRoleId([]uint64{roleId})
+	if err != nil {
+		return nil, err
+	}
+	return util.ToMaps(ret), nil
 }

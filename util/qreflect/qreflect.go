@@ -5,16 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
 type Reflect struct {
-	t   reflect.Type
-	v   reflect.Value
-	obj interface{}
-	kv  map[string]interface{}
+	t      reflect.Type
+	v      reflect.Value
+	obj    interface{}
+	kv     map[string]interface{}
+	orders []string
 }
 
 //
@@ -33,6 +35,15 @@ func New(object interface{}) *Reflect {
 	r.kv = make(map[string]interface{})
 	if str, err := json.Marshal(object); err == nil {
 		_ = json.Unmarshal(str, &r.kv)
+		// 获取属性排序
+		matches := regexp.MustCompile(`"(\w+)":`).FindAllStringSubmatch(string(str), -1)
+		for _, match := range matches {
+			if len(match) == 2 {
+				r.orders = append(r.orders, match[1])
+			} else if len(match) == 1 {
+				r.orders = append(r.orders, match[0])
+			}
+		}
 	}
 	return r
 }
@@ -151,46 +162,73 @@ func (r *Reflect) ToMaps() []map[string]interface{} {
 //
 func (r *Reflect) ToMapExpandAll() map[string]interface{} {
 	final := map[string]interface{}{}
-	expandAll(final, r.kv)
+	expandAll(final, r.kv, r.orders)
 	return final
 }
 
-func expandAll(source map[string]interface{}, target map[string]interface{}) {
+func expandAll(source map[string]interface{}, target map[string]interface{}, targetOrders []string) {
+	values := map[string]interface{}{}
 	for k, v := range target {
-		// 判断值类型
-		t := reflect.TypeOf(v)
-		if t != nil {
-			switch t.Kind() {
-			case reflect.String:
-				str := v.(string)
-				var js map[string]interface{}
-				if err := json.Unmarshal([]byte(str), &js); err != nil {
-					source[k] = str
-				} else {
-					for k, v := range js {
-						source[k] = v
-					}
-				}
-			case reflect.Map:
-				mp := map[string]interface{}{}
-				expandAll(mp, v.(map[string]interface{}))
-				source[k] = mp
-			case reflect.Slice:
-				tgs := v.([]interface{})
-				mps := make([]map[string]interface{}, len(tgs))
-				for i, t := range tgs {
-					mp := map[string]interface{}{}
-					expandAll(mp, t.(map[string]interface{}))
-					mps[i] = mp
-				}
-				source[k] = mps
-			default:
-				source[k] = v
-			}
-		} else {
-			source[k] = v
+		values[k] = v
+	}
+	// 先按排序执行一次
+	if targetOrders != nil {
+		for _, k := range targetOrders {
+			doExpand(source, k, values[k])
+			delete(values, k)
 		}
 	}
+	// 然后处理剩余的
+	for k, v := range values {
+		doExpand(source, k, v)
+	}
+}
+
+func doExpand(source map[string]interface{}, k string, v interface{}) {
+	// 判断值类型
+	t := reflect.TypeOf(v)
+	if t != nil {
+		switch t.Kind() {
+		case reflect.String:
+			str := v.(string)
+			var js map[string]interface{}
+			if err := json.Unmarshal([]byte(str), &js); err != nil {
+				source[k] = str
+			} else {
+				for k, v := range js {
+					source[k] = v
+				}
+			}
+		case reflect.Map:
+			mp := map[string]interface{}{}
+			expandAll(mp, v.(map[string]interface{}), nil)
+			source[k] = mp
+		case reflect.Slice:
+			tgs := v.([]interface{})
+			mps := make([]map[string]interface{}, len(tgs))
+			for i, t := range tgs {
+				mp := map[string]interface{}{}
+				expandAll(mp, t.(map[string]interface{}), nil)
+				mps[i] = mp
+			}
+			source[k] = mps
+		default:
+			source[k] = v
+		}
+	} else {
+		source[k] = v
+	}
+}
+
+func getOrders(t reflect.Type) []string {
+	orders := make([]string, 0)
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	for i := 0; i < t.NumField(); i++ {
+		orders = append(orders, t.Field(i).Name)
+	}
+	return orders
 }
 
 //
