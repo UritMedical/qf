@@ -283,37 +283,69 @@ func (b *userBll) getFullUser(id uint64) (LoginUser, IError) {
 }
 
 func (b *userBll) buildDpTree(list []Dept) DeptTree {
+	final := make([]Dept, 0)
+	for _, l := range list {
+		b.addRoot(&final, l)
+	}
 	// 先按父类排序
-	sort.Slice(list, func(i, j int) bool {
-		if list[i].ParentId < list[j].ParentId {
+	sort.Slice(final, func(i, j int) bool {
+		if final[i].ParentId < final[j].ParentId {
 			return true
 		}
-		if list[i].Id < list[j].Id {
+		if final[i].Id < final[j].Id {
 			return true
 		}
 		return false
 	})
 	nodeMap := make(map[uint64]*DeptNode)
 	// 将所有节点存储到哈希表中
-	for _, l := range list {
+	for _, l := range final {
+		belong := false
+		for _, exist := range list {
+			if l.Id == exist.Id {
+				belong = true
+				break
+			}
+		}
 		nodeMap[l.Id] = &DeptNode{
 			Id:       l.Id,
 			Name:     l.Name,
 			ParentId: l.ParentId,
+			belong:   belong,
 			Children: nil,
 		}
 	}
 	// 构建树
 	tree := DeptTree{}
-	for _, l := range list {
+	for _, l := range final {
 		node := nodeMap[l.Id]
-		if isRoot(node.ParentId, list) {
+		if isRoot(node.ParentId, final) {
 			tree = append(tree, node)
 		} else if parentNode, ok := nodeMap[node.ParentId]; ok {
 			parentNode.Children = append(parentNode.Children, node)
 		}
 	}
 	return tree
+}
+
+func (b *userBll) addRoot(list *[]Dept, node Dept) {
+	*list = append(*list, node)
+	if node.ParentId != 0 {
+		belong := false
+		for _, exist := range *list {
+			if node.ParentId == exist.Id {
+				belong = true
+				break
+			}
+		}
+		if belong == false {
+			root := Dept{}
+			err := b.dptDal.GetModel(node.ParentId, &root)
+			if err == nil && root.Id > 0 {
+				b.addRoot(list, root)
+			}
+		}
+	}
 }
 
 func isRoot(id uint64, list []Dept) bool {
