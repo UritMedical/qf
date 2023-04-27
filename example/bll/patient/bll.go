@@ -151,6 +151,10 @@ func (b *Bll) DeleteCase(ctx *qf.Context) (interface{}, qf.IError) {
 	return nil, b.caseDal.Delete(ctx.GetId())
 }
 
+type AA struct {
+	DT qf.Date
+}
+
 //
 // GetFull
 //  @Description: 获取单个患者完整信息（基本信息+病历列表）
@@ -162,31 +166,28 @@ func (b *Bll) DeleteCase(ctx *qf.Context) (interface{}, qf.IError) {
 //  @return error
 //
 func (b *Bll) GetFull(ctx *qf.Context) (interface{}, qf.IError) {
-	ctx.LoginUser().GetDps()
+	// 通过ID检索
+	patInfo := Patient{}
+	err := b.infoDal.GetModel(ctx.GetId(), &patInfo)
+	if err != nil || patInfo.Id == 0 {
+		return nil, err
+	}
+	// 通过患者Id获取所有病历
+	caseList := make([]PatientCase, 0)
+	err = b.caseDal.GetListByPatientId(patInfo.Id, &caseList)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
-	//// 通过ID检索
-	//patInfo := Patient{}
-	//err := b.infoDal.GetModel(ctx.GetId(), &patInfo)
-	//if err != nil || patInfo.Id == 0 {
-	//	return nil, err
-	//}
-	//// 通过患者Id获取所有病历
-	//caseList := make([]PatientCase, 0)
-	//err = b.caseDal.GetListByPatientId(patInfo.Id, &caseList)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//// 返回
-	//rt := struct {
-	//	Patient interface{}
-	//	Cases   interface{}
-	//}{
-	//	Patient: util.ToMap(patInfo),
-	//	Cases:   util.ToMaps(caseList),
-	//}
-	//return rt, nil
+	// 返回
+	rt := struct {
+		Patient interface{}
+		Cases   interface{}
+	}{
+		Patient: util.ToMap(patInfo),
+		Cases:   util.ToMaps(caseList),
+	}
+	return rt, nil
 }
 
 type Info struct {

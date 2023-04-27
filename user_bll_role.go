@@ -143,6 +143,8 @@ func (b *userBll) getUserAllApis(roles []RoleInfo) map[string]byte {
 				finals[fmt.Sprintf("GET:/%s", url)] = 1
 			case "w":
 				finals[fmt.Sprintf("POST:/%s", url)] = 1
+				finals[fmt.Sprintf("PATCH:/%s", url)] = 1
+				finals[fmt.Sprintf("DELETE:/%s", url)] = 1
 			}
 		}
 	}

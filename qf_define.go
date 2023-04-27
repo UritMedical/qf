@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -232,13 +233,20 @@ type DeptTree []*DeptNode
 //
 // GetOrgList
 //  @Description: 返回所在机构列表
-//  @return int
+//  @param all 是否加载全部
+//  @return []*DeptNode
 //
-func (tree DeptTree) GetOrgList() []*DeptNode {
+func (tree DeptTree) GetOrgList(all bool) []*DeptNode {
 	nodes := make([]*DeptNode, 0)
 	for _, node := range tree.GetNodes() {
 		if node.ParentId == 0 {
-			nodes = append(nodes, node)
+			if all {
+				nodes = append(nodes, node)
+			} else {
+				if node.belong {
+					nodes = append(nodes, node)
+				}
+			}
 		}
 	}
 	return nodes
@@ -300,10 +308,11 @@ func (tree DeptTree) addNode(source *[]*DeptNode, nodes []*DeptNode) {
 //  @Description: 部门树节点
 //
 type DeptNode struct {
-	Id       uint64
-	Name     string
-	ParentId uint64
-	Children []*DeptNode
+	Id       uint64      // 部门Id
+	Name     string      // 部门名称
+	ParentId uint64      // 上级部门Id
+	belong   bool        // 用于是否有权在该节点中
+	Children []*DeptNode // 下级部门
 }
 
 var (
@@ -414,7 +423,7 @@ func (d DateTime) ToString() string {
 func (d DateTime) ToTime() time.Time {
 	str := fmt.Sprintf("%d", d)
 	if len(str) != 14 {
-		return time.Time{}
+		str = str + strings.Repeat("0", 14-len(str))
 	}
 	year, _ := strconv.Atoi(str[0:4])
 	month, _ := strconv.Atoi(str[4:6])

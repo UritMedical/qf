@@ -39,14 +39,16 @@ func ToNumber(valueStr, formatStr string) (uint64, error) {
 	layLen := len(layouts)
 	// 然后从时间字符串中提取所有数值
 	numMap := map[string]string{}
-	for i, num := range regexp.MustCompile(`\d+`).FindAllStringSubmatch(valueStr, -1) {
-		if len(num) == 0 {
-			continue
-		}
-		n, err := strconv.Atoi(num[0])
-		if err == nil && i < layLen {
-			f := "%0" + fmt.Sprintf("%d", len(layouts[i])) + "d"
-			numMap[layouts[i]] = fmt.Sprintf(f, n)
+	exp := regexp.MustCompile(`\d+`).FindAllStringSubmatch(valueStr, -1)
+	for i := 0; i < layLen; i++ {
+		f := "%0" + fmt.Sprintf("%d", len(layouts[i])) + "d"
+		if i < len(exp) && len(exp[i]) > 0 {
+			n, err := strconv.Atoi(exp[i][0])
+			if err == nil {
+				numMap[layouts[i]] = fmt.Sprintf(f, n)
+			}
+		} else {
+			numMap[layouts[i]] = fmt.Sprintf(f, 0)
 		}
 	}
 	// 按照年月日时分秒重新排序
