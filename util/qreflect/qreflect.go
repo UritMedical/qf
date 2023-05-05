@@ -185,6 +185,11 @@ func expandAll(source map[string]interface{}, target map[string]interface{}, tar
 }
 
 func doExpand(source map[string]interface{}, k string, v interface{}) {
+	if k == "Summary" || k == "Info" {
+		if v == nil || v == "" {
+			return
+		}
+	}
 	// 判断值类型
 	t := reflect.TypeOf(v)
 	if t != nil {

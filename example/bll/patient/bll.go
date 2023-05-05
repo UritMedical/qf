@@ -26,7 +26,7 @@ func (b *Bll) RegApi(a qf.ApiMap) {
 func (b *Bll) RegDal(d qf.DalMap) {
 	b.infoDal = &InfoDal{}
 	b.caseDal = &CaseDal{}
-	d.Reg(b.infoDal, nil)
+	d.Reg(b.infoDal, Patient{})
 	d.Reg(b.caseDal, nil)
 }
 
@@ -172,20 +172,12 @@ func (b *Bll) GetFull(ctx *qf.Context) (interface{}, qf.IError) {
 	if err != nil || patInfo.Id == 0 {
 		return nil, err
 	}
-	// 通过患者Id获取所有病历
-	caseList := make([]PatientCase, 0)
-	err = b.caseDal.GetListByPatientId(patInfo.Id, &caseList)
-	if err != nil {
-		return nil, err
-	}
 
 	// 返回
 	rt := struct {
 		Patient interface{}
-		Cases   interface{}
 	}{
 		Patient: util.ToMap(patInfo),
-		Cases:   util.ToMaps(caseList),
 	}
 	return rt, nil
 }
