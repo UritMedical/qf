@@ -51,7 +51,8 @@ func (s *setting) Load(path string) {
 		TokenVerify: "lis",
 		TokenWhiteList: []string{
 			"POST:/api/qf/login",
-			"POST:/api/qf/user/jwt/reset",
+			"GET:/api/vform/export",
+			"GET:/api/proj/vform/export",
 		},
 	}
 	s.WebConfig = webConfig{

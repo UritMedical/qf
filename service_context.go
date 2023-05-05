@@ -10,6 +10,7 @@ import (
 	"mime/multipart"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 //
@@ -261,6 +262,36 @@ func (ctx *Context) GetId() uint64 {
 	return ctx.GetUIntValue("Id")
 }
 
+//
+// GetSummaryFields
+//  @Description: 获取指定的摘要字段集合
+//  @return map[string]interface{}
+//
+func (ctx *Context) GetSummaryFields() map[string]interface{} {
+	mp := map[string]interface{}{}
+	if len(ctx.inputValue) > 0 {
+		for _, name := range strings.Split(ctx.GetStringValue("SummaryFields"), ",") {
+			mp[name] = ctx.inputValue[0][name]
+		}
+	}
+	return mp
+}
+
+//
+// GetInfoFields
+//  @Description: 获取指定的信息字段集合
+//  @return map[string]interface{}
+//
+func (ctx *Context) GetInfoFields() map[string]interface{} {
+	mp := map[string]interface{}{}
+	if len(ctx.inputValue) > 0 {
+		for _, name := range strings.Split(ctx.GetStringValue("InfoFields"), ",") {
+			mp[name] = ctx.inputValue[0][name]
+		}
+	}
+	return mp
+}
+
 //-----------------------------------------------------------------------
 
 func (ctx *Context) loadInput(body []byte) error {
@@ -331,7 +362,7 @@ func (ctx *Context) build(source map[string]interface{}, exclude map[string]inte
 	return BaseModel{
 		Id:       nid,
 		LastTime: ctx.time,
-		FullInfo: info,
+		Info:     info,
 	}
 }
 

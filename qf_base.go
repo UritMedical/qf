@@ -2,6 +2,7 @@ package qf
 
 import (
 	"fmt"
+	"github.com/UritMedical/qf/util/qreflect"
 	"gorm.io/gorm"
 	"reflect"
 	"strings"
@@ -182,6 +183,10 @@ func (b *BaseDal) DB() *gorm.DB {
 //  @return IError 异常
 //
 func (b *BaseDal) Create(content interface{}) IError {
+	ref := qreflect.New(content)
+	if ref.Get("LastTime") == "0001-01-01 00:00:00" {
+		_ = ref.Set("LastTime", NowDateTime())
+	}
 	// 提交
 	result := b.DB().Create(content)
 	if result.RowsAffected > 0 {
@@ -200,6 +205,10 @@ func (b *BaseDal) Create(content interface{}) IError {
 //  @return IError 异常
 //
 func (b *BaseDal) Save(content interface{}) IError {
+	ref := qreflect.New(content)
+	if ref.Get("LastTime") == "0001-01-01 00:00:00" {
+		_ = ref.Set("LastTime", NowDateTime())
+	}
 	// 提交
 	result := b.DB().Save(content)
 	if result.RowsAffected > 0 {
@@ -237,6 +246,21 @@ func (b *BaseDal) Delete(id uint64) IError {
 //
 func (b *BaseDal) GetModel(id uint64, dest interface{}) IError {
 	result := b.DB().Where("Id = ?", id).Find(dest)
+	// 如果异常或者未查询到任何数据
+	if result.Error != nil {
+		return Error(ErrorCodeRecordNotFound, result.Error.Error())
+	}
+	return nil
+}
+
+//
+// GetSummary
+//  @Description: 仅获取单条摘要
+//  @param id
+//  @return IError
+//
+func (b *BaseDal) GetSummary(id uint64, dest interface{}) IError {
+	result := b.DB().Where("Id = ?", id).Omit("Info").Find(dest)
 	// 如果异常或者未查询到任何数据
 	if result.Error != nil {
 		return Error(ErrorCodeRecordNotFound, result.Error.Error())

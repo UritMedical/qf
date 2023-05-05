@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/UritMedical/qf/util/qreflect"
 	"reflect"
+	"strings"
 )
 
 //
@@ -67,13 +68,13 @@ func SetModel(objectPtr interface{}, value map[string]interface{}) error {
 
 	// 修改外部值
 	if value != nil {
-		e := ref.Set(value)
+		e := ref.SetAny(value)
 		if e != nil {
 			return e
 		}
 	}
-	// 修改FullInfo
-	return setFullInfo(ref, value)
+	// 修改Info
+	return setInfo(ref, value)
 }
 
 //
@@ -95,41 +96,93 @@ func SetList(objectPtr interface{}, values []map[string]interface{}) error {
 
 	// 修改外部值
 	if values != nil {
-		e := ref.Set(values)
+		e := ref.SetAny(values)
 		if e != nil {
 			return e
 		}
 	}
-	// 修改FullInfo
+	// 修改Info
 	objs := ref.InterfaceArray()
 	for i, obj := range objs {
-		e := setFullInfo(qreflect.New(obj), values[i])
+		e := setInfo(qreflect.New(obj), values[i])
 		if e != nil {
 			return e
 		}
 	}
 	ref.Clear()
-	return ref.Set(objs)
+	return ref.SetAny(objs)
 }
 
-func setFullInfo(ref *qreflect.Reflect, value map[string]interface{}) error {
+func setInfo(ref *qreflect.Reflect, value map[string]interface{}) error {
 	all := ref.ToMap()
-	if info, ok := all["FullInfo"]; ok {
-		str := info.(string)
+
+	// 复制一份
+	temp := map[string]interface{}{}
+	for k, v := range value {
+		temp[k] = v
+	}
+
+	// 转摘要
+	if field, ok := temp["SummaryFields"]; ok && field != "" {
+		e := ref.Set("Summary", fields(field, all["Summary"], all, &temp))
+		if e != nil {
+			return e
+		}
+	}
+	// 转信息
+	if field, ok := temp["InfoFields"]; ok && field != "" {
+		e := ref.Set("Info", fields(field, all["Info"], all, &temp))
+		if e != nil {
+			return e
+		}
+		return nil
+	}
+
+	// 将剩余的全部写入到Info中
+	if info, ok := all["Info"]; ok {
 		mp := map[string]interface{}{}
-		err := json.Unmarshal([]byte(str), &mp)
-		if err == nil || str == "" {
-			for k, v := range value {
-				if _, ok := all[k]; ok == false {
-					mp[k] = v
-				}
+		_ = json.Unmarshal([]byte(info.(string)), &mp)
+		for k, v := range temp {
+			if k == "SummaryFields" || k == "InfoFields" {
+				continue
 			}
-			mj, _ := json.Marshal(mp)
-			e := ref.Set(map[string]interface{}{"FullInfo": string(mj)})
-			if e != nil {
-				return e
+			if _, ok := all[k]; ok == false {
+				mp[k] = v
 			}
+		}
+		mj, _ := json.Marshal(mp)
+		e := ref.Set("Info", string(mj))
+		if e != nil {
+			return e
 		}
 	}
 	return nil
+}
+
+func fields(field interface{}, source interface{}, all map[string]interface{}, values *map[string]interface{}) string {
+	if field == nil || field.(string) == "" {
+		return ""
+	}
+	// 获取原始数据并转为字典
+	mp := map[string]interface{}{}
+	if source != nil {
+		_ = json.Unmarshal([]byte(source.(string)), &mp)
+	}
+	// 获取需要的值
+	temp := *values
+	for _, name := range strings.Split(field.(string), ",") {
+		if _, ok := all[name]; ok == false {
+			if _, ok2 := temp[name]; ok2 {
+				mp[name] = temp[name]
+				delete(temp, name)
+			}
+		}
+	}
+	values = &temp
+	// 返回
+	if len(mp) == 0 {
+		return ""
+	}
+	mj, _ := json.Marshal(mp)
+	return string(mj)
 }
