@@ -21,13 +21,15 @@ type userConfig struct {
 }
 
 type webConfig struct {
-	GinRelease byte       `comment:"是否启动gin的release版本 0否 1是"`
-	DefGroup   string     `comment:"路由的默认所在组"`
-	Static     [][]string `toml:",multiline" comment:"静态资源配置，格式为：相对路径,root路径"`
-	StaticFile [][]string `toml:",multiline" comment:"静态资源配置，格式为：相对路径,文件路径"`
-	Any        []string   `toml:",multiline" comment:"特殊路由注册"`
-	Mime       [][]string `toml:",multiline" comment:"MIME文件扩展名配置，格式为：文件后缀名,类型"`
-	ShortRoute [][]string `toml:",multiline" comment:"短路由配置，格式为：短路由,实际路由（如：['/item', '/dist/#/setting/item']）"`
+	ReleaseMode byte       `comment:"是否启动gin的release版本 0否 1是"`
+	HistoryMode byte       `comment:"是否支持HistoryMode 0否 1是"`
+	IndexFile   string     `comment:"首页文件路径"`
+	DefGroup    string     `comment:"路由的默认所在组"`
+	Static      [][]string `toml:",multiline" comment:"静态资源配置，格式为：相对路径,root路径"`
+	StaticFile  [][]string `toml:",multiline" comment:"静态资源配置，格式为：相对路径,文件路径"`
+	Any         []string   `toml:",multiline" comment:"特殊路由注册"`
+	Mime        [][]string `toml:",multiline" comment:"MIME文件扩展名配置，格式为：文件后缀名,类型"`
+	ShortRoute  [][]string `toml:",multiline" comment:"短路由配置，格式为：短路由,实际路由（如：['/item', '/dist/#/setting/item']）"`
 }
 
 type gormConfig struct {
@@ -56,8 +58,10 @@ func (s *setting) Load(path string) {
 		},
 	}
 	s.WebConfig = webConfig{
-		GinRelease: 0,
-		DefGroup:   "api",
+		ReleaseMode: 0,
+		HistoryMode: 1,
+		IndexFile:   "./res/index.html",
+		DefGroup:    "api",
 		Static: [][]string{
 			{"/assets", "./res/assets"},
 			{"/js", "./res/js"},
@@ -66,6 +70,7 @@ func (s *setting) Load(path string) {
 		},
 		StaticFile: [][]string{
 			{"/", "./res/index.html"},
+			{"/favicon.ico", "./res/favicon.ico"},
 		},
 		Any: []string{
 			"index.html/*any",

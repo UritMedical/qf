@@ -144,12 +144,15 @@ func newService() *Service {
 	// 初始化Id分配器
 	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1001, db)
 	// 创建Gin服务
-	if s.setting.WebConfig.GinRelease == 1 {
+	if s.setting.WebConfig.ReleaseMode == 1 {
 		gin.SetMode(gin.ReleaseMode)
 		gin.DefaultWriter = ioutil.Discard
 	}
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
+	if s.setting.WebConfig.HistoryMode == 1 {
+		s.engine.NoRoute(s.historyMode())
+	}
 	s.initApiRouter()
 	// 创建静态资源
 	for _, static := range s.setting.WebConfig.Static {
@@ -444,6 +447,25 @@ func (s *Service) getCors() gin.HandlerFunc {
 		}
 		// 处理请求
 		c.Next()
+	}
+}
+
+func (s *Service) historyMode() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		accept := c.Request.Header.Get("Accept")
+		flag := strings.Contains(accept, "text/html")
+		if flag {
+			content, err := ioutil.ReadFile(s.setting.WebConfig.IndexFile)
+			if (err) != nil {
+				c.Writer.WriteHeader(404)
+				_, _ = c.Writer.WriteString("Not Found")
+				return
+			}
+			c.Writer.WriteHeader(200)
+			c.Writer.Header().Add("Accept", "text/html")
+			_, _ = c.Writer.Write(content)
+			c.Writer.Flush()
+		}
 	}
 }
 
