@@ -362,7 +362,7 @@ func (ctx *Context) build(source map[string]interface{}, exclude map[string]inte
 	return BaseModel{
 		Id:       nid,
 		LastTime: ctx.time,
-		Info:     info,
+		FullInfo: info,
 	}
 }
 

@@ -185,7 +185,7 @@ func expandAll(source map[string]interface{}, target map[string]interface{}, tar
 }
 
 func doExpand(source map[string]interface{}, k string, v interface{}) {
-	if k == "Summary" || k == "Info" {
+	if k == "Summary" || k == "FullInfo" {
 		if v == nil || v == "" {
 			return
 		}

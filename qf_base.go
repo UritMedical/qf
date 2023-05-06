@@ -155,12 +155,12 @@ func (b *BaseDal) init(db *gorm.DB, model interface{}) {
 	if model != nil {
 		b.tableName = buildTableName(model)
 		// 自动生成表
-		if db.Migrator().HasTable(b.tableName) == false {
-			err := db.Table(b.tableName).AutoMigrate(model)
-			if err != nil {
-				panic(fmt.Sprintf("AutoMigrate %s failed: %s", b.tableName, err.Error()))
-			}
+		//if db.Migrator().HasTable(b.tableName) == false {
+		err := db.Table(b.tableName).AutoMigrate(model)
+		if err != nil {
+			panic(fmt.Sprintf("AutoMigrate %s failed: %s", b.tableName, err.Error()))
 		}
+		//}
 	}
 }
 
@@ -260,7 +260,7 @@ func (b *BaseDal) GetModel(id uint64, dest interface{}) IError {
 //  @return IError
 //
 func (b *BaseDal) GetSummary(id uint64, dest interface{}) IError {
-	result := b.DB().Where("Id = ?", id).Omit("Info").Find(dest)
+	result := b.DB().Where("Id = ?", id).Omit("FullInfo").Find(dest)
 	// 如果异常或者未查询到任何数据
 	if result.Error != nil {
 		return Error(ErrorCodeRecordNotFound, result.Error.Error())

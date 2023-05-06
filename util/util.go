@@ -131,7 +131,7 @@ func setInfo(ref *qreflect.Reflect, value map[string]interface{}) error {
 	}
 	// 转信息
 	if field, ok := temp["InfoFields"]; ok && field != "" {
-		e := ref.Set("Info", fields(field, all["Info"], all, &temp))
+		e := ref.Set("FullInfo", fields(field, all["FullInfo"], all, &temp))
 		if e != nil {
 			return e
 		}
@@ -139,7 +139,7 @@ func setInfo(ref *qreflect.Reflect, value map[string]interface{}) error {
 	}
 
 	// 将剩余的全部写入到Info中
-	if info, ok := all["Info"]; ok {
+	if info, ok := all["FullInfo"]; ok {
 		mp := map[string]interface{}{}
 		_ = json.Unmarshal([]byte(info.(string)), &mp)
 		for k, v := range temp {
@@ -151,7 +151,7 @@ func setInfo(ref *qreflect.Reflect, value map[string]interface{}) error {
 			}
 		}
 		mj, _ := json.Marshal(mp)
-		e := ref.Set("Info", string(mj))
+		e := ref.Set("FullInfo", string(mj))
 		if e != nil {
 			return e
 		}

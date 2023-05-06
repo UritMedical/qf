@@ -10,7 +10,7 @@ import (
 )
 
 //TODO 开发者密码要可以配置
-var devUser = User{BaseModel: BaseModel{Id: 1, Info: "{\"Name\":\"Developer\"}"},
+var devUser = User{BaseModel: BaseModel{Id: 1, FullInfo: "{\"Name\":\"Developer\"}"},
 	LoginId: "developer", Password: convertToMD5([]byte("lisurit"))}
 
 const (
@@ -123,7 +123,7 @@ func (b *userBll) initDefUser() {
 	const adminId = 2
 	if len(list) == 0 {
 		_ = b.userDal.Save(&User{
-			BaseModel: BaseModel{Id: adminId, Info: "{\"Name\":\"Admin\"}"},
+			BaseModel: BaseModel{Id: adminId, FullInfo: "{\"Name\":\"Admin\"}"},
 			LoginId:   "admin",
 			Password:  convertToMD5([]byte("admin123"))})
 	}

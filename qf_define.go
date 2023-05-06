@@ -199,7 +199,7 @@ type BaseModel struct {
 	Id       uint64   `gorm:"primaryKey"` // 唯一号
 	LastTime DateTime `gorm:"index"`      // 最后操作时间时间
 	Summary  string   // 摘要
-	Info     string   // 其他扩展内容
+	FullInfo string   // 其他扩展内容
 }
 
 //
