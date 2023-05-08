@@ -18,6 +18,7 @@ type BaseBll struct {
 	qfGroup  string // 框架路径组
 	subGroup string // 自定义路径组
 	sub      IBll   // 子接口
+	dalMap   DalMap // 该业务的所有数据访问层
 }
 
 func (bll *BaseBll) set(sub IBll, qfGroup, subGroup string) {
@@ -62,13 +63,19 @@ func (bll *BaseBll) regMsg(bind func(key string, handler MessageHandler)) {
 }
 
 func (bll *BaseBll) regDal(db *gorm.DB) {
-	dal := DalMap{
+	bll.dalMap = DalMap{
 		bllName: bll.key(),
 		dict:    map[IDal]interface{}{},
 	}
-	bll.sub.RegDal(dal)
-	for d, model := range dal.dict {
-		d.init(db, model)
+	bll.sub.RegDal(bll.dalMap)
+	for d, model := range bll.dalMap.dict {
+		d.init(db, model, false)
+	}
+}
+
+func (bll *BaseBll) reMigrator(db *gorm.DB) {
+	for d, model := range bll.dalMap.dict {
+		d.init(db, model, true)
 	}
 }
 
@@ -142,25 +149,33 @@ type BaseDal struct {
 }
 
 //
-// initDB
+// init
 //  @Description: 初始化数据库
-//  @receiver b
 //  @param db
-//  @param pkgName
 //  @param model
+//  @param migrator
 //
-func (b *BaseDal) init(db *gorm.DB, model interface{}) {
+func (b *BaseDal) init(db *gorm.DB, model interface{}, migrator bool) {
 	b.db = db
 	// 根据实体名称，生成数据库
 	if model != nil {
 		b.tableName = buildTableName(model)
 		// 自动生成表
-		//if db.Migrator().HasTable(b.tableName) == false {
-		err := db.Table(b.tableName).AutoMigrate(model)
-		if err != nil {
-			panic(fmt.Sprintf("AutoMigrate %s failed: %s", b.tableName, err.Error()))
+		if migrator {
+			// 每次都生成
+			err := db.Table(b.tableName).AutoMigrate(model)
+			if err != nil {
+				panic(fmt.Sprintf("AutoMigrate %s failed: %s", b.tableName, err.Error()))
+			}
+		} else {
+			// 仅第一次生成
+			if db.Migrator().HasTable(b.tableName) == false {
+				err := db.Table(b.tableName).AutoMigrate(model)
+				if err != nil {
+					panic(fmt.Sprintf("AutoMigrate %s failed: %s", b.tableName, err.Error()))
+				}
+			}
 		}
-		//}
 	}
 }
 

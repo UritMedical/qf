@@ -274,6 +274,12 @@ func (s *Service) reg() {
 	}
 }
 
+func (s *Service) reMigrator() {
+	for _, bll := range s.bllList {
+		bll.reMigrator(s.db)
+	}
+}
+
 //
 // init
 //  @Description: 服务初始化
@@ -412,7 +418,7 @@ func (s *Service) returnInvalid(ctx *gin.Context, err IError) {
 
 func (s *Service) returnError(ctx *gin.Context, err IError) {
 	// 记录日志
-	qerror.Write(fmt.Sprintf("%s %d %s %s\n", ctx.Request.URL, err.Code(), s.errCodes[err.Code()], err.Error()))
+	qerror.Write(fmt.Sprintf("\n\t%s %d %s %s", ctx.Request.URL, err.Code(), s.errCodes[err.Code()], err.Error()))
 
 	msg := map[string]interface{}{}
 	msg["code"] = err.Code()
@@ -481,6 +487,14 @@ func (s *Service) initApiRouter() {
 			"status": http.StatusOK,
 			"msg":    "success",
 			"data":   apis,
+		})
+	})
+	router.POST("/qf/migratorDB", func(ctx *gin.Context) {
+		s.reMigrator()
+		ctx.JSON(http.StatusOK, gin.H{
+			"status": http.StatusOK,
+			"msg":    "success",
+			"data":   "",
 		})
 	})
 }

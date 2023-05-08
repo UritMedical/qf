@@ -7,6 +7,7 @@ import (
 	"github.com/UritMedical/qf/util/qid"
 	"github.com/UritMedical/qf/util/qio"
 	"github.com/UritMedical/qf/util/qreflect"
+	"github.com/gobeam/stringy"
 	"mime/multipart"
 	"reflect"
 	"strconv"
@@ -212,20 +213,6 @@ func (ctx *Context) BuildFileByStream(fileName string, fileData []byte) (File, I
 }
 
 //
-// GetJsonValue
-//  @Description: 获取指定属性值，并返回json格式
-//  @param propName
-//  @return string
-//
-func (ctx *Context) GetJsonValue(propName string) string {
-	if len(ctx.inputValue) == 0 {
-		return ""
-	}
-	nj, _ := json.Marshal(ctx.inputValue[0][propName])
-	return string(nj)
-}
-
-//
 // GetStringValue
 //  @Description: 获取指定属性值，并返回字符串格式
 //  @param propName
@@ -235,11 +222,36 @@ func (ctx *Context) GetStringValue(propName string) string {
 	if len(ctx.inputValue) == 0 {
 		return ""
 	}
-	v := ctx.inputValue[0][propName]
-	if v == nil {
-		v = ""
+	var value interface{}
+	if _, ok := ctx.inputValue[0][propName]; ok {
+		// 如果存在
+		value = ctx.inputValue[0][propName]
+	} else {
+		str := stringy.New(propName).CamelCase("?", "")
+		// 如果不存在，尝试查找
+		for k, v := range ctx.inputValue[0] {
+			if strings.ToLower(str) == strings.ToLower(stringy.New(k).CamelCase("?", "")) {
+				value = v
+				break
+			}
+		}
 	}
-	return fmt.Sprintf("%v", v)
+	// 返回
+	if value == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v", value)
+}
+
+//
+// GetJsonValue
+//  @Description: 获取指定属性值，并返回json格式
+//  @param propName
+//  @return string
+//
+func (ctx *Context) GetJsonValue(propName string) string {
+	nj, _ := json.Marshal(ctx.GetStringValue(propName))
+	return string(nj)
 }
 
 //

@@ -28,6 +28,7 @@ type IBll interface {
 	regApi(bind func(key string, handler ApiHandler))     // 框架注册方法
 	regMsg(bind func(key string, handler MessageHandler)) // 框架注册方法
 	regDal(db *gorm.DB)                                   // 框架注册方法
+	reMigrator(db *gorm.DB)                               // 框架注册方法
 	regError(bind func(code int, err string))             // 框架注册方法
 	regRef(getApi func(key string) ApiHandler)            // 框架注册方法
 	Debug(content string)                                 // 调试日志
@@ -49,7 +50,7 @@ type IDal interface {
 	GetCount(query interface{}, args ...interface{}) int64          // 根据条件获取数量
 	CheckExists(id uint64) bool                                     // 检测Id是否存在
 	// 框架内部实现的方法
-	init(db *gorm.DB, model interface{})
+	init(db *gorm.DB, model interface{}, migrator bool)
 }
 
 // EApiKind 行为类别

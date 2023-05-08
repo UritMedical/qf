@@ -64,7 +64,7 @@ func Write(errMsg string) {
 	log := ""
 	color.New(color.FgWhite).PrintfFunc()(qdate.ToString(time.Now(), "yyyy-MM-dd HH:mm:ss"))
 	log += qdate.ToString(time.Now(), "yyyy-MM-dd HH:mm:ss")
-	color.New(color.FgRed, color.Bold).PrintfFunc()(" [ERROR] %s", errMsg)
+	color.New(color.FgRed, color.Bold).PrintfFunc()(" [ERROR] %s\n", errMsg)
 	log += fmt.Sprintf(" [ERROR] %s\n", errMsg)
 
 	logFile := fmt.Sprintf("%s/%s_Error.log", "./log", qdate.ToString(time.Now(), "yyyy-MM-dd"))
