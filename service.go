@@ -144,12 +144,15 @@ func newService() *Service {
 	// 初始化Id分配器
 	s.idAllocator = qid.NewIdAllocatorByDB(s.setting.Id, 1001, db)
 	// 创建Gin服务
-	if s.setting.WebConfig.GinRelease == 1 {
+	if s.setting.WebConfig.ReleaseMode == 1 {
 		gin.SetMode(gin.ReleaseMode)
 		gin.DefaultWriter = ioutil.Discard
 	}
 	s.engine = gin.Default()
 	s.engine.Use(s.getCors())
+	if s.setting.WebConfig.HistoryMode == 1 {
+		s.engine.NoRoute(s.historyMode())
+	}
 	s.initApiRouter()
 	// 创建静态资源
 	for _, static := range s.setting.WebConfig.Static {
@@ -268,6 +271,12 @@ func (s *Service) reg() {
 			}
 			s.errCodes[code] = err
 		})
+	}
+}
+
+func (s *Service) reMigrator() {
+	for _, bll := range s.bllList {
+		bll.reMigrator(s.db)
 	}
 }
 
@@ -409,7 +418,7 @@ func (s *Service) returnInvalid(ctx *gin.Context, err IError) {
 
 func (s *Service) returnError(ctx *gin.Context, err IError) {
 	// 记录日志
-	qerror.Write(fmt.Sprintf("%s %d %s %s\n", ctx.Request.URL, err.Code(), s.errCodes[err.Code()], err.Error()))
+	qerror.Write(fmt.Sprintf("\n\t%s %d %s %s", ctx.Request.URL, err.Code(), s.errCodes[err.Code()], err.Error()))
 
 	msg := map[string]interface{}{}
 	msg["code"] = err.Code()
@@ -447,6 +456,25 @@ func (s *Service) getCors() gin.HandlerFunc {
 	}
 }
 
+func (s *Service) historyMode() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		accept := c.Request.Header.Get("Accept")
+		flag := strings.Contains(accept, "text/html")
+		if flag {
+			content, err := ioutil.ReadFile(s.setting.WebConfig.IndexFile)
+			if (err) != nil {
+				c.Writer.WriteHeader(404)
+				_, _ = c.Writer.WriteString("Not Found")
+				return
+			}
+			c.Writer.WriteHeader(200)
+			c.Writer.Header().Add("Accept", "text/html")
+			_, _ = c.Writer.Write(content)
+			c.Writer.Flush()
+		}
+	}
+}
+
 func (s *Service) initApiRouter() {
 	router := s.engine.Group(s.setting.WebConfig.DefGroup)
 	router.GET("/qf/allApis", func(ctx *gin.Context) {
@@ -459,6 +487,14 @@ func (s *Service) initApiRouter() {
 			"status": http.StatusOK,
 			"msg":    "success",
 			"data":   apis,
+		})
+	})
+	router.POST("/qf/migratorDB", func(ctx *gin.Context) {
+		s.reMigrator()
+		ctx.JSON(http.StatusOK, gin.H{
+			"status": http.StatusOK,
+			"msg":    "success",
+			"data":   "",
 		})
 	})
 }

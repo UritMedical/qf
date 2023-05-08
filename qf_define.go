@@ -28,6 +28,7 @@ type IBll interface {
 	regApi(bind func(key string, handler ApiHandler))     // 框架注册方法
 	regMsg(bind func(key string, handler MessageHandler)) // 框架注册方法
 	regDal(db *gorm.DB)                                   // 框架注册方法
+	reMigrator(db *gorm.DB)                               // 框架注册方法
 	regError(bind func(code int, err string))             // 框架注册方法
 	regRef(getApi func(key string) ApiHandler)            // 框架注册方法
 	Debug(content string)                                 // 调试日志
@@ -49,7 +50,7 @@ type IDal interface {
 	GetCount(query interface{}, args ...interface{}) int64          // 根据条件获取数量
 	CheckExists(id uint64) bool                                     // 检测Id是否存在
 	// 框架内部实现的方法
-	init(db *gorm.DB, model interface{})
+	init(db *gorm.DB, model interface{}, migrator bool)
 }
 
 // EApiKind 行为类别
@@ -198,7 +199,8 @@ func (ref RefMap) Load(kind EApiKind, router string) ApiHandler {
 type BaseModel struct {
 	Id       uint64   `gorm:"primaryKey"` // 唯一号
 	LastTime DateTime `gorm:"index"`      // 最后操作时间时间
-	FullInfo string   // 内容
+	Summary  string   // 摘要
+	FullInfo string   // 其他扩展内容
 }
 
 //
@@ -352,9 +354,12 @@ func (d Date) ToString() string {
 //
 //goland:noinspection GoMixedReceiverTypes
 func (d Date) ToTime() time.Time {
+	if d == 0 {
+		return time.Time{}
+	}
 	str := fmt.Sprintf("%d", d)
 	if len(str) != 8 {
-		return time.Time{}
+		str = str + strings.Repeat("0", 8-len(str))
 	}
 	year, _ := strconv.Atoi(str[0:4])
 	month, _ := strconv.Atoi(str[4:6])
@@ -392,6 +397,17 @@ func (d *Date) UnmarshalJSON(data []byte) error {
 type DateTime uint64
 
 //
+// NowDateTime
+//  @Description: 当前系统时间
+//  @return DateTime
+//
+func NowDateTime() DateTime {
+	var now DateTime
+	now.FromTime(time.Now().Local())
+	return now
+}
+
+//
 // FromTime
 //  @Description: 通过原生的time赋值
 //  @param time
@@ -402,6 +418,18 @@ func (d *DateTime) FromTime(time time.Time) {
 	s := fmt.Sprintf("%04d%02d%02d%02d%02d%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
 	v, _ := strconv.ParseUint(s, 10, 64)
 	*d = DateTime(v)
+}
+
+//
+// Date
+//  @Description: 转为日期
+//  @return Date
+//
+//goland:noinspection GoMixedReceiverTypes
+func (d DateTime) Date() Date {
+	var date Date
+	date.FromTime(d.ToTime())
+	return date
 }
 
 //
@@ -421,6 +449,9 @@ func (d DateTime) ToString() string {
 //
 //goland:noinspection GoMixedReceiverTypes
 func (d DateTime) ToTime() time.Time {
+	if d == 0 {
+		return time.Time{}
+	}
 	str := fmt.Sprintf("%d", d)
 	if len(str) != 14 {
 		str = str + strings.Repeat("0", 14-len(str))

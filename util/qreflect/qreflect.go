@@ -185,6 +185,11 @@ func expandAll(source map[string]interface{}, target map[string]interface{}, tar
 }
 
 func doExpand(source map[string]interface{}, k string, v interface{}) {
+	if k == "Summary" || k == "FullInfo" {
+		if v == nil || v == "" {
+			return
+		}
+	}
 	// 判断值类型
 	t := reflect.TypeOf(v)
 	if t != nil {
@@ -220,24 +225,46 @@ func doExpand(source map[string]interface{}, k string, v interface{}) {
 	}
 }
 
-func getOrders(t reflect.Type) []string {
-	orders := make([]string, 0)
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-	for i := 0; i < t.NumField(); i++ {
-		orders = append(orders, t.Field(i).Name)
-	}
-	return orders
+//func getOrders(t reflect.Type) []string {
+//	orders := make([]string, 0)
+//	if t.Kind() == reflect.Ptr {
+//		t = t.Elem()
+//	}
+//	for i := 0; i < t.NumField(); i++ {
+//		orders = append(orders, t.Field(i).Name)
+//	}
+//	return orders
+//}
+
+//
+// Get
+//  @Description: 获取属性值
+//  @param name 属性名
+//  @return interface
+//
+func (r *Reflect) Get(name string) interface{} {
+	return r.ToMapExpandAll()[name]
 }
 
 //
 // Set
-//  @Description: 将结构体或字典写入到对象中，支持结构体和切片
-//  @param map[string]interface{}
+//  @Description: 设置属性值
+//  @param name 属性名
+//  @param value 值
 //  @return error
 //
-func (r *Reflect) Set(values ...interface{}) error {
+func (r *Reflect) Set(name string, value interface{}) error {
+	return r.SetAny(map[string]interface{}{name: value})
+}
+
+//
+// SetAny
+//  @Description: 将任意对象写入到对象中
+//  @param mapOrStructOrSlice 字典、结构体、切片
+//  @return error
+//
+func (r *Reflect) SetAny(mapOrStructOrSlice ...interface{}) error {
+	values := mapOrStructOrSlice
 	if values == nil || len(values) == 0 {
 		return errors.New("the value 's length must be greater than 0")
 	}
